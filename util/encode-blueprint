@@ -1,0 +1,15 @@
+#!/usr/bin/env python3
+
+import zlib
+from base64 import b64encode
+import json
+import sys
+
+json_str = sys.stdin.buffer.read()
+compressed = zlib.compress(json_str, level = 9)
+encoded = b64encode(compressed)
+
+sys.stdout.buffer.write(b'0')
+sys.stdout.buffer.write(encoded)
+sys.stdout.buffer.write(b'\n')
+

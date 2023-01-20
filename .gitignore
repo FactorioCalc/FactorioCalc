@@ -1,0 +1,8 @@
+__pycache__
+*.pyc
+dist/
+dist-bk/
+docs/_build/
+docs/reference.rst
+docs/description.rst
+factoriocalc.egg-info/

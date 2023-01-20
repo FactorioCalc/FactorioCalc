@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+
+import zlib
+from base64 import b64decode
+import json
+import sys
+
+bp_str = sys.stdin.read()
+
+decoded = b64decode(bp_str[1:])
+decompressed = zlib.decompress(decoded)
+
+sys.stdout.buffer.write(decompressed)
