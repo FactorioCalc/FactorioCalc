@@ -146,6 +146,16 @@ class Box(BoxBase):
             from .jsonconv import _jsonObj
             return {k.name: _jsonObj(v) for k,v in self.items()}
 
+    class Proportions(list):
+        __slots__ = ()
+        def __init__(self, vals = None):
+            if vals is None:
+                return
+            for num, item in vals:
+                num = frac(num)
+                item = asItem(item)
+                self.append((num, item))
+
     class Priorities(_Dict):
         __slots__ = ()
         def __str__(self):
@@ -166,12 +176,13 @@ class Box(BoxBase):
     outputs: Outputs
     inputs: Inputs
     constraints: Constraints
+    proportions: Proportions
     priorities: Priorities
 
     def __init__(self, inner, *, name = None,
                  outputs = None, extraOutputs = (), outputTouchups = {}, outputsLoose = False,
                  inputs = None, extraInputs = (), inputTouchups = {}, inputsLoose = True,
-                 constraints = None, priorities = None,
+                 constraints = None, proportions = None, priorities = None,
                  allowExtraInput = False):
         """Create a new box.
 
@@ -227,6 +238,9 @@ class Box(BoxBase):
 
               <key-item> = <num> * <item>
 
+        *proportions*
+            WRITE ME
+
         *priority* 
             A mapping of priories for the solver.  The key is either a
             recipe or an item.  The value in a number between -100 and 100
@@ -247,6 +261,7 @@ class Box(BoxBase):
         self.inputs = Box.Inputs(inputs)
         self.priorities = Box.Priorities(priorities)
         self.constraints = Box.Constraints(constraints)
+        self.proportions = Box.Proportions(proportions)
         if outputs is None or inputs is None:
             inputs_ = set()
             outputs_ = set()
