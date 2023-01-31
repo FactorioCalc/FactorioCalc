@@ -497,9 +497,7 @@ class LinearEqSystem:
         for row in eqs.values():
             if not row.target and row.id is not itm.electricity:
                 row.target = [_Target(EQ, 0)]
-        for item, rate in box.constraints.items():
-            if type(rate) is tuple:
-                raise NotImplementedError
+        for item, rate in box.simpleConstraints.items():
             row = eqs[item]
             row.target.append(_Target(GE, rate))
             if rate < 0 and any(term.rate > 0 for term in row.terms):
@@ -551,24 +549,18 @@ class LinearEqSystem:
               eqId = LinearEqId(id(box), eq.id, q)
               eqs[eqId] = LinearEq(eqId, tuple(eq.terms), target.cond, target.rate)
 
-        # for item1, rate in box.constraints.items():
-        #     if type(rate) is not tuple:
-        #         continue
-        #     mul, item2 = rate
-        #     eqId = LinearEqId(id(box), item1, 'c')
-        #     eqs[eqId] = LinearEq(eqId,
-        #                          (*external[None][item1], *(Term(v, -r*mul) for v, r in external[None][item2])),
-        #                          EQ, 0)
-        #     print(eqs[eqId])
-
-        for i in range(len(box.proportions)-1):
-            mul1, item1 = box.proportions[i]
-            mul2, item2 = box.proportions[i+1]
-            eqId = LinearEqId(id(box), item1, 'c')
-            eqs[eqId] = LinearEq(eqId,
-                                 (*(Term(v, r*mul1) for v, r in external[None][item1]),
-                                  *(Term(v, -r*mul2) for v, r in external[None][item2])),
-                                 EQ, 0)
+        for i, c in enumerate(box.otherConstraints):
+            if isinstance(c, AtLeast):
+                raise NotImplementedError
+            elif isinstance(c, Equal):
+                for j in range(len(c)-1):
+                   mul1, item1 = c[j]
+                   mul2, item2 = c[j+1]
+                   eqId = LinearEqId(id(box), item1, f'c{i}')
+                   eqs[eqId] = LinearEq(eqId,
+                                        (*(Term(v, r*mul1) for v, r in external[None][item1]),
+                                         *(Term(v, -r*mul2) for v, r in external[None][item2])),
+                                        EQ, 0)
             
         #sortedEqs = sorted(eqs.values(), key = lambda v: v.target)
         #eqs = {row.id: row for row in sortedEqs}

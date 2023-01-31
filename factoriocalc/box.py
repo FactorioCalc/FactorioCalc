@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from copy import copy as _copy
 from numbers import Number
 import sys
+import operator
 
 from .fracs import frac, div, ceil, Inf
 from .core import *
@@ -11,7 +12,7 @@ from .core import _MutableFlows,NetFlows
 from ._helper import asItem
 from . import itm
 
-__all__ = ('BoxBase', 'Box', 'UnboundedBox', 'BlackBox')
+__all__ = ('BoxBase', 'Equal', 'AtLeast', 'Box', 'UnboundedBox', 'BlackBox')
 
 class BoxFlows(NetFlows):
     def _showFlow(self, flow):
@@ -46,6 +47,77 @@ class BoxBase(MachineBase):
             lst.append(self)
         else:
             lst.append(Mul(self, num))
+
+class Term(tuple):
+    num = property(operator.itemgetter(0))
+    num.__doc__ = None
+
+    item = property(operator.itemgetter(1))
+    item.__doc__ = None
+
+    def __new__(cls, arg):
+        if isinstance(arg, Number):
+            return tuple.__new__(cls, (arg, None))
+        elif isinstance(arg, Ingredient):
+            return tuple.__new__(cls, (1, arg))
+        elif isinstance(arg, str):
+            return tuple.__new__(cls, (frac(arg), None))
+        else:
+            return tuple.__new__(cls, arg)
+    
+    def __repr__(self):
+        if self.item is None:
+            return repr(self.num)
+        if self.num == 1:
+            return repr(self.item)
+        if self.num == -1:
+            return f'-{self.item!r}'
+        else:
+            return f'{self.num!r}*{self.item!r}'
+
+    def __str__(self):
+        if self.item is None:
+            return str(self.num)
+        if self.num == 1:
+            return str(self.item)
+        if self.num == -1:
+            return f'-{self.item}'
+        else:
+            return f'{self.num}*{self.item}'
+
+class Constraint:
+    __slots__ = ()
+
+class Equal(Constraint):
+    __slots__ = ('expressions')
+    def __repr__(self):
+        return 'Equal(' + ', '.join(repr(expr) for expr in self.expressions) + ')'
+    def __str__(self):
+        return ' == '.join(str(expr) for expr in self.expressions)
+    def __getitem__(self, index):
+        return self.expressions[index]
+    def __len__(self):
+        return len(self.expressions)
+    def __init__(self, *args):
+        self.expressions = [Term(arg) for arg in args]
+
+class Inequality(Constraint):
+    __slots__ = ('lhs', 'rhs')
+    def __repr__(self):
+        return f'{self.__class__.__name__}({self.lhs!r}, {self.rhs!r})'
+    def __str__(self):
+        return f'{self.lhs} {self.symbol} {self.rhs}'
+    def __init__(self, lhs, rhs):
+        self.lhs = Term(lhs)
+        self.rhs = Term(rhs)
+        
+class AtLeast(Inequality):
+    __slots__ = ()
+    symbol = '>='
+
+#class AtMost(Inequality):
+#    __slots__ = ()
+#    symbol = '<='
 
 class Box(BoxBase):
     """Wrap a group to restrict inputs or outputs."""
@@ -117,7 +189,7 @@ class Box(BoxBase):
             for k, v in vals.items() if isinstance(vals, Mapping) else vals:
                 self[k] = v
 
-    class Constraints(_Dict):
+    class SimpleConstraints(_Dict):
         __slots__ = ()
         def __str__(self):
             def fmtTerm(num, item):
@@ -133,18 +205,14 @@ class Box(BoxBase):
                              for item,rate in self.items())
         def __setitem__(self, item, rate):
             item = asItem(item)
-            if isinstance(rate, Ingredient):
-                rate = (1, rate)
-            if type(rate) is tuple:
-                if len(rate) != 2:
-                    raise AttributeError('rate tuple length must be 2')
-                rate = (frac(rate[0]), asItem(rate[1]))
-            else:
-                rate = frac(rate)
+            rate = frac(rate)
             return dict.__setitem__(self, item, rate)
         def _jsonObj(self):
             from .jsonconv import _jsonObj
             return {k.name: _jsonObj(v) for k,v in self.items()}
+
+    class OtherConstraints(list):
+        pass
 
     class Proportions(list):
         __slots__ = ()
@@ -175,8 +243,8 @@ class Box(BoxBase):
     inner: Group
     outputs: Outputs
     inputs: Inputs
-    constraints: Constraints
-    proportions: Proportions
+    simpleConstraints: SimpleConstraints
+    otherConstraints: OtherConstraints
     priorities: Priorities
 
     def __init__(self, inner, *, name = None,
@@ -230,6 +298,8 @@ class Box(BoxBase):
             constraints
         
         *constraints*
+            FIXME: UPDATE
+        
             A mapping of extra constraints for the solver.  The key
             is an item.  If the value is a rate, with input rates being
             negative, than that flow will need to be at least the given rate.
@@ -253,15 +323,20 @@ class Box(BoxBase):
 
         """
         from .solver import SolveRes
+        
         if not isinstance(inner, Group):
             inner = Group(inner)
+        if constraints is None:
+            constraints = []
+            
         self.inner = inner
         self.name = name
         self.outputs = Box.Outputs(outputs)
         self.inputs = Box.Inputs(inputs)
         self.priorities = Box.Priorities(priorities)
-        self.constraints = Box.Constraints(constraints)
-        self.proportions = Box.Proportions(proportions)
+        self.simpleConstraints = Box.SimpleConstraints()
+        self.otherConstraints = Box.OtherConstraints()
+        
         if outputs is None or inputs is None:
             inputs_ = set()
             outputs_ = set()
@@ -278,29 +353,45 @@ class Box(BoxBase):
                         self.priorities[item] = IGNORE
                 else:
                     self.inputs = Box.Inputs(inputs_ - common)
+                    
         mainOutput = [item for item in self.outputs if item is not itm.empty_barrel]
+        
         if len(mainOutput) == 1 and self.name is None:
             self.name = 'b-{}'.format(mainOutput[0].name)
+            
         for item in extraOutputs:
             self.outputs[item] = None
             self.priorities[item] = IGNORE
         for item in extraInputs:
             self.inputs[item] = None
             self.priorities[item] = IGNORE
+            
         for item, rate in Box.Outputs(outputTouchups).items():
             self.outputs[item] = rate
         for item, rate in Box.Inputs(inputTouchups).items():
             self.inputs[item] = rate
+            
         if outputsLoose:
             for item, rate in self.outputs.items():
                 if rate is not None:
-                    self.constraints[item] = rate
+                    self.simpleConstraints[item] = rate
                     self.outputs[item] = None
         if inputsLoose:
             for item, rate in self.inputs.items():
                 if rate is not None:
-                    self.constraints[item] = rate
+                    self.simpleConstraints[item] = rate
                     self.inputs[item] = None
+                    
+        for c in constraints:
+            if isinstance(c, Equal):
+                self.otherConstraints.append(c)
+            elif isinstance(c, AtLeast):
+                if c.lhs.num == 1 and c.rhs.item is None:
+                    self.simpleConstraints[c.lhs.item] = c.rhs.num
+                else:
+                    self.otherConstraints.append(c)
+            else:
+                raise ValueError
 
     def _jsonObj(self, objs, **kwargs):
         from .jsonconv import _jsonObj
@@ -312,7 +403,7 @@ class Box(BoxBase):
         if self.name:
             obj['label'] = self.name
         obj['inner'] = self.inner._jsonObj(objs = objs, **kwargs)
-        for k in ['outputs', 'inputs', 'constraints', 'priorities']:
+        for k in ['outputs', 'inputs', 'simpleConstraints', 'otherConstraints', 'priorities']:
             v = getattr(self,k)
             if v:
                 obj[k] = v._jsonObj()
@@ -349,8 +440,9 @@ class Box(BoxBase):
             flows = None
         out.write(f'{prefix}Outputs: {self.outputs.str(flows)}\n')
         out.write(f'{prefix}Inputs: {self.inputs.str(flows)}\n')
-        if self.constraints:
-            out.write(f'{prefix}Constraints: {self.constraints}\n')
+        if self.simpleConstraints or self.otherConstraints:
+            # FIXME
+            out.write(f'{prefix}Constraints: {self.simpleConstraints} {self.otherConstraints}\n')
         if self.priorities:
             out.write(f'{prefix}Priorities: {self.priorities}\n')
 
@@ -390,7 +482,7 @@ class Box(BoxBase):
                 annotation = '!'
             elif rate is not None and flow.rate() < rate:
                 underflow = True
-            elif item in self.constraints and isinstance(self.constraints[item], Number) and flow.rate() < self.constraints[item]:
+            elif item in self.simpleConstraints and flow.rate() < self.simpleConstraints[item]:
                 underflow = True
             elif rate is not None and flow.rate() > rate:
                 state = max(state, FlowsState.UNSOLVED)
@@ -424,7 +516,7 @@ class Box(BoxBase):
             if -flow.rate() < 0 or (rate is not None and -flow.rate() < rate):
                 state = max(state, FlowsState.UNSOLVED)
                 annotation = '!'
-            elif item in self.constraints and flow.rate() < self.constraints[item]:
+            elif item in self.simpleConstraints and flow.rate() < self.simpleConstraints[item]:
                 state = max(state, FlowsState.UNSOLVED)
                 annotation = '!'
             elif rate is not None and -flow.rate() > rate:

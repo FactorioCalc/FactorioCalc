@@ -54,3 +54,5 @@ __all__ += helper.__all__
 from .ordenum import OrdEnum
 from .core import Uniq, Immutable
 _extraSymbols = ['Uniq', 'Immutable', 'OrdEnum']
+from .box import Constraint, Term
+_extraSymbols = ['Constraint', 'Term']

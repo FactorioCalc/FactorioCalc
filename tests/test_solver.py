@@ -181,7 +181,7 @@ class SolverTests(unittest.TestCase):
                     + 3*rcp.nuclear_fuel()
                     + 4*rcp.uranium_rounds_magazine(modules=[],beacons=[]),
                     priorities={rcp.nuclear_fuel_reprocessing:2, itm.nuclear_fuel:1},
-                    proportions=[(1, itm.uranium_fuel_cell), (-1, itm.used_up_uranium_fuel_cell)],
+                    constraints=[Equal(itm.uranium_fuel_cell, (-1, itm.used_up_uranium_fuel_cell))],
                     outputTouchups = {itm.uranium_fuel_cell: 1})
     ), {itm.nuclear_fuel: frac(27,250), itm.uranium_rounds_magazine: frac(44227,175000),
         itm.uranium_fuel_cell: 1, itm.used_up_uranium_fuel_cell: -1})
@@ -197,7 +197,7 @@ class SolverTests(unittest.TestCase):
                     + 3*rcp.nuclear_fuel()
                     + 4*rcp.uranium_rounds_magazine(modules=[],beacons=[]),
                     priorities={rcp.nuclear_fuel_reprocessing:2, itm.nuclear_fuel:1},
-                    proportions=[(1, itm.uranium_fuel_cell), (-1, itm.used_up_uranium_fuel_cell)])
+                    constraints=[Equal(itm.uranium_fuel_cell, (-1, itm.used_up_uranium_fuel_cell))])
     ), {itm.nuclear_fuel: frac(27,250), itm.uranium_rounds_magazine: frac(1,2),
         itm.uranium_fuel_cell: frac(9,8), itm.used_up_uranium_fuel_cell: frac(-9,8)})
 
