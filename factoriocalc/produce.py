@@ -62,7 +62,8 @@ class _BoxFailedInfo:
     solveRes: SolveRes = SolveRes.UNSOLVED
     
 
-def produce(outputs, using = (), *, stopAt = (), fuel = None,
+def produce(outputs, using = (), *,
+            stopAt = (), fuel = None, constraints = None,
             name = None,
             recursive = True, roundUp = False, minSolveRes = SolveRes.MULTI, solve = True):
     """Create a factory to produce outputs.
@@ -254,7 +255,8 @@ def produce(outputs, using = (), *, stopAt = (), fuel = None,
     b = res.factory = UnboundedBox(name = name,
                                    inner = Group([Mul(1, m) for m in machines.values()]),
                                    outputs = boxOutputs, inputTouchups = inputs,
-                                   priorities = boxPriorities)
+                                   priorities = boxPriorities,
+                                   constraints = constraints)
     someOutputRatesSpecified = any(r != None for r in outputs.values())
     for item in b.outputs.keys():
         if item not in outputs:

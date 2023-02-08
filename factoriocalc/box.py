@@ -385,9 +385,11 @@ class Box(BoxBase):
         for c in constraints:
             if isinstance(c, Equal):
                 self.otherConstraints.append(c)
+                # fixme, if one of the expressions is a constant, than turn
+                # the constrainst into fixed valuses for input and/or outputs
             elif isinstance(c, AtLeast):
-                if c.lhs.num == 1 and c.rhs.item is None:
-                    self.simpleConstraints[c.lhs.item] = c.rhs.num
+                if c.lhs.num > 0 and c.rhs.item is None:
+                    self.simpleConstraints[c.lhs.item] = frac(c.rhs.num, c.lhs.num)
                 else:
                     self.otherConstraints.append(c)
             else:
