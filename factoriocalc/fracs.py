@@ -110,10 +110,10 @@ def frac_from_real(other):
 frac_from_decimal = frac_from_real
 frac_from_float_exact = frac_from_real
 
-def frac_from_float_round(other):
-    other *= 1_000_000_000_000_000
+def frac_from_float_round(other, precision = 15):
+    other *= 10 ** precision
     num = round(other)
-    return div(num, 1_000_000_000_000_000)
+    return div(num, 10 ** precision)
 
 class Rational(numbers.Number):
     """Abstract base class that includes `int` and `Frac`.

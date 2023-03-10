@@ -1,22 +1,27 @@
 from __future__ import annotations
-import draftsman.data.items as d_items
-import draftsman.data.modules as d_modules
-import draftsman.data.recipes as d_recipes
+import json
+from pathlib import Path
 from . import itm,rcp,rcpinst,data,machines as mch
-from .fracs import frac
+from .fracs import frac, frac_from_float_round
 from .core import *
 from .data import *
 from .data import CraftingHint, craftingHints
 from .machines import *
 from ._helper import toPythonName
 
-def doit():
-    addItem(Electricity, 'electricity', 'zzz')
+_dir = Path(__file__).parent.resolve()
 
-    for (k,v) in d_modules.raw.items():
+def doit():
+    with open(_dir / 'recipes-base.json') as f:
+        d = json.load(f)
+    addItem(Electricity, 'electricity', 'zzz')
+    items = d['items']
+
+    for k,v in items.items():
+        if v['type'] != 'module': continue
         pythonName = toPythonName(k)
         def get(what):
-            return frac(v['effect'].get(what, {'bonus': 0})['bonus'], float_conv_method = 'round')
+            return frac_from_float_round(v['module_effects'].get(what, {'bonus': 0})['bonus'], precision = 6)
         e = Effect(speed = get('speed'),
                    productivity = get('productivity'),
                    consumption = get('consumption'),
@@ -31,26 +36,18 @@ def doit():
         itm.byName[k]=item
     rcpinst.byName[None] = {}
     rcpinst.byName[Mode.NORMAL] = {}
-    rcpinst.byName[Mode.EXPENSIVE] = {}
-    for (k,v) in d_recipes.raw.items():
+    for (k,v) in d['recipes'].items():
         category = v.get('category','crafting')
         madeIn = categoryToMachine[category]
         def toRecipeComponent(d):
-            if type(d) is dict:
-                num = d['amount']*d.get('probability',1)
-                if type(num) is float:
-                    num = frac(num, float_conv_method = 'round')
-                return RecipeComponent(item=lookupItem(d['name']), num = num)
-            else:
-                return RecipeComponent(item=lookupItem(d[0]),num=d[1])
+            num = d['amount']*d.get('probability',1)
+            if type(num) is float:
+                num = frac(num, float_conv_method = 'round')
+            return RecipeComponent(item=lookupItem(items, d['name']), num = num)
         def toRecipe(d):
             inputs = tuple(toRecipeComponent(rc) for rc in d['ingredients'])
-            try:
-                results = d['results']
-            except KeyError:
-                results = [(d['result'], d.get('result_count', 1))]
-            outputs = tuple(toRecipeComponent(rc) for rc in results)
-            time = frac(d.get('energy_required', 0.5), float_conv_method = 'round')
+            outputs = tuple(toRecipeComponent(rc) for rc in d['products'])
+            time = frac(d.get('energy', 0.5), float_conv_method = 'round')
             order = v.get('order',None)
             if order is None and len(outputs) == 1:
                 order = outputs[0].item.order
@@ -60,12 +57,10 @@ def doit():
             return Recipe(v['name'],madeIn,inputs,outputs,time,order)
         try:
             normal_recipe = toRecipe(v['normal'])
-            expensive_recipe = toRecipe(v['expensive'])
         except KeyError:
             recipe = toRecipe(v)
             normal_recipe = recipe
-            expensive_recipe = recipe
-        addRecipe(normal_recipe, expensive_recipe)
+        addRecipe(normal_recipe)
 
     rp = rcpinst.byName[None]['rocket-part']
     rocket_parts_inputs = tuple(RecipeComponent(rc.num*100, rc.item) for rc in rp.inputs)
@@ -74,23 +69,23 @@ def doit():
     space_science_pack = RocketSilo.Recipe(
         name = 'space-science-pack',
         madeIn = RocketSilo,
-        order = lookupItem('space-science-pack').order,
+        order = lookupItem(items, 'space-science-pack').order,
         inputs = rocket_parts_inputs,
         outputs = (RecipeComponent(num=1000,
-                                   item=lookupItem('space-science-pack')),),
+                                   item=lookupItem(items, 'space-science-pack')),),
         time = rocket_parts_time,
         cargo = RecipeComponent(num=1,
                                 item=itm.satellite))
-    addRecipe(space_science_pack,space_science_pack)
+    addRecipe(space_science_pack)
 
     steam = Recipe(
         name = 'steam',
         madeIn = Boiler,
-        inputs = (RecipeComponent(60, lookupItem('water')),),
-        outputs = (RecipeComponent(60, lookupItem('steam')),),
+        inputs = (RecipeComponent(60, lookupItem(items, 'water')),),
+        outputs = (RecipeComponent(60, lookupItem(items, 'steam')),),
         time = 1,
         order = '')
-    addRecipe(steam,steam)
+    addRecipe(steam)
 
     researchHacks()
 
@@ -143,7 +138,7 @@ def addResearch(name, order, inputs):
                     outputs = (RecipeComponent(1, item),),
                     time = 1,
                     order = order)
-    addRecipe(recipe, recipe)
+    addRecipe(recipe)
 
 def addItem(cls, name, order):
     item = cls(name, order)
@@ -151,48 +146,31 @@ def addItem(cls, name, order):
     itm.byName[name]=item
     return item
 
-def translateEnergyString(s):
-    if s is None:
-        return None
-    elif s == '':
-        return 0
-    elif s.endswith('kJ'):
-        return int(float(s[0:-2])*1_000)
-    elif s.endswith('MJ'):
-        return int(float(s[0:-2])*1_000_000)
-    elif s.endswith('GJ'):
-        return int(float(s[0:-2])*1_000_000_000)
-    else:
-        raise ValueError
-
-def lookupItem(name):
+def lookupItem(items, name):
     try:
         return itm.byName[name]
     except KeyError:
         pass
     pythonName = toPythonName(name)
     try:
-        d = d_items.raw[name]
-        item = Item(name,d['order'],d['stack_size'],fuelValue = translateEnergyString(d.get('fuel_value','')),fuelCategory = d.get('fuel_category',''))
+        d = items[name]
+        item = Item(name, d['order'], d['stack_size'], fuelValue=d['fuel_value'], fuelCategory=d.get('fuel_category',''))
     except KeyError:
         item = Ingredient(name,'z-'+name)
     setattr(itm, pythonName, item)
     itm.byName[name] = item
     return item
 
-def addRecipe(recipe, expensive_recipe):
+def addRecipe(recipe):
     name = recipe.name
     pythonName = toPythonName(name)
     rcp_ = object.__new__(Rcp)
     object.__setattr__(rcp_, 'name', name)
     setattr(rcp, pythonName, rcp_)
     rcp.byName[name] = rcp_
-    if recipe is expensive_recipe:
-        rcpinst.byName[None][name] = recipe
     setattr(rcpinst, pythonName, recipe)
-    setattr(rcpinst.expensive, pythonName, expensive_recipe)
+    rcpinst.byName[None][name] = recipe
     rcpinst.byName[Mode.NORMAL][name] = recipe
-    rcpinst.byName[Mode.EXPENSIVE][name] = expensive_recipe
 
 categoryToMachine = {
     'crafting': mch.AssemblingMachine,
