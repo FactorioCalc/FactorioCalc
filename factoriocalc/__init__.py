@@ -1,4 +1,4 @@
-__all__ = ['itm', 'rcp', 'rcpinst', 'config']
+__all__ = ['itm', 'rcp', 'config']
 
 from .fracs import frac, div, Frac
 __all__ += ['frac', 'div', 'Frac']

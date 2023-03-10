@@ -1,7 +1,7 @@
 from __future__ import annotations
 import json
 from pathlib import Path
-from . import itm,rcp,rcpinst,data,machines as mch
+from . import itm,rcp,data,machines as mch
 from .fracs import frac, frac_from_float_round
 from .core import *
 from .data import *
@@ -34,7 +34,7 @@ def doit():
         item = Module(k, v['order'], v['stack_size'], e, limitation)
         setattr(itm, pythonName, item)
         itm.byName[k]=item
-    rcpinst.byName = {}
+    rcp.byName = {}
     for (k,v) in d['recipes'].items():
         category = v.get('category','crafting')
         madeIn = categoryToMachine[category]
@@ -61,7 +61,7 @@ def doit():
             normal_recipe = recipe
         addRecipe(normal_recipe)
 
-    rp = rcpinst.byName['rocket-part']
+    rp = rcp.byName['rocket-part']
     rocket_parts_inputs = tuple(RecipeComponent(rc.num*100, rc.item) for rc in rp.inputs)
     rocket_parts_time = rp.time*100
 
@@ -88,7 +88,7 @@ def doit():
 
     researchHacks()
 
-    for r in rcpinst.byName.values():
+    for r in rcp.byName.values():
         for _, item in r.outputs:
             recipesThatMake.setdefault(item, []).append(r.name)
         for _, item in r.inputs:
@@ -163,12 +163,8 @@ def lookupItem(items, name):
 def addRecipe(recipe):
     name = recipe.name
     pythonName = toPythonName(name)
-    rcp_ = object.__new__(Rcp)
-    object.__setattr__(rcp_, 'name', name)
-    setattr(rcp, pythonName, rcp_)
-    rcp.byName[name] = rcp_
-    setattr(rcpinst, pythonName, recipe)
-    rcpinst.byName[name] = recipe
+    setattr(rcp, pythonName, recipe)
+    rcp.byName[name] = recipe
 
 categoryToMachine = {
     'crafting': mch.AssemblingMachine,

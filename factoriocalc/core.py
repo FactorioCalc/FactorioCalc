@@ -10,13 +10,13 @@ from .ordenum import OrdEnum
 from .fracs import Frac,frac,Inf,div,diva,isfinite,isnan,isinf
 from copy import copy
 import sys
-from . import itm, rcp, rcpinst
+from . import itm, rcp
 
 __all__ = ('Default',
            'Ingredient', 'Item', 'Research', 'Electricity', 'Module', 'FakeModule',
            'MachineBase', 'Machine', 'CraftingMachine', 'Mul', 'Group',
            'Flow', 'OneWayFlow', 'FlowsState', 'Flows', 'EffectBase', 'Effect', 'Bonus',
-           'Rcp', 'Recipe', 'RecipeComponent', 'IGNORE', 'InvalidModulesError')
+           'Recipe', 'RecipeComponent', 'IGNORE', 'InvalidModulesError')
 
 class Uniq:
     def __copy__(self):
@@ -1004,51 +1004,6 @@ class Bonus(EffectBase):
         else:
             return EffectBase.__new__(cls, *args, **kwargs)
 
-class Rcp(Uniq,Immutable):
-    """A proxy class for a recipe.  The recipe used depends on the setting of `config.mode`."""
-    __slots__ = ('name')
-    def __new__(self, name):
-        return rcp.byName[name]
-    def inst(self):
-        from . import config
-        return rcpinst.byName[self.name]
-
-    def __hash__(self):
-        return hash(self.name)
-    
-    @property
-    def madeIn(self):
-        return self.inst().madeIn
-    @property
-    def inputs(self):
-        return self.inst().inputs
-    @property
-    def outputs(self):
-        return self.inst().outputs
-    @property
-    def time(self):
-        return self.inst().time
-    @property
-    def order(self):
-        return self.inst().order
-
-    def str(self):
-        return self.inst().str()
-
-    def produce(self, **kwargs):
-        return self.inst().produce(**kwargs)
-
-    def __call__(self, **kwargs):
-        return self.inst().__call__(**kwargs)
-
-    def __repr__(self):
-        from ._helper import toPythonName
-        pythonName = toPythonName(self.name)
-        return f'rcp.{pythonName}'
-
-    def __str__(self):
-        return f'recipe {self.name}'
-
 class RecipeComponent(NamedTuple):
     num: Rational
     item: Item
@@ -1057,10 +1012,6 @@ class RecipeComponent(NamedTuple):
 
 class Recipe(Uniq,Immutable):
     """A recipe to produce something.
-    
-    In most cases it should not be used directly.  Instead use `Rcp` to
-    account for the fact that some recipes are different depending if the
-    game mode is set to 'normal' or 'expensive'.
 
     """
     __slots__ = ('name', 'madeIn', 'inputs', 'outputs', 'time', 'order')
@@ -1072,22 +1023,16 @@ class Recipe(Uniq,Immutable):
         object.__setattr__(self, 'time', time)
         object.__setattr__(self, 'order', order)
     def __eq__(self, other):
-        if isinstance(other, Rcp):
-            return self.name == other.name
-        else:
-            return object.__eq__(self, other)
+        return object.__eq__(self, other)
     def __ne__(self, other):
-        if isinstance(other, Rcp):
-            return self.name != other.name
-        else:
-            return object.__ne__(self, other)
+        return object.__ne__(self, other)
     def __hash__(self):
         return hash(self.name)
     def __repr__(self):
         from ._helper import toPythonName
         pythonName = toPythonName(self.name)
-        if getattr(rcpinst, pythonName, None) is self:
-            return 'rcpinst.' + pythonName
+        if getattr(rcp, pythonName, None) is self:
+            return 'rcp.' + pythonName
         else:
             return '<{}: {}>'.format(type(self).__name__, self.name)
     def str(self):
@@ -1098,7 +1043,7 @@ class Recipe(Uniq,Immutable):
         )
     def _jsonObj(self, customRecipes, **kwards):
         from .jsonconv import _jsonObj
-        if rcpinst.byName.get(self.name, None) is self:
+        if rcp.byName.get(self.name, None) is self:
             return self.name
         elif customRecipes.get(self.name, None) is self:
             return f'{self.name} custom'

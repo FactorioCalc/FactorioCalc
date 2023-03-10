@@ -6,7 +6,7 @@ from copy import copy
 from dataclasses import dataclass,field
 import operator
 
-from . import itm,rcp,rcpinst,config
+from . import itm,rcp,config
 from .fracs import frac, div
 from .core import *
 from .box import *
@@ -174,7 +174,7 @@ def produce(outputs, using = (), *,
         if len(rs) == 1:
             r = rs[0]
             recipePrefs[r] = max(recipePrefs.get(r, priority), priority)
-            recipe = rcpinst.byName[mode][r]
+            recipe = rcp.byName[r]
             m = recipe(machinePrefs = machinePrefs, fuel = fuel)
             for flow in m.flows():
                 if flow.rate() > 0 and flow.item not in l:
@@ -229,7 +229,7 @@ def produce(outputs, using = (), *,
         for r in recipes:
             if r in machines:
                 continue
-            recipe = rcpinst.byName[mode][r]
+            recipe = rcp.byName[r]
             m = recipe(machinePrefs = machinePrefs, fuel = fuel)
             machines[r] = m
             if recursive:

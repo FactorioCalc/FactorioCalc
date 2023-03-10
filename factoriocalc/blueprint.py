@@ -5,7 +5,7 @@ import math
 
 from .core import *
 from .machines import *
-from . import itm, rcp, rcpinst, config
+from . import itm, rcp, config
 from .data import entityToMachine
 
 __all__ = ('Blueprint', 'BlueprintBook', 'decodeBlueprint')
@@ -21,7 +21,7 @@ class Blueprint:
         self.raw = bp
     def convert(self, *, burnerFuel=None, rocketSiloRecipe='space-science-pack') -> Group:
         """Convert a blueprint into a `Group`."""
-        recipeMap = rcpinst.byName
+        recipeMap = rcp.byName
         if burnerFuel is None:
             burnerFuel = config.defaultFuel.get()
         

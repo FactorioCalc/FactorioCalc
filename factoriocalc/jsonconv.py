@@ -3,7 +3,7 @@ from .core import *
 from .box import *
 from .machines import *
 from .data import *
-from . import itm, rcp, rcpinst
+from . import itm, rcp
 
 __all__ = ('toJsonObj', 'fromJsonObj')
 
@@ -105,7 +105,7 @@ def _decodeRecipe(recipeStr, customRecipes, **kwargs):
         return customRecipes[name]
     elif qual != '':
         raise ValueError('unknown qualifier for recipe: {qual}')
-    return rcpinst.byName[name]
+    return rcp.byName[name]
 
 def _decodeCustomRecipe(jsonObj):
     return Recipe(
