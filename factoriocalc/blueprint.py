@@ -21,7 +21,7 @@ class Blueprint:
         self.raw = bp
     def convert(self, *, burnerFuel=None, rocketSiloRecipe='space-science-pack') -> Group:
         """Convert a blueprint into a `Group`."""
-        recipeMap = rcpinst.byName[config.mode.get()]
+        recipeMap = rcpinst.byName
         if burnerFuel is None:
             burnerFuel = config.defaultFuel.get()
         

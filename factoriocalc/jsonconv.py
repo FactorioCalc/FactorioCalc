@@ -103,13 +103,9 @@ def _decodeRecipe(recipeStr, customRecipes, **kwargs):
     name, _, qual = recipeStr.partition(' ')
     if qual == 'custom':
         return customRecipes[name]
-    elif qual == '' or qual == 'normal':
-        qual = Mode.NORMAL
-    elif qual == 'expensive':
-        qual = Mode.EXPENSIVE
-    else:
+    elif qual != '':
         raise ValueError('unknown qualifier for recipe: {qual}')
-    return rcpinst.byName[qual][name]
+    return rcpinst.byName[name]
 
 def _decodeCustomRecipe(jsonObj):
     return Recipe(

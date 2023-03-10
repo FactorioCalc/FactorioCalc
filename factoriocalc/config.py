@@ -35,14 +35,12 @@
 """
 
 from contextvars import ContextVar as _ContextVar
-from .core import Mode as _Mode
 from .units import DU_SECONDS as _DU_SECONDS,UNIT_SECONDS as _UNIT_SECONDS
 from . import itm as _itm
 
 displayUnit = _ContextVar('factoriocalc.displayUnit', default = _DU_SECONDS)
 #inputUnit = _ContextVar('factoriocalc.inputUnit', default = _UNIT_SECONDS)
 machinePrefs = _ContextVar('factoriocalc.machinePrefs')
-mode = _ContextVar('factoriocalc.mode', default = _Mode.NORMAL)
 recipePrefs = _ContextVar('factoriocalc.recipePrefs')
 defaultFuel = _ContextVar('factoriocalc.defaultFuel', default = _itm.coal)
 

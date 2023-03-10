@@ -15,7 +15,7 @@ from . import itm, rcp, rcpinst
 __all__ = ('Default',
            'Ingredient', 'Item', 'Research', 'Electricity', 'Module', 'FakeModule',
            'MachineBase', 'Machine', 'CraftingMachine', 'Mul', 'Group',
-           'Flow', 'OneWayFlow', 'FlowsState', 'Flows', 'EffectBase', 'Effect', 'Bonus', 'Mode',
+           'Flow', 'OneWayFlow', 'FlowsState', 'Flows', 'EffectBase', 'Effect', 'Bonus',
            'Rcp', 'Recipe', 'RecipeComponent', 'IGNORE', 'InvalidModulesError')
 
 class Uniq:
@@ -686,10 +686,6 @@ class Group(Sequence,MachineBase):
                 res.append(m)
         return Group(res)
 
-class Mode(Enum):
-    NORMAL = 1
-    EXPENSIVE = 2
-
 def _unitForItem(item):
     from . import config
     for cls, unit in config.displayUnit.get():
@@ -1013,11 +1009,9 @@ class Rcp(Uniq,Immutable):
     __slots__ = ('name')
     def __new__(self, name):
         return rcp.byName[name]
-    def inst(self, mode = None):
+    def inst(self):
         from . import config
-        if mode is None:
-            mode = config.mode.get()
-        return rcpinst.byName[mode][self.name]
+        return rcpinst.byName[self.name]
 
     def __hash__(self):
         return hash(self.name)
@@ -1094,8 +1088,6 @@ class Recipe(Uniq,Immutable):
         pythonName = toPythonName(self.name)
         if getattr(rcpinst, pythonName, None) is self:
             return 'rcpinst.' + pythonName
-        elif getattr(rcpinst.expensive, pythonName, None) is self:
-            return 'rcpinst.expensive.' + pythonName
         else:
             return '<{}: {}>'.format(type(self).__name__, self.name)
     def str(self):
@@ -1106,10 +1098,8 @@ class Recipe(Uniq,Immutable):
         )
     def _jsonObj(self, customRecipes, **kwards):
         from .jsonconv import _jsonObj
-        if rcpinst.byName[Mode.NORMAL].get(self.name, None) is self:
+        if rcpinst.byName.get(self.name, None) is self:
             return self.name
-        elif rcpinst.byName[Mode.EXPENSIVE].get(self.name, None) is self:
-            return f'{self.name} expensive'
         elif customRecipes.get(self.name, None) is self:
             return f'{self.name} custom'
         if self.name in customRecipes:

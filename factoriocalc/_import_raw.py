@@ -34,8 +34,7 @@ def doit():
         item = Module(k, v['order'], v['stack_size'], e, limitation)
         setattr(itm, pythonName, item)
         itm.byName[k]=item
-    rcpinst.byName[None] = {}
-    rcpinst.byName[Mode.NORMAL] = {}
+    rcpinst.byName = {}
     for (k,v) in d['recipes'].items():
         category = v.get('category','crafting')
         madeIn = categoryToMachine[category]
@@ -62,7 +61,7 @@ def doit():
             normal_recipe = recipe
         addRecipe(normal_recipe)
 
-    rp = rcpinst.byName[None]['rocket-part']
+    rp = rcpinst.byName['rocket-part']
     rocket_parts_inputs = tuple(RecipeComponent(rc.num*100, rc.item) for rc in rp.inputs)
     rocket_parts_time = rp.time*100
 
@@ -89,7 +88,7 @@ def doit():
 
     researchHacks()
 
-    for r in rcpinst.byName[Mode.NORMAL].values():
+    for r in rcpinst.byName.values():
         for _, item in r.outputs:
             recipesThatMake.setdefault(item, []).append(r.name)
         for _, item in r.inputs:
@@ -169,8 +168,7 @@ def addRecipe(recipe):
     setattr(rcp, pythonName, rcp_)
     rcp.byName[name] = rcp_
     setattr(rcpinst, pythonName, recipe)
-    rcpinst.byName[None][name] = recipe
-    rcpinst.byName[Mode.NORMAL][name] = recipe
+    rcpinst.byName[name] = recipe
 
 categoryToMachine = {
     'crafting': mch.AssemblingMachine,
