@@ -1,4 +1,5 @@
 from factoriocalc import *
+from factoriocalc.mch import *
 from unittest import TestCase
 
 class RateTests(TestCase):

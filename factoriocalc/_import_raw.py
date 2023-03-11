@@ -1,13 +1,13 @@
 from __future__ import annotations
 import json
 from pathlib import Path
-from . import itm,rcp,data,machines as mch
+from . import itm,rcp,mch,data,machines
 from .fracs import frac, frac_from_float_round
 from .core import *
 from .data import *
 from .data import CraftingHint, craftingHints
 from .machines import *
-from ._helper import toPythonName
+from ._helper import toPythonName,toClassName
 
 _dir = Path(__file__).parent.resolve()
 
@@ -17,6 +17,57 @@ def doit():
     addItem(Electricity, 'electricity', 'zzz')
     items = d['items']
 
+    # import machines
+    for k,v in d['entities'].items():
+        clsName = toClassName(v['name'])
+        bases = []
+        module_inventory_size = v.get('module_inventory_size', 0)
+        if module_inventory_size > 0:
+            bases.append(machines._ModulesMixin)
+        energy_source = v.get('energy_source', None)
+        if energy_source == 'burner':
+            bases.append(machines._BurnerMixin)
+        elif energy_source == 'electric':
+            bases.append(machines._ElectricMixin)
+        isCraftingMachine = False
+        if v['type'] == 'assembling-machine':
+            isCraftingMachine = True
+            bases.append(machines.AssemblingMachine)
+        elif v['type'] == 'furnace':
+            isCraftingMachine = True
+            bases.append(machines.Furnace)
+        else:
+            cls = getattr(machines, clsName, None)
+            if cls is not None:
+                setattr(mch, clsName, cls)
+                data.entityToMachine[cls.name] = cls
+            continue
+            #bases.append(Machine)
+        dict = {'name': v['name'],
+                'type': v['type'],
+                'order': v['order'],
+                'group': v['group'],
+                'subgroup': v['group'],
+                'width': frac(v['width']),
+                'height': frac(v['height'])}
+        cls = type(clsName, tuple(bases), dict)
+        cls.__module__ = mch
+        if energy_source is not None:
+            cls.baseEnergyUsage = frac(v['energy_consumption'], float_conv_method = 'round')
+            cls.energyDrain = frac(v['drain'], float_conv_method = 'round')
+            cls.pollution = frac(v['pollution'], float_conv_method = 'round')
+        if isCraftingMachine:
+            cls.craftingSpeed = frac(v['crafting_speed'], float_conv_method = 'round')
+            cls.craftingCategories = v['crafting_categories']
+            for c in cls.craftingCategories:
+                data.categoryToMachines.setdefault(c, [])
+                data.categoryToMachines[c].append(cls)
+        if module_inventory_size > 0:
+            cls.allowdEffects = v['allowed_effects']
+        setattr(mch, clsName, cls)
+        data.entityToMachine[cls.name] = cls
+    
+    # import modules
     for k,v in items.items():
         if v['type'] != 'module': continue
         pythonName = toPythonName(k)
@@ -34,6 +85,8 @@ def doit():
         item = Module(k, v['order'], v['stack_size'], e, limitation)
         setattr(itm, pythonName, item)
         itm.byName[k]=item
+
+    # import recipes
     rcp.byName = {}
     for (k,v) in d['recipes'].items():
         category = v.get('category','crafting')
@@ -75,6 +128,7 @@ def doit():
         cargo = RecipeComponent(num=1,
                                 item=itm.satellite))
     addRecipe(space_science_pack)
+    data.categoryToMachines['_rocket-silo'] = mch.RocketSilo
 
     steam = Recipe(
         name = 'steam',
@@ -84,6 +138,7 @@ def doit():
         time = 1,
         order = '')
     addRecipe(steam)
+    data.categoryToMachines['_steam'] = [mch.Boiler]
 
     researchHacks()
 
@@ -111,14 +166,14 @@ def doit():
     
     craftingHints['rocket-part'] = CraftingHint(priority = IGNORE)
 
-    data.entityToMachine = {
-        cls.name: cls for cls in (CraftingMachine, Boiler,
-                                  AssemblingMachine1, AssemblingMachine2, AssemblingMachine3,
-                                  ChemicalPlant, OilRefinery, Centrifuge,
-                                  StoneFurnance, SteelFurnance, ElectricFurnace,
-                                  RocketSilo,
-                                  Beacon)
-    }
+    # data.entityToMachine = {
+    #     cls.name: cls for cls in (CraftingMachine, Boiler,
+    #                               AssemblingMachine1, AssemblingMachine2, AssemblingMachine3,
+    #                               ChemicalPlant, OilRefinery, Centrifuge,
+    #                               StoneFurnance, SteelFurnance, ElectricFurnace,
+    #                               RocketSilo,
+    #                               Beacon)
+    # }
 
 
 def researchHacks():

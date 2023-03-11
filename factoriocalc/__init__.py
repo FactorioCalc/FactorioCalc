@@ -1,4 +1,4 @@
-__all__ = ['itm', 'rcp', 'config']
+__all__ = ['itm', 'rcp', 'mch', 'config']
 
 from .fracs import frac, div, Frac
 __all__ += ['frac', 'div', 'Frac']
@@ -6,10 +6,6 @@ __all__ += ['frac', 'div', 'Frac']
 from . import core
 from .core import *
 __all__ += core.__all__
-
-from . import machines
-from .machines import *
-__all__ += machines.__all__
 
 from . import units
 from .units import *

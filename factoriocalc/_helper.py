@@ -3,6 +3,9 @@ from .core import *
 def toPythonName(name):
     return name.replace('-','_')
 
+def toClassName(name):
+    return name.title().replace('-','')
+
 def asItem(item):
     if item is None:
         return item

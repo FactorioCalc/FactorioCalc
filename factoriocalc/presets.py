@@ -1,6 +1,6 @@
 from contextvars import ContextVar,copy_context
 from copy import copy
-from . import itm, machines as mch
+from . import itm, mch
 from . import config
 
 __all__ = ('MP_EARLY_GAME', 'MP_LATE_GAME',
@@ -33,7 +33,7 @@ class MachinePrefs(tuple):
                 lst[i] = m
         return MachinePrefs(*lst)
 
-MP_EARLY_GAME = MachinePrefs(mch.AssemblingMachine1(), mch.StoneFurnance())
+MP_EARLY_GAME = MachinePrefs(mch.AssemblingMachine1(), mch.StoneFurnace())
  
 MP_LATE_GAME = MachinePrefs(mch.AssemblingMachine3(), mch.ElectricFurnace())
 

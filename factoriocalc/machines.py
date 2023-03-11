@@ -8,10 +8,6 @@ from .core import *
 from .core import _MutableFlows
 from . import itm, rcp
 
-__all__ = ('Beacon', 'Boiler', 'AssemblingMachine1', 'AssemblingMachine2', 'AssemblingMachine3',
-           'ChemicalPlant', 'OilRefinery', 'StoneFurnance', 'SteelFurnance', 'ElectricFurnace',
-           'Centrifuge', 'RocketSilo')
-
 @dataclass(init=False)
 class _BurnerMixin:
     energyType = 'burner'
@@ -168,7 +164,6 @@ class Beacon(_ElectricMixin,Machine):
             modules[m] += 1
         return ', '.join(str(m) if num == 1 else f'{num:g} {m}' for m, num in modules.items())
 
-@dataclass(init=False)
 class Boiler(_BurnerMixin,CraftingMachine):
     name = "boiler"
     baseEnergyUsage = 1_800_000
@@ -179,115 +174,12 @@ class Boiler(_BurnerMixin,CraftingMachine):
         super().__init__(**kws)
         self.recipe = rcp.steam
 
-@dataclass(init=False)
-class AssemblingMachine(_ElectricMixin,CraftingMachine):
-    name = "assembling-machine"
-    width = 3
-    height = 3
-    craftingCategories = {'crafting', 'advanced-crafting'}
+class AssemblingMachine(CraftingMachine):
     pass
-AssemblingMachine.abstract = AssemblingMachine
 
-@dataclass(init=False)
-class FluidCapableAssemblingMachine(AssemblingMachine):
-    craftingCategories = AssemblingMachine.craftingCategories | {'crafting-with-fluid'}
-    pass
-FluidCapableAssemblingMachine.abstract = FluidCapableAssemblingMachine
-
-@dataclass(init=False)
-class AssemblingMachine1(AssemblingMachine):
-    name = "assembling-machine-1"
-    craftingSpeed = frac(1,2)
-    baseEnergyUsage = 75_000
-    energyDrain = 2_500
-    pollution = 4
-
-@dataclass(init=False)
-class AssemblingMachine2(_ModulesMixin,FluidCapableAssemblingMachine):
-    name = "assembling-machine-2"
-    craftingSpeed = frac(3,4)
-    baseEnergyUsage = 150_000
-    energyDrain = 5_000
-    pollution = 3
-
-@dataclass(init=False)
-class AssemblingMachine3(_ModulesMixin,FluidCapableAssemblingMachine):
-    name = "assembling-machine-3"
-    craftingSpeed = frac(5,4)
-    baseEnergyUsage = 375_000
-    energyDrain = 12_500
-    pollution = 2
-
-@dataclass(init=False)
-class ChemicalPlant(_ModulesMixin,_ElectricMixin,CraftingMachine):
-    name = "chemical-plant"
-    width = 3
-    height = 3
-    craftingSpeed = 1
-    baseEnergyUsage = 210_000
-    energyDrain = 7_000
-    pollution = 4
-    craftingCategories = {'chemistry'}
-
-@dataclass(init=False)
-class OilRefinery(_ModulesMixin,_ElectricMixin,CraftingMachine):
-    name = "oil-refinery"
-    width = 5
-    height = 5
-    craftingSpeed = 1
-    baseEnergyUsage = 420_000
-    energyDrain = 14_000
-    pollution = 6
-    craftingCategories = {'oil-processing'}
-
-@dataclass(init=False)
-class Centrifuge(_ModulesMixin,_ElectricMixin,CraftingMachine):
-    name = "centrifuge"
-    width = 3
-    height = 3
-    craftingSpeed = 1
-    baseEnergyUsage = 350_000
-    energyDrain = 11_600
-    pollution = 4
-    craftingCategories = {'centrifuging'}
-
-@dataclass(init=False)
 class Furnace(CraftingMachine):
-    """Generic furnace.  Does not map to a factory entity."""
-
-    craftingCategories = {'smelting'}
-Furnace.abstract = Furnace
-
-@dataclass(init=False)
-class StoneFurnance(_BurnerMixin,Furnace):
-    name = "stone-furnace"
-    width = 2
-    height = 2
-    craftingSpeed = 1
-    baseEnergyUsage = 90_000
-    energyDrain = 0
-    pollution = 2
-
-@dataclass(init=False)
-class SteelFurnance(_BurnerMixin,Furnace):
-    name = "steel-furnace"
-    width = 2
-    height = 2
-    craftingSpeed = 2
-    baseEnergyUsage = 90_000
-    energyDrain = 0
-    pollution = 4
-
-@dataclass(init=False)
-class ElectricFurnace(_ModulesMixin,_ElectricMixin,Furnace):
-    name = "electric-furnace"
-    width = 3
-    height = 3
-    craftingSpeed = 2
-    baseEnergyUsage = 180_000
-    energyDrain = 6_000
-    pollution = 1
-
+    pass
+    
 @dataclass(init=False)
 class RocketSilo(_ModulesMixin,_ElectricMixin,CraftingMachine):
     class Recipe(Recipe):
