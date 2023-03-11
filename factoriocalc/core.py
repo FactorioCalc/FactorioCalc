@@ -276,6 +276,7 @@ class CraftingMachine(Machine):
     baseEnergyUsage = 0
     energyDrain = 0
     pollution = 0
+    craftingCategories = set()
 
     def __init__(self, recipe = None, **kws):
         super().__init__(**kws)
@@ -1014,10 +1015,10 @@ class Recipe(Uniq,Immutable):
     """A recipe to produce something.
 
     """
-    __slots__ = ('name', 'madeIn', 'inputs', 'outputs', 'time', 'order')
-    def __init__(self, name, madeIn, inputs, outputs, time, order):
+    __slots__ = ('name', 'category', 'inputs', 'outputs', 'time', 'order')
+    def __init__(self, name, category, inputs, outputs, time, order):
         object.__setattr__(self, 'name', name)
-        object.__setattr__(self, 'madeIn', madeIn)
+        object.__setattr__(self, 'category', category)
         object.__setattr__(self, 'inputs', tuple(inputs))
         object.__setattr__(self, 'outputs', tuple(outputs))
         object.__setattr__(self, 'time', time)
@@ -1055,22 +1056,26 @@ class Recipe(Uniq,Immutable):
         """Returns true if other is equivalent to self and not just the same object."""
         return (type(self) == type(other)
                 and self.name == other.name
-                and self.madeIn == other.madeIn
+                and self.category == other.category
                 and self.inputs == other.inputs
                 and self.outputs == other.outputs
                 and self.time == other.time
                 and self.order == other.order)
     def produce(self, machinePrefs = Default, fuel = None, modules = (), beacons = ()):
         from collections import deque
-        from . import config
+        from . import config, data
         if machinePrefs is Default:
             machinePrefs = config.machinePrefs.get()
         candidates = deque()
         for m in machinePrefs:
-            if isinstance(m, self.madeIn) and (m.recipe is None or m.recipe.name == self.name):
+            if self.category in m.craftingCategories and (m.recipe is None or m.recipe.name == self.name):
                 candidates.append(copy(m))
         if not candidates:
-            candidates.append(self.madeIn())
+            machines = data.categoryToMachines[self.category]
+            if len(machines) == 1:
+                candidates.append(machines[0])
+            else:
+                raise ValueError(f'Unable to find matching machine for "{self.name}".') 
         while candidates:
             m = candidates.popleft()
             try:

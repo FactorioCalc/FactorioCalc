@@ -37,7 +37,6 @@ def doit():
     rcp.byName = {}
     for (k,v) in d['recipes'].items():
         category = v.get('category','crafting')
-        madeIn = categoryToMachine[category]
         def toRecipeComponent(d):
             num = d['amount']*d.get('probability',1)
             if type(num) is float:
@@ -53,7 +52,7 @@ def doit():
             if order is None and 'main_product' in d:
                 order = itm.byName[d['main_product']].order
             assert(order is not None)
-            return Recipe(v['name'],madeIn,inputs,outputs,time,order)
+            return Recipe(v['name'],v['category'],inputs,outputs,time,order)
         try:
             normal_recipe = toRecipe(v['normal'])
         except KeyError:
@@ -67,7 +66,7 @@ def doit():
 
     space_science_pack = RocketSilo.Recipe(
         name = 'space-science-pack',
-        madeIn = RocketSilo,
+        category = '_rocketSilo',
         order = lookupItem(items, 'space-science-pack').order,
         inputs = rocket_parts_inputs,
         outputs = (RecipeComponent(num=1000,
@@ -79,7 +78,7 @@ def doit():
 
     steam = Recipe(
         name = 'steam',
-        madeIn = Boiler,
+        category = '_steam',
         inputs = (RecipeComponent(60, lookupItem(items, 'water')),),
         outputs = (RecipeComponent(60, lookupItem(items, 'steam')),),
         time = 1,
@@ -129,14 +128,15 @@ def researchHacks():
     addResearch('_combined_research', 'zz2', sciencePacks)
 
 def addResearch(name, order, inputs):
-    from .helper import FakeLab
+    from . import helper
     item = addItem(Research, name, order)
     recipe = Recipe(name = name,
-                    madeIn = FakeLab,
+                    category = '_fakelab',
                     inputs = (RecipeComponent(1, i) for i in sorted(inputs, key = lambda k: k.order)),
                     outputs = (RecipeComponent(1, item),),
                     time = 1,
                     order = order)
+    categoryToMachines['_fakelab'] = [helper.FakeLab]
     addRecipe(recipe)
 
 def addItem(cls, name, order):
@@ -166,13 +166,3 @@ def addRecipe(recipe):
     setattr(rcp, pythonName, recipe)
     rcp.byName[name] = recipe
 
-categoryToMachine = {
-    'crafting': mch.AssemblingMachine,
-    "advanced-crafting": mch.AssemblingMachine,
-    'crafting-with-fluid': mch.FluidCapableAssemblingMachine,
-    'centrifuging': mch.Centrifuge,
-    'chemistry': mch.ChemicalPlant,
-    'oil-processing': mch.OilRefinery,
-    'rocket-building': None, # a special case
-    'smelting': mch.Furnace,
-}

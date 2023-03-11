@@ -184,11 +184,13 @@ class AssemblingMachine(_ElectricMixin,CraftingMachine):
     name = "assembling-machine"
     width = 3
     height = 3
+    craftingCategories = {'crafting', 'advanced-crafting'}
     pass
 AssemblingMachine.abstract = AssemblingMachine
 
 @dataclass(init=False)
 class FluidCapableAssemblingMachine(AssemblingMachine):
+    craftingCategories = AssemblingMachine.craftingCategories | {'crafting-with-fluid'}
     pass
 FluidCapableAssemblingMachine.abstract = FluidCapableAssemblingMachine
 
@@ -225,6 +227,7 @@ class ChemicalPlant(_ModulesMixin,_ElectricMixin,CraftingMachine):
     baseEnergyUsage = 210_000
     energyDrain = 7_000
     pollution = 4
+    craftingCategories = {'chemistry'}
 
 @dataclass(init=False)
 class OilRefinery(_ModulesMixin,_ElectricMixin,CraftingMachine):
@@ -235,6 +238,7 @@ class OilRefinery(_ModulesMixin,_ElectricMixin,CraftingMachine):
     baseEnergyUsage = 420_000
     energyDrain = 14_000
     pollution = 6
+    craftingCategories = {'oil-processing'}
 
 @dataclass(init=False)
 class Centrifuge(_ModulesMixin,_ElectricMixin,CraftingMachine):
@@ -245,11 +249,13 @@ class Centrifuge(_ModulesMixin,_ElectricMixin,CraftingMachine):
     baseEnergyUsage = 350_000
     energyDrain = 11_600
     pollution = 4
+    craftingCategories = {'centrifuging'}
 
 @dataclass(init=False)
 class Furnace(CraftingMachine):
     """Generic furnace.  Does not map to a factory entity."""
-    pass
+
+    craftingCategories = {'smelting'}
 Furnace.abstract = Furnace
 
 @dataclass(init=False)
@@ -286,8 +292,8 @@ class ElectricFurnace(_ModulesMixin,_ElectricMixin,Furnace):
 class RocketSilo(_ModulesMixin,_ElectricMixin,CraftingMachine):
     class Recipe(Recipe):
         __slots__ = ('cargo')
-        def __init__(self, name, madeIn, inputs, outputs, time, order, cargo):
-            super().__init__(name, madeIn, inputs, outputs, time, order)
+        def __init__(self, name, category, inputs, outputs, time, order, cargo):
+            super().__init__(name, category, inputs, outputs, time, order)
             object.__setattr__(self, 'cargo', cargo)
         
     name = "rocket-silo"
