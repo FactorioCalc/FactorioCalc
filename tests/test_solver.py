@@ -437,7 +437,7 @@ _populate(TestScienceB, TestScienceB.getScience)
 class ProduceTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.origMachinePrefs = config.machinePrefs.set(MP_LATE_GAME)
+        cls.origMachinePrefs = config.machinePrefs.set(MP_LATE_GAME + (mch.RocketSilo(modules=4*itm.productivity_module_3),))
 
     @classmethod
     def tearDownClass(cls):
@@ -464,4 +464,8 @@ class ProduceTests(unittest.TestCase):
                                                    itm.used_up_uranium_fuel_cell@1]),
         {itm.uranium_fuel_cell: 1, itm.used_up_uranium_fuel_cell: -1,
          itm.uranium_ore: frac(-8000,507), itm.uranium_238: 0})
+
+    testSpaceSciencePack = ProduceTest(
+        lambda: produce([itm.space_science_pack@1],recursive=False),
+        {itm.space_science_pack:1, itm.rocket_control_unit: frac(-5,7)})
     

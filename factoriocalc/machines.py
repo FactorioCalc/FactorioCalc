@@ -5,8 +5,15 @@ from collections.abc import Sequence
 
 from .fracs import frac,div,diva
 from .core import *
-from .core import _MutableFlows
+from .core import Uniq,_MutableFlows
 from . import itm, rcp
+
+class Category(Uniq):
+    def __init__(self, name, members):
+        self.name = name
+        self.members = members
+    def __repr__(self):
+        return f'<Category: self.name>'
 
 @dataclass(init=False)
 class _BurnerMixin:
@@ -213,4 +220,6 @@ class RocketSilo(_ModulesMixin,_ElectricMixin,CraftingMachine):
                       adjusted = throttle != 1)
         return flows
 
+RocketSilo.craftingCategory = Category('RocketSilo', [RocketSilo])
+RocketSilo.craftingCategories = {RocketSilo.craftingCategory}
 

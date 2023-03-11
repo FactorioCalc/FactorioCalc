@@ -1,6 +1,8 @@
 from __future__ import annotations
 import dataclasses as _dc
 
+from .core import Uniq
+
 @_dc.dataclass
 class CraftingHint:
     also: list = _dc.field(default_factory = list)
@@ -13,7 +15,5 @@ recipesThatUse = {}
 craftingHints = {}
 
 entityToMachine = {}
-
-categoryToMachines = {}
 
 __all__ = [sym for sym in globals() if not sym.startswith('_') and sym not in ('annotations', 'CraftingHint', 'craftingHints')]

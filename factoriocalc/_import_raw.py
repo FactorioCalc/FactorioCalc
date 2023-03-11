@@ -2,11 +2,11 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from . import itm,rcp,mch,data,machines
+from .machines import Category
 from .fracs import frac, frac_from_float_round
 from .core import *
 from .data import *
 from .data import CraftingHint, craftingHints
-from .machines import *
 from ._helper import toPythonName,toClassName
 
 _dir = Path(__file__).parent.resolve()
@@ -17,6 +17,7 @@ def doit():
     addItem(Electricity, 'electricity', 'zzz')
     items = d['items']
 
+    categories = {}
     # import machines
     for k,v in d['entities'].items():
         clsName = toClassName(v['name'])
@@ -37,12 +38,14 @@ def doit():
             isCraftingMachine = True
             bases.append(machines.Furnace)
         else:
-            cls = getattr(machines, clsName, None)
-            if cls is not None:
+            existing = getattr(machines, clsName, None)
+            if existing is not None:
+                cls = existing
+                #cls = type(clsName, (existing,), {})
+                #cls.__module__ = mch
                 setattr(mch, clsName, cls)
                 data.entityToMachine[cls.name] = cls
             continue
-            #bases.append(Machine)
         dict = {'name': v['name'],
                 'type': v['type'],
                 'order': v['order'],
@@ -58,10 +61,12 @@ def doit():
             cls.pollution = frac(v['pollution'], float_conv_method = 'round')
         if isCraftingMachine:
             cls.craftingSpeed = frac(v['crafting_speed'], float_conv_method = 'round')
-            cls.craftingCategories = v['crafting_categories']
-            for c in cls.craftingCategories:
-                data.categoryToMachines.setdefault(c, [])
-                data.categoryToMachines[c].append(cls)
+            for c in v['crafting_categories']:
+                if c in categories:
+                    categories[c].members.append(cls)
+                else:
+                    categories[c] = Category(c, [cls])
+            cls.craftingCategories = {categories[c] for c in v['crafting_categories']}
         if module_inventory_size > 0:
             cls.allowdEffects = v['allowed_effects']
         setattr(mch, clsName, cls)
@@ -89,7 +94,6 @@ def doit():
     # import recipes
     rcp.byName = {}
     for (k,v) in d['recipes'].items():
-        category = v.get('category','crafting')
         def toRecipeComponent(d):
             num = d['amount']*d.get('probability',1)
             if type(num) is float:
@@ -105,7 +109,7 @@ def doit():
             if order is None and 'main_product' in d:
                 order = itm.byName[d['main_product']].order
             assert(order is not None)
-            return Recipe(v['name'],v['category'],inputs,outputs,time,order)
+            return Recipe(v['name'],categories.get(v['category'], None),inputs,outputs,time,order)
         try:
             normal_recipe = toRecipe(v['normal'])
         except KeyError:
@@ -117,9 +121,9 @@ def doit():
     rocket_parts_inputs = tuple(RecipeComponent(rc.num*100, rc.item) for rc in rp.inputs)
     rocket_parts_time = rp.time*100
 
-    space_science_pack = RocketSilo.Recipe(
+    space_science_pack = mch.RocketSilo.Recipe(
         name = 'space-science-pack',
-        category = '_rocketSilo',
+        category = mch.RocketSilo.craftingCategory,
         order = lookupItem(items, 'space-science-pack').order,
         inputs = rocket_parts_inputs,
         outputs = (RecipeComponent(num=1000,
@@ -128,17 +132,15 @@ def doit():
         cargo = RecipeComponent(num=1,
                                 item=itm.satellite))
     addRecipe(space_science_pack)
-    data.categoryToMachines['_rocket-silo'] = mch.RocketSilo
 
     steam = Recipe(
         name = 'steam',
-        category = '_steam',
+        category = Category('Boiler', [mch.Boiler]),
         inputs = (RecipeComponent(60, lookupItem(items, 'water')),),
         outputs = (RecipeComponent(60, lookupItem(items, 'steam')),),
         time = 1,
         order = '')
     addRecipe(steam)
-    data.categoryToMachines['_steam'] = [mch.Boiler]
 
     researchHacks()
 
@@ -186,12 +188,11 @@ def addResearch(name, order, inputs):
     from . import helper
     item = addItem(Research, name, order)
     recipe = Recipe(name = name,
-                    category = '_fakelab',
+                    category = Category('FakeLab', [helper.FakeLab]),
                     inputs = (RecipeComponent(1, i) for i in sorted(inputs, key = lambda k: k.order)),
                     outputs = (RecipeComponent(1, item),),
                     time = 1,
                     order = order)
-    categoryToMachines['_fakelab'] = [helper.FakeLab]
     addRecipe(recipe)
 
 def addItem(cls, name, order):

@@ -1071,7 +1071,7 @@ class Recipe(Uniq,Immutable):
             if self.category in m.craftingCategories and (m.recipe is None or m.recipe.name == self.name):
                 candidates.append(copy(m))
         if not candidates:
-            machines = data.categoryToMachines[self.category]
+            machines = self.category.members
             if len(machines) == 1:
                 candidates.append(machines[0]())
             else:
