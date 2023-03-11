@@ -143,13 +143,12 @@ def produce(outputs, using = (), *,
     inputs = Box.Inputs()
     if fuel is None:
         fuel = config.defaultFuel.get()
-    mode = config.mode.get()
     recipePrefs = {}
     machinePrefs = []
     for v in using.items() if isinstance(using, Mapping) else using:
         if isinstance(v, Ingredient):
             inputs[v] = None
-        elif isinstance(v, Rcp):
+        elif isinstance(v, Recipe):
             recipePrefs[v.name] = 1000
         elif isinstance(v, Machine):
             machinePrefs.append(v)

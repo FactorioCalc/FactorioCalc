@@ -42,16 +42,15 @@ class SolverTest:
         if instance is None:
             return self
         return MethodType(self, instance)
-    def solve(self, verbose=True): # for debugging
+    def solve(self):
         factory = self.factory()
-        res = factory.solve(verbose=verbose)
-        return res
+        solver = factory.solver()
+        solver.solve()
+        res, solution = solver.apply()
+        return factory, res, solution
     def __call__(self, outer):
         with redirect_stdout(io.StringIO()) as f:
-            factory = self.factory()
-            solver = factory.solver()
-            solver.solve()
-            res, solution = solver.apply()
+            factory, res, solution = self.solve()
             testIfSolved = True
             if self.res is not None:
                 if self.res is not res:
@@ -76,6 +75,11 @@ class SolverTest:
                         raise outer.failureException('{0}: expected {1} ({1:.9g}) but got {2} ({2:.9g})'
                                                      .format(var.name, self.solution[var.name], rate))
 
+# fixme: this is a bit of a hack
+class ProduceTest(SolverTest):
+    def solve(self):
+        res = self.factory()
+        return res.factory, res.solveRes, None
 
 class SolverTests(unittest.TestCase):
     testJustOil = SolverTest(lambda: Box(Group(
@@ -429,3 +433,34 @@ class TestScienceB(unittest.TestCase):
 
 _populate(TestScienceB, TestScienceB.getScience)
 
+class ProduceTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.origMachinePrefs = config.machinePrefs.set(MP_LATE_GAME)
+
+    @classmethod
+    def tearDownClass(cls):
+        config.machinePrefs.reset(cls.origMachinePrefs)
+
+    testElectronicCircuit = ProduceTest(
+        lambda: produce([itm.electronic_circuit@30]),
+        {itm.electronic_circuit: 30, itm.copper_ore: -45, itm.iron_ore: -30})
+    
+    testJustOil = ProduceTest(
+        lambda: produce([itm.petroleum_gas@60], using=[rcp.advanced_oil_processing]),
+        {itm.petroleum_gas: 60, itm.crude_oil: frac(-800,13)})
+
+    testPlasticFromCoal = ProduceTest(
+        lambda: produce([itm.plastic_bar@30], using=[rcp.coal_liquefaction]),
+        {itm.plastic_bar: 30, itm.coal: frac(-4740,67)})
+
+    testRocketFuel = ProduceTest(
+        lambda: produce([itm.rocket_fuel@6], using=[rcp.advanced_oil_processing]),
+        {itm.rocket_fuel: 6, itm.crude_oil: frac(-52800,73)})
+                                             
+    testUranium238 = ProduceTest(
+        lambda: produce([itm.uranium_fuel_cell@1],[rcp.uranium_processing, rcp.kovarex_enrichment_process,
+                                                   itm.used_up_uranium_fuel_cell@1]),
+        {itm.uranium_fuel_cell: 1, itm.used_up_uranium_fuel_cell: -1,
+         itm.uranium_ore: frac(-8000,507), itm.uranium_238: 0})
+    

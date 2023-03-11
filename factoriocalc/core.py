@@ -1073,7 +1073,7 @@ class Recipe(Uniq,Immutable):
         if not candidates:
             machines = data.categoryToMachines[self.category]
             if len(machines) == 1:
-                candidates.append(machines[0])
+                candidates.append(machines[0]())
             else:
                 raise ValueError(f'Unable to find matching machine for "{self.name}".') 
         while candidates:
