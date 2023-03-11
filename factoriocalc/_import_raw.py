@@ -168,16 +168,6 @@ def doit():
     
     craftingHints['rocket-part'] = CraftingHint(priority = IGNORE)
 
-    # data.entityToMachine = {
-    #     cls.name: cls for cls in (CraftingMachine, Boiler,
-    #                               AssemblingMachine1, AssemblingMachine2, AssemblingMachine3,
-    #                               ChemicalPlant, OilRefinery, Centrifuge,
-    #                               StoneFurnance, SteelFurnance, ElectricFurnace,
-    #                               RocketSilo,
-    #                               Beacon)
-    # }
-
-
 def researchHacks():
     from .helper import sciencePacks
     addResearch('_production_research', 'zz0', sciencePacks - {itm.military_science_pack})
