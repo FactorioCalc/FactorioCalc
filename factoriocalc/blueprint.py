@@ -4,9 +4,7 @@ from pathlib import Path
 import math
 
 from .core import *
-from .machines import *
-from . import itm, rcp, config
-from .data import entityToMachine
+from . import config, machine
 
 __all__ = ('Blueprint', 'BlueprintBook', 'decodeBlueprint')
 
@@ -21,7 +19,11 @@ class Blueprint:
         self.raw = bp
     def convert(self, *, burnerFuel=None, rocketSiloRecipe='space-science-pack') -> Group:
         """Convert a blueprint into a `Group`."""
-        recipeMap = rcp.byName
+        gameInfo = config.gameInfo.get()
+        itmByName = gameInfo.itmByName
+        mchByName = gameInfo.mchByName
+        recipeMap = gameInfo.rcpByName
+        
         if burnerFuel is None:
             burnerFuel = config.defaultFuel.get()
         
@@ -31,20 +33,20 @@ class Blueprint:
 
         for v in self.raw['blueprint']['entities']:
             try:
-                cls = entityToMachine[v['name']]
+                cls = mchByName[v['name']]
             except KeyError:
                 continue
             m = cls()
             m.blueprintInfo = v
-            if type(m) is RocketSilo:
+            if isinstance(m, machine.RocketSilo):
                 m.recipe = recipeMap[rocketSiloRecipe]
             elif 'recipe' in v:
                 m.recipe = recipeMap[v['recipe']]
             if hasattr(m, 'fuel'):
                 m.fuel = burnerFuel 
             if 'items' in v:
-                m.modules = [*chain.from_iterable(repeat(itm.byName[item], num) for item, num in v['items'].items())]
-            if cls is Beacon:
+                m.modules = [*chain.from_iterable(repeat(itmByName[item], num) for item, num in v['items'].items())]
+            if isinstance(m, machine.Beacon):
                 beacons.append(m)
             else:
                 machines.append(m)

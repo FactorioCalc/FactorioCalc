@@ -1,50 +1,78 @@
 from __future__ import annotations
 import json
 from pathlib import Path
-from . import itm,rcp,mch,data,machines
-from .machines import Category
+from . import itm,rcp,mch,data,machine
+from .machine import Category
 from .fracs import frac, frac_from_float_round
 from .core import *
-from .data import *
-from .data import CraftingHint, craftingHints
+from .data import CraftingHint
 from ._helper import toPythonName,toClassName
 
 _dir = Path(__file__).parent.resolve()
 
-def doit():
-    with open(_dir / 'recipes-base.json') as f:
-        d = json.load(f)
-    addItem(Electricity, 'electricity', 'zzz')
-    items = d['items']
-
+def importGameInfo(gameInfo, includeHidden = True):
+    #with open(_dir / 'recipes-base.json') as f:
+    #    d = json.load(f)
+    rcp, itm, mch = data.Objs(), data.Objs(), data.Objs()
+    rcpByName, itmByName, mchByName = {}, {}, {}
     categories = {}
-    # import machines
-    for k,v in d['entities'].items():
+    
+    def addItem(cls, name, order):
+        item = cls(name, order)
+        setattr(itm, name, item)
+        itmByName[name]=item
+        return item
+
+    def lookupItem(name):
+        try:
+            return itmByName[name]
+        except KeyError:
+            pass
+        pythonName = toPythonName(name)
+        try:
+            d = gameInfo['items'][name]
+            item = Item(name, d['order'], d['stack_size'], fuelValue=d['fuel_value'], fuelCategory=d.get('fuel_category',''))
+        except KeyError:
+            item = Ingredient(name,'z-'+name)
+        setattr(itm, pythonName, item)
+        itmByName[name] = item
+        return item
+
+    def addRecipe(recipe):
+        name = recipe.name
+        pythonName = toPythonName(name)
+        setattr(rcp, pythonName, recipe)
+        rcpByName[name] = recipe
+
+    addItem(Electricity, 'electricity', 'zzz')
+
+    # import mchByName
+    for k,v in gameInfo['entities'].items():
         clsName = toClassName(v['name'])
         bases = []
         module_inventory_size = v.get('module_inventory_size', 0)
         if module_inventory_size > 0:
-            bases.append(machines._ModulesMixin)
+            bases.append(machine._ModulesMixin)
         energy_source = v.get('energy_source', None)
         if energy_source == 'burner':
-            bases.append(machines._BurnerMixin)
+            bases.append(machine._BurnerMixin)
         elif energy_source == 'electric':
-            bases.append(machines._ElectricMixin)
+            bases.append(machine._ElectricMixin)
         isCraftingMachine = False
         if v['type'] == 'assembling-machine':
             isCraftingMachine = True
-            bases.append(machines.AssemblingMachine)
+            bases.append(machine.AssemblingMachine)
         elif v['type'] == 'furnace':
             isCraftingMachine = True
-            bases.append(machines.Furnace)
+            bases.append(machine.Furnace)
         else:
-            existing = getattr(machines, clsName, None)
+            existing = getattr(machine, clsName, None)
             if existing is not None:
                 cls = existing
                 #cls = type(clsName, (existing,), {})
                 #cls.__module__ = mch
                 setattr(mch, clsName, cls)
-                data.entityToMachine[cls.name] = cls
+                mchByName[cls.name] = cls
             continue
         dict = {'name': v['name'],
                 'type': v['type'],
@@ -70,10 +98,10 @@ def doit():
         if module_inventory_size > 0:
             cls.allowdEffects = v['allowed_effects']
         setattr(mch, clsName, cls)
-        data.entityToMachine[cls.name] = cls
-    
+        mchByName[cls.name] = cls
+
     # import modules
-    for k,v in items.items():
+    for k,v in gameInfo['items'].items():
         if v['type'] != 'module': continue
         pythonName = toPythonName(k)
         def get(what):
@@ -89,16 +117,15 @@ def doit():
                 limitation.add('space-science-pack')
         item = Module(k, v['order'], v['stack_size'], e, limitation)
         setattr(itm, pythonName, item)
-        itm.byName[k]=item
+        itmByName[k]=item
 
     # import recipes
-    rcp.byName = {}
-    for (k,v) in d['recipes'].items():
+    for (k,v) in gameInfo['recipes'].items():
         def toRecipeComponent(d):
             num = d['amount']*d.get('probability',1)
             if type(num) is float:
                 num = frac(num, float_conv_method = 'round')
-            return RecipeComponent(item=lookupItem(items, d['name']), num = num)
+            return RecipeComponent(item=lookupItem(d['name']), num = num)
         def toRecipe(d):
             inputs = tuple(toRecipeComponent(rc) for rc in d['ingredients'])
             outputs = tuple(toRecipeComponent(rc) for rc in d['products'])
@@ -107,7 +134,7 @@ def doit():
             if order is None and len(outputs) == 1:
                 order = outputs[0].item.order
             if order is None and 'main_product' in d:
-                order = itm.byName[d['main_product']].order
+                order = itmByName[d['main_product']].order
             assert(order is not None)
             return Recipe(v['name'],categories.get(v['category'], None),inputs,outputs,time,order)
         try:
@@ -117,18 +144,18 @@ def doit():
             normal_recipe = recipe
         addRecipe(normal_recipe)
 
-    rp = rcp.byName['rocket-part']
+    rp = rcpByName['rocket-part']
     rocket_parts_inputs = tuple(RecipeComponent(rc.num*100, rc.item) for rc in rp.inputs)
     rocket_parts_time = rp.time*100
 
     # create recipes for rocket launch products
-    for k,v in items.items():
+    for k,v in gameInfo['items'].items():
         rocket_launch_products = v.get('rocket_launch_products', None)
         if not rocket_launch_products: continue
         assert len(rocket_launch_products) == 1
         rocket_launch_product = rocket_launch_products[0]
-        item = lookupItem(items, rocket_launch_product['name'])
-        if item.name not in d['recipes']:
+        item = lookupItem(rocket_launch_product['name'])
+        if item.name not in gameInfo['recipes']:
             name = f'{item.name}'
         else:
             name = f'{item.name}-'
@@ -140,27 +167,66 @@ def doit():
             outputs = (RecipeComponent(num = rocket_launch_product['amount'] * rocket_launch_product.get('probability',1),
                                        item = item),),
             time = rocket_parts_time,
-            cargo = RecipeComponent(num=1, item=lookupItem(items, k)),
+            cargo = RecipeComponent(num=1, item=lookupItem(k)),
         )
         addRecipe(recipe)
 
     steam = Recipe(
         name = 'steam',
         category = Category('Boiler', [mch.Boiler]),
-        inputs = (RecipeComponent(60, lookupItem(items, 'water')),),
-        outputs = (RecipeComponent(60, lookupItem(items, 'steam')),),
+        inputs = (RecipeComponent(60, lookupItem('water')),),
+        outputs = (RecipeComponent(60, lookupItem('steam')),),
         time = 1,
         order = '')
     addRecipe(steam)
 
-    researchHacks()
+    res = data.GameInfo(
+        rcp = rcp,
+        rcpByName = rcpByName,
+        itm = itm,
+        itmByName = itmByName,
+        mch = mch,
+        mchByName = mchByName,
+    )
 
-    for r in rcp.byName.values():
-        for _, item in r.outputs:
-            recipesThatMake.setdefault(item, []).append(r.name)
-        for _, item in r.inputs:
-            recipesThatUse.setdefault(item, []).append(r.name)
-        if any(item == itm.empty_barrel for _, item in r.outputs) and len(r.outputs) > 1:
+    return res
+
+def _add_research_hacks(gi):
+    def addItem(cls, name, order):
+        item = cls(name, order)
+        setattr(gi.itm, name, item)
+        gi.itmByName[name]=item
+        return item
+
+    def addRecipe(recipe):
+        name = recipe.name
+        pythonName = toPythonName(name)
+        setattr(gi.rcp, pythonName, recipe)
+        gi.rcpByName[name] = recipe
+
+    from .helper import FakeLab, sciencePacks
+    
+    def addResearch(name, order, inputs):
+        from . import helper
+        item = addItem(Research, name, order)
+        recipe = Recipe(name = name,
+                        category = Category('FakeLab', [FakeLab]),
+                        inputs = (RecipeComponent(1, i) for i in sorted(inputs, key = lambda k: k.order)),
+                        outputs = (RecipeComponent(1, item),),
+                        time = 1,
+                        order = order)
+        addRecipe(recipe)
+
+    addResearch('_production_research', 'zz0', sciencePacks - {itm.military_science_pack})
+    addResearch('_military_research', 'zz1', sciencePacks - {itm.production_science_pack})
+    addResearch('_combined_research', 'zz2', sciencePacks)
+
+
+def _add_crafting_hints(gi):
+    craftingHints = {}
+    
+    for r in gi.rcpByName.values():       
+        if any(item == gi.itm.empty_barrel for _, item in r.outputs) and len(r.outputs) > 1:
             craftingHints[r.name] = CraftingHint(priority = IGNORE)
 
     craftingHints['advanced-oil-processing'] = CraftingHint(also=['light-oil-cracking','heavy-oil-cracking'])
@@ -176,50 +242,27 @@ def doit():
     craftingHints['nuclear-fuel-reprocessing']     = CraftingHint(boxPriority = 90)
 
     craftingHints['kovarex-enrichment-process']    = CraftingHint(priority = IGNORE)
-    
+
     craftingHints['rocket-part'] = CraftingHint(priority = IGNORE)
 
-def researchHacks():
-    from .helper import sciencePacks
-    addResearch('_production_research', 'zz0', sciencePacks - {itm.military_science_pack})
-    addResearch('_military_research', 'zz1', sciencePacks - {itm.production_science_pack})
-    addResearch('_combined_research', 'zz2', sciencePacks)
+    gi.craftingHints = craftingHints
 
-def addResearch(name, order, inputs):
-    from . import helper
-    item = addItem(Research, name, order)
-    recipe = Recipe(name = name,
-                    category = Category('FakeLab', [helper.FakeLab]),
-                    inputs = (RecipeComponent(1, i) for i in sorted(inputs, key = lambda k: k.order)),
-                    outputs = (RecipeComponent(1, item),),
-                    time = 1,
-                    order = order)
-    addRecipe(recipe)
 
-def addItem(cls, name, order):
-    item = cls(name, order)
-    setattr(itm, name, item)
-    itm.byName[name]=item
-    return item
+def doit():
+    with open(_dir / 'recipes-base.json') as f:
+        d = json.load(f)
 
-def lookupItem(items, name):
-    try:
-        return itm.byName[name]
-    except KeyError:
-        pass
-    pythonName = toPythonName(name)
-    try:
-        d = items[name]
-        item = Item(name, d['order'], d['stack_size'], fuelValue=d['fuel_value'], fuelCategory=d.get('fuel_category',''))
-    except KeyError:
-        item = Ingredient(name,'z-'+name)
-    setattr(itm, pythonName, item)
-    itm.byName[name] = item
-    return item
+    res = importGameInfo(d)
+    
+    from . import config
 
-def addRecipe(recipe):
-    name = recipe.name
-    pythonName = toPythonName(name)
-    setattr(rcp, pythonName, recipe)
-    rcp.byName[name] = recipe
+    config.gameInfo.set(res)
+    config.defaultFuel.set(res.itm.coal)
 
+    _add_research_hacks(res)
+    
+    _add_crafting_hints(res)
+
+    res.finalize()
+
+    

@@ -1,9 +1,7 @@
 from .fracs import Frac, frac
 from .core import *
 from .box import *
-from .machines import *
 from .data import *
-from . import itm, rcp
 
 __all__ = ('toJsonObj', 'fromJsonObj')
 
@@ -54,41 +52,42 @@ def fromJsonObj(jsonObj, customRecipeCache = None):
                 raise ValueError(f'recipe {r.name} does not match provided')
             r = customRecipeCache[r.name]
         customRecipes[r.name] = r
-    return _fromJsonObj(jsonObj['factory'], {}, customRecipes)
+    from .config import gameInfo
+    return _fromJsonObj(gameInfo.get(), jsonObj['factory'], {}, customRecipes)
 
-def _fromJsonObj(jsonObj, objs, customRecipes):
+def _fromJsonObj(gi, jsonObj, objs, customRecipes):
     if type(jsonObj) is int:
         return objs[jsonObj]
     if jsonObj['name'] == '<group>':
-        machines = [_fromJsonObj(m, objs, customRecipes) for m in jsonObj['machines']]
+        machines = [_fromJsonObj(gi, m, objs, customRecipes) for m in jsonObj['machines']]
         obj = Group(machines)
     elif jsonObj['name'] == '<mul>':
-        machine = _fromJsonObj(jsonObj['machine'], objs, customRecipes)
+        machine = _fromJsonObj(gi, jsonObj['machine'], objs, customRecipes)
         num = _decodeNum(jsonObj['num'])
         obj = Mul(machine, num)
     elif jsonObj['name'] == '<box>':
-        inner = _fromJsonObj(jsonObj['inner'], objs, customRecipes)
+        inner = _fromJsonObj(gi, jsonObj['inner'], objs, customRecipes)
         args = {'name': jsonObj.get('label', None)}
         if 'outputs' in jsonObj:
-            args['outputs'] = {itm.byName[k]: _decodeNum(v) for k,v in jsonObj['outputs'].items()}
+            args['outputs'] = {gi.itmByName[k]: _decodeNum(v) for k,v in jsonObj['outputs'].items()}
         if 'inputs' in jsonObj:
-            args['inputs'] = {itm.byName[k]: _decodeNum(v) for k,v in jsonObj['inputs'].items()}
+            args['inputs'] = {gi.itmByName[k]: _decodeNum(v) for k,v in jsonObj['inputs'].items()}
         if 'constraints' in jsonObj:
-            args['constraints'] = {itm.byName[k]: _decodeNum(v) for k,v in jsonObj['constraints'].items()}
+            args['constraints'] = {gi.itmByName[k]: _decodeNum(v) for k,v in jsonObj['constraints'].items()}
         if 'priority' in jsonObj:
-            args['priority'] = {_decodeItemOrRecipe(k, customRecipes): _decodeNum(v) for k,v in jsonObj['priority'].items()}
+            args['priority'] = {_decodeItemOrRecipe(gi, k, customRecipes): _decodeNum(v) for k,v in jsonObj['priority'].items()}
         obj = Box(inner, **args)
     else:
-        cls = entityToMachine[jsonObj['name']]
+        cls = gi.mchByName[jsonObj['name']]
         obj = cls()
         if 'recipe' in jsonObj:
-            obj.recipe = _decodeRecipe(jsonObj['recipe'], customRecipes)
+            obj.recipe = _decodeRecipe(gi, jsonObj['recipe'], customRecipes)
         if 'modules' in jsonObj:
-            obj.modules = [ _decodeModule(m) for m in jsonObj['modules']]
+            obj.modules = [ _decodeModule(gi, m) for m in jsonObj['modules']]
         if 'beacons' in jsonObj:
-            obj.beacons = [ _fromJsonObj(m, objs, customRecipes) for m in jsonObj['beacons']]
+            obj.beacons = [ _fromJsonObj(gi, m, objs, customRecipes) for m in jsonObj['beacons']]
         if 'fuel' in jsonObj:
-            obj.fuel = itm.byName[jsonObj['fuel']]
+            obj.fuel = gi.itmByName[jsonObj['fuel']]
     if 'id' in jsonObj:
         objs[jsonObj['id']] = obj
     return obj
@@ -99,34 +98,34 @@ def _decodeNum(num):
     else:
         return frac(num)
 
-def _decodeRecipe(recipeStr, customRecipes, **kwargs):
+def _decodeRecipe(gi, recipeStr, customRecipes, **kwargs):
     name, _, qual = recipeStr.partition(' ')
     if qual == 'custom':
         return customRecipes[name]
     elif qual != '':
         raise ValueError('unknown qualifier for recipe: {qual}')
-    return rcp.byName[name]
+    return gi.rcpByName[name]
 
-def _decodeCustomRecipe(jsonObj):
+def _decodeCustomRecipe(gi, jsonObj):
     return Recipe(
         name = jsonObj['name'],
         madeIn = entityToMachine[jsonObj['madeIn']],
-        inputs = tuple(RecipeComponent(_decodeNum(num), itm.byName[item]) for num, item in jsonObj['inputs']),
-        outputs = tuple(RecipeComponent(_decodeNum(num), itm.byName[item]) for num, item in jsonObj['outputs']),
+        inputs = tuple(RecipeComponent(_decodeNum(num), gi.itmByName[item]) for num, item in jsonObj['inputs']),
+        outputs = tuple(RecipeComponent(_decodeNum(num), gi.itmByName[item]) for num, item in jsonObj['outputs']),
         time = _decodeNum(jsonObj['time']),
         order = jsonObj['order']
     )
 
-def _decodeItemOrRecipe(s, customRecipes):
+def _decodeItemOrRecipe(gi, s, customRecipes):
     typ, _, rest = s.partition(' ')
     if typ == 'i':
-        return itm.byName[rest]
+        return gi.itmByName[rest]
     elif typ == 'r':
-        return _decodeRecipe(rest, customRecipes)
+        return _decodeRecipe(gi, rest, customRecipes)
 
-def _decodeModule(s):
+def _decodeModule(gi, s):
     if type(s) is str:
-        return itm.byName[s]
+        return gi.itmByName[s]
     else:
         args = {k: _decodeNum(v) for k,v in s.items()}
         return FakeModule(**args)

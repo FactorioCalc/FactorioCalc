@@ -289,7 +289,8 @@ class CraftingMachine(Machine):
             elif isinstance(val, Rcp):
                 val = val.inst()
             elif isinstance(val, str):
-                val = rcp.byName[str].inst()
+                from .config import gameInfo
+                val = gameInfo.get().rcpByName[str].inst()
             else:
                 raise TypeError(f'unexpected type for recipe: {type(val)}')
         super().__setattr__(prop, val)
@@ -1044,7 +1045,8 @@ class Recipe(Uniq,Immutable):
         )
     def _jsonObj(self, customRecipes, **kwards):
         from .jsonconv import _jsonObj
-        if rcp.byName.get(self.name, None) is self:
+        from .config import gameInfo
+        if gameInfo.get().rcpByName.get(self.name, None) is self:
             return self.name
         elif customRecipes.get(self.name, None) is self:
             return f'{self.name} custom'

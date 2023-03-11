@@ -21,5 +21,13 @@ Result of `rcp._production_research <factoriocalc.rcp._production_research>`.
 
 """
 
-byName = {}
+def __getattr__(name):
+    from .config import gameInfo
+    try:
+        return getattr(gameInfo.get().itm, name)
+    except AttributeError:
+        raise AttributeError(f"current 'itm' object has no attribute '{name}'") from None
 
+def __dir__():
+    from .config import gameInfo
+    return gameInfo.get().itm.__dir__()

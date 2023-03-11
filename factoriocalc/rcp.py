@@ -26,5 +26,14 @@ Recipe to consume all but the military science pack at a rate of 1/s in a
 
 """
 
-byName = {}
+def __getattr__(name):
+    from .config import gameInfo
+    try:
+        return getattr(gameInfo.get().rcp, name)
+    except AttributeError:
+        raise AttributeError(f"current 'rcp' object has no attribute '{name}'") from None
+
+def __dir__():
+    from .config import gameInfo
+    return gameInfo.get().rcp.__dir__()
 

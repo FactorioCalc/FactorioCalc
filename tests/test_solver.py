@@ -2,7 +2,7 @@ import factoriocalc
 from factoriocalc import *
 from factoriocalc import solver
 from factoriocalc.solver import SolveRes
-from factoriocalc.mch import *
+from factoriocalc.mch import AssemblingMachine3,ElectricFurnace,ChemicalPlant,OilRefinery,Centrifuge,Boiler
 from contextlib import redirect_stdout
 import io
 import unittest
