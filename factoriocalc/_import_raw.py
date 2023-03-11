@@ -121,17 +121,28 @@ def doit():
     rocket_parts_inputs = tuple(RecipeComponent(rc.num*100, rc.item) for rc in rp.inputs)
     rocket_parts_time = rp.time*100
 
-    space_science_pack = mch.RocketSilo.Recipe(
-        name = 'space-science-pack',
-        category = mch.RocketSilo.craftingCategory,
-        order = lookupItem(items, 'space-science-pack').order,
-        inputs = rocket_parts_inputs,
-        outputs = (RecipeComponent(num=1000,
-                                   item=lookupItem(items, 'space-science-pack')),),
-        time = rocket_parts_time,
-        cargo = RecipeComponent(num=1,
-                                item=itm.satellite))
-    addRecipe(space_science_pack)
+    # create recipes for rocket launch products
+    for k,v in items.items():
+        rocket_launch_products = v.get('rocket_launch_products', None)
+        if not rocket_launch_products: continue
+        assert len(rocket_launch_products) == 1
+        rocket_launch_product = rocket_launch_products[0]
+        item = lookupItem(items, rocket_launch_product['name'])
+        if item.name not in d['recipes']:
+            name = f'{item.name}'
+        else:
+            name = f'{item.name}-'
+        recipe = mch.RocketSilo.Recipe(
+            name = name,
+            category = mch.RocketSilo.craftingCategory,
+            order = item.order,
+            inputs = rocket_parts_inputs,
+            outputs = (RecipeComponent(num = rocket_launch_product['amount'] * rocket_launch_product.get('probability',1),
+                                       item = item),),
+            time = rocket_parts_time,
+            cargo = RecipeComponent(num=1, item=lookupItem(items, k)),
+        )
+        addRecipe(recipe)
 
     steam = Recipe(
         name = 'steam',

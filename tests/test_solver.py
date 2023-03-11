@@ -467,5 +467,5 @@ class ProduceTests(unittest.TestCase):
 
     testSpaceSciencePack = ProduceTest(
         lambda: produce([itm.space_science_pack@1],recursive=False),
-        {itm.space_science_pack:1, itm.rocket_control_unit: frac(-5,7)})
+        {itm.space_science_pack:1, itm.rocket_control_unit: frac(-5,7), itm.satellite: frac(-1,1000)})
     
