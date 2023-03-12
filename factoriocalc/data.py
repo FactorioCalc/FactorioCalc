@@ -21,6 +21,7 @@ class GameInfo:
     recipesThatMake: dict = None
     recipesThatUse: dict = None
     craftingHints: dict = None
+    translatedNames: dict = None
 
     def finalize(self):
         self.recipesThatMake = {}
@@ -65,5 +66,6 @@ mchByName = DictProxy('mchByName')
 recipesThatMake = DictProxy('recipesThatMake')
 recipesThatUse = DictProxy('recipesThatUse')
 craftingHints = DictProxy('craftingHints')
+translatedNames = DictProxy('translatedNames')
 
 __all__ = ['rcpByName','itmByName','mchByName', 'recipesThatMake', 'recipesThatUse', 'CraftingHint']

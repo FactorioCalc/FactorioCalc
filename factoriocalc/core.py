@@ -57,6 +57,10 @@ class Ingredient(Uniq,Immutable):
     def __init__(self, name, order):
         object.__setattr__(self, 'name', name)
         object.__setattr__(self, 'order', order)
+    @property
+    def descr(self):
+        from .config import gameInfo
+        return gameInfo.get().translatedNames.get(f'itm {self.name}', self.name)
     def __str__(self):
         return self.name
     def __repr__(self):
@@ -152,8 +156,14 @@ class MachineBase:
             raise TypeError(f"can't create {cls.__name__}")
         return object.__new__(cls)
 
+class MachineMeta(type):
+    @property
+    def descr(self):
+        from .config import gameInfo
+        return gameInfo.get().translatedNames.get(f'mch {self.name}', self.name)
+
 @dataclass(init=False)
-class Machine(MachineBase):
+class Machine(MachineBase, metaclass=MachineMeta):
     """A entity that used directly or indirectly to produce something."""
     throttle: Rational
     blueprintInfo: dict = field(default = None, init = False, repr = False, compare = False)
@@ -171,6 +181,10 @@ class Machine(MachineBase):
     @property
     def recipe(self):
         return None
+
+    @property
+    def descr(self):
+        return type(self).descr
 
     def resetThrottle(self):
         self.throttle = 1
@@ -1030,6 +1044,10 @@ class Recipe(Uniq,Immutable):
             object.__setattr__(self, 'mainOutput', outputs[0].item)
         else:
             object.__setattr__(self, 'mainOutput', None)
+    @property
+    def descr(self):
+        from .config import gameInfo
+        return gameInfo.get().translatedNames.get(f'rcp {self.name}', self.name)
     def __eq__(self, other):
         return object.__eq__(self, other)
     def __ne__(self, other):

@@ -15,13 +15,16 @@ def _importGameInfo(gameInfo, includeDisabled = True):
     #    d = json.load(f)
     rcp, itm, mch = data.Objs(), data.Objs(), data.Objs()
     rcpByName, itmByName, mchByName = {}, {}, {}
+    translatedNames = {}
     categories = {}
     
-    def addItem(cls, name, order):
-        item = cls(name, order)
-        setattr(itm, name, item)
-        itmByName[name]=item
-        return item
+    def addItem(item, descr = ''):
+        name = item.name
+        pythonName = toPythonName(name)
+        setattr(itm, pythonName, item)
+        itmByName[name] = item
+        if descr:
+            translatedNames[f'itm {item.name}'] = descr
 
     def lookupItem(name):
         try:
@@ -32,19 +35,22 @@ def _importGameInfo(gameInfo, includeDisabled = True):
         try:
             d = gameInfo['items'][name]
             item = Item(name, d['order'], d['stack_size'], fuelValue=d['fuel_value'], fuelCategory=d.get('fuel_category',''))
+            descr = d.get('translated_name', '')
         except KeyError:
             item = Ingredient(name,'z-'+name)
-        setattr(itm, pythonName, item)
-        itmByName[name] = item
+            descr = ''
+        addItem(item, descr)
         return item
 
-    def addRecipe(recipe):
+    def addRecipe(recipe, descr = ''):
         name = recipe.name
         pythonName = toPythonName(name)
         setattr(rcp, pythonName, recipe)
         rcpByName[name] = recipe
+        if descr:
+            translatedNames[f'rcp {recipe.name}'] = descr
 
-    addItem(Electricity, 'electricity', 'zzz')
+    addItem(Electricity('electricity', 'zzz'))
 
     # import machines
     for k,v in gameInfo['entities'].items():
@@ -100,6 +106,9 @@ def _importGameInfo(gameInfo, includeDisabled = True):
             cls.allowdEffects = v['allowed_effects']
         setattr(mch, clsName, cls)
         mchByName[cls.name] = cls
+        descr = v.get('translated_name','')
+        if descr:
+            translatedNames[f'mch {cls.name}'] = descr
 
     # import modules
     for k,v in gameInfo['items'].items():
@@ -117,8 +126,7 @@ def _importGameInfo(gameInfo, includeDisabled = True):
             if 'rocket-part' in limitation:
                 limitation.add('space-science-pack')
         item = Module(k, v['order'], v['stack_size'], e, limitation)
-        setattr(itm, pythonName, item)
-        itmByName[k]=item
+        addItem(item, v.get('translated_name',''))
 
     # import recipes
     for (k,v) in gameInfo['recipes'].items():
@@ -145,7 +153,7 @@ def _importGameInfo(gameInfo, includeDisabled = True):
             assert(order is not None)
             return Recipe(v['name'],categories.get(v['category'], None),inputs,outputs,time,order,mainOutput)
         recipe = toRecipe(v)
-        addRecipe(recipe)
+        addRecipe(recipe, v.get('translated_name', ''))
 
     rp = rcpByName['rocket-part']
     rocket_parts_inputs = tuple(RecipeComponent(rc.num*100, rc.item) for rc in rp.inputs)
@@ -190,6 +198,7 @@ def _importGameInfo(gameInfo, includeDisabled = True):
         itmByName = itmByName,
         mch = mch,
         mchByName = mchByName,
+        translatedNames = translatedNames,
     )
 
     return res
