@@ -1,5 +1,5 @@
 from factoriocalc import *
-from factoriocalc.mch import *
+from factoriocalc.mch import AssemblingMachine3, RocketSilo, OilRefinery, Centrifuge
 from unittest import TestCase
 
 class RateTests(TestCase):

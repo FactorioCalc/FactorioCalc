@@ -15,8 +15,10 @@ from . import data
 from .data import *
 __all__ += data.__all__
 
-from . import _import_raw
-_import_raw.doit()
+from . import import_
+from .import_ import *
+__all__ += import_.__all__
+defaultImport()
 
 from . import presets
 from .presets import *

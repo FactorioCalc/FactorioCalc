@@ -10,7 +10,7 @@ from ._helper import toPythonName,toClassName
 
 _dir = Path(__file__).parent.resolve()
 
-def importGameInfo(gameInfo, includeHidden = True):
+def _importGameInfo(gameInfo, includeHidden = True):
     #with open(_dir / 'recipes-base.json') as f:
     #    d = json.load(f)
     rcp, itm, mch = data.Objs(), data.Objs(), data.Objs()
@@ -46,7 +46,7 @@ def importGameInfo(gameInfo, includeHidden = True):
 
     addItem(Electricity, 'electricity', 'zzz')
 
-    # import mchByName
+    # import machines
     for k,v in gameInfo['entities'].items():
         clsName = toClassName(v['name'])
         bases = []
@@ -191,7 +191,7 @@ def importGameInfo(gameInfo, includeHidden = True):
 
     return res
 
-def _add_research_hacks(gi):
+def _addResearchHacks(gi):
     def addItem(cls, name, order):
         item = cls(name, order)
         setattr(gi.itm, name, item)
@@ -222,7 +222,7 @@ def _add_research_hacks(gi):
     addResearch('_combined_research', 'zz2', sciencePacks)
 
 
-def _add_crafting_hints(gi):
+def standardCraftingHints(gi):
     craftingHints = {}
     
     for r in gi.rcpByName.values():       
@@ -245,24 +245,43 @@ def _add_crafting_hints(gi):
 
     craftingHints['rocket-part'] = CraftingHint(priority = IGNORE)
 
-    gi.craftingHints = craftingHints
+    return craftingHints
 
-
-def doit():
-    with open(_dir / 'recipes-base.json') as f:
-        d = json.load(f)
-
-    res = importGameInfo(d)
-    
+def importGameInfo(gameInfo, includeHidden = True, researchHacks = False, craftingHints = None):
     from . import config
-
-    config.gameInfo.set(res)
-    config.defaultFuel.set(res.itm.coal)
-
-    _add_research_hacks(res)
     
-    _add_crafting_hints(res)
+    if isinstance(gameInfo, Path):
+        with open(gameInfo) as f:
+            d = json.load(f)
+    else:
+        d = gameInfo
+
+    res = _importGameInfo(d, includeHidden)
+
+    res.defaultFuel = res.itm.coal
+
+    token = config.gameInfo.set(res)
+
+    if researchHacks:
+        _addResearchHacks(res)
 
     res.finalize()
-
     
+    if craftingHints:
+        res.craftingHints = craftingHints(res)
+    else:
+        res.craftingHints = {}
+
+    return token
+
+def defaultImport(expensiveMode = False):
+    if expensiveMode:
+        path = _dir / 'game-info-expensive.json'
+    else:
+        path = _dir / 'game-info-normal.json'
+    
+    return importGameInfo(path,
+                          researchHacks = True,
+                          craftingHints = standardCraftingHints)
+
+__all__ = ('standardCraftingHints', 'importGameInfo', 'defaultImport')

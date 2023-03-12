@@ -13,6 +13,7 @@ from .box import *
 from .solver import LinearEqSystem,Solver,SolveRes
 from .data import *
 from .data import craftingHints
+from ._helper import getDefaultFuel
 
 __all__ = ('box', 'unboundedBox', 'produce', 'merge', 'union',
            'ProduceResult', 'MultipleChoiceError', 'SolveFailedError', 'NonUniqueSolutionError')
@@ -142,7 +143,7 @@ def produce(outputs, using = (), *,
     outputs = Box.Outputs(outputs)
     inputs = Box.Inputs()
     if fuel is None:
-        fuel = config.defaultFuel.get()
+        fuel = getDefaultFuel()
     recipePrefs = {}
     machinePrefs = []
     for v in using.items() if isinstance(using, Mapping) else using:

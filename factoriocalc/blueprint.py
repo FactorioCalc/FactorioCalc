@@ -5,6 +5,7 @@ import math
 
 from .core import *
 from . import config, machine
+from ._helper import getDefaultFuel
 
 __all__ = ('Blueprint', 'BlueprintBook', 'decodeBlueprint')
 
@@ -25,7 +26,7 @@ class Blueprint:
         recipeMap = gameInfo.rcpByName
         
         if burnerFuel is None:
-            burnerFuel = config.defaultFuel.get()
+            burnerFuel = getDefaultFuel()
         
         machines = []
         beacons = []
