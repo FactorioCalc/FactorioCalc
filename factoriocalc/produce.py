@@ -4,6 +4,7 @@ from collections.abc import Mapping
 import math
 from copy import copy
 from dataclasses import dataclass,field
+from warnings import warn
 import operator
 
 from . import itm,rcp,config
@@ -65,7 +66,7 @@ class _BoxFailedInfo:
 
 def produce(outputs, using = (), *,
             stopAt = (), fuel = None, constraints = None,
-            name = None,
+            name = None, abortOnMultiChoice = True,
             recursive = True, roundUp = False, minSolveRes = SolveRes.MULTI, solve = True):
     """Create a factory to produce outputs.
 
@@ -218,7 +219,12 @@ def produce(outputs, using = (), *,
         if len(bestRecipes) == 1 or (len(bestRecipes) > 1 and maxPriority >= 1000):
             recipes = bestRecipes
         else:
-            raise MultipleChoiceError('multiple ways to produce {}: {}'.format(item, ' '.join(bestRecipes)))
+            recipes = []
+            err = MultipleChoiceError('multiple ways to produce {}: {}'.format(item, ' '.join(bestRecipes)))
+            if abortOnMultiChoice:
+                raise err
+            else:
+                warn(err)
         recipes = [r for r in recipes if r not in machines]
         if not recipes:
             continue
