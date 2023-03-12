@@ -1016,14 +1016,20 @@ class Recipe(Uniq,Immutable):
     """A recipe to produce something.
 
     """
-    __slots__ = ('name', 'category', 'inputs', 'outputs', 'time', 'order')
-    def __init__(self, name, category, inputs, outputs, time, order):
+    __slots__ = ('name', 'category', 'inputs', 'outputs', 'mainOutput', 'time', 'order')
+    def __init__(self, name, category, inputs, outputs, time, order, mainOutput = None):
         object.__setattr__(self, 'name', name)
         object.__setattr__(self, 'category', category)
         object.__setattr__(self, 'inputs', tuple(inputs))
         object.__setattr__(self, 'outputs', tuple(outputs))
         object.__setattr__(self, 'time', time)
         object.__setattr__(self, 'order', order)
+        if mainOutput is not None:
+            object.__setattr__(self, 'mainOutput', mainOutput)
+        elif len(outputs) == 1:
+            object.__setattr__(self, 'mainOutput', outputs[0].item)
+        else:
+            object.__setattr__(self, 'mainOutput', None)
     def __eq__(self, other):
         return object.__eq__(self, other)
     def __ne__(self, other):
@@ -1061,6 +1067,7 @@ class Recipe(Uniq,Immutable):
                 and self.category == other.category
                 and self.inputs == other.inputs
                 and self.outputs == other.outputs
+                and self.mainOutput == other.mainOutput
                 and self.time == other.time
                 and self.order == other.order)
     def produce(self, machinePrefs = Default, fuel = None, modules = (), beacons = ()):
@@ -1076,8 +1083,11 @@ class Recipe(Uniq,Immutable):
             machines = self.category.members
             if len(machines) == 1:
                 candidates.append(machines[0]())
+            elif len(machines) == 0:
+                raise ValueError(f'No matching machine for "{self.name}".')
             else:
-                raise ValueError(f'Unable to find matching machine for "{self.name}".') 
+                candidatesStr = ' '.join(c.name for c in machines)
+                raise ValueError(f'Multiple matching machines for "{self.name}": {candidatesStr}')
         while candidates:
             m = candidates.popleft()
             try:

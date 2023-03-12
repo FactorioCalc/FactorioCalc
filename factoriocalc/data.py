@@ -66,4 +66,4 @@ recipesThatMake = DictProxy('recipesThatMake')
 recipesThatUse = DictProxy('recipesThatUse')
 craftingHints = DictProxy('craftingHints')
 
-__all__ = ['rcpByName','itmByName','mchByName', 'recipesThatMake', 'recipesThatUse']
+__all__ = ['rcpByName','itmByName','mchByName', 'recipesThatMake', 'recipesThatUse', 'CraftingHint']

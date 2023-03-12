@@ -10,7 +10,7 @@ from ._helper import toPythonName,toClassName
 
 _dir = Path(__file__).parent.resolve()
 
-def _importGameInfo(gameInfo, includeHidden = True):
+def _importGameInfo(gameInfo, includeDisabled = True):
     #with open(_dir / 'recipes-base.json') as f:
     #    d = json.load(f)
     rcp, itm, mch = data.Objs(), data.Objs(), data.Objs()
@@ -48,6 +48,7 @@ def _importGameInfo(gameInfo, includeHidden = True):
 
     # import machines
     for k,v in gameInfo['entities'].items():
+        if 'hidden' in v.get('flags',[]): continue
         clsName = toClassName(v['name'])
         bases = []
         module_inventory_size = v.get('module_inventory_size', 0)
@@ -121,14 +122,20 @@ def _importGameInfo(gameInfo, includeHidden = True):
 
     # import recipes
     for (k,v) in gameInfo['recipes'].items():
+        if not includeDisabled and not v.get('enabled', False):
+            continue
         def toRecipeComponent(d):
-            num = d['amount']*d.get('probability',1)
+            try:
+                num = d['amount']*d.get('probability',1)
+            except KeyError:
+                num = d.get('probability',1) * (d['amount_max'] + d['amount_min']) / 2
             if type(num) is float:
                 num = frac(num, float_conv_method = 'round')
             return RecipeComponent(item=lookupItem(d['name']), num = num)
         def toRecipe(d):
             inputs = tuple(toRecipeComponent(rc) for rc in d['ingredients'])
             outputs = tuple(toRecipeComponent(rc) for rc in d['products'])
+            mainOutput = lookupItem(d['main_product']['name']) if 'main_product' in d else None
             time = frac(d.get('energy', 0.5), float_conv_method = 'round')
             order = v.get('order',None)
             if order is None and len(outputs) == 1:
@@ -136,13 +143,9 @@ def _importGameInfo(gameInfo, includeHidden = True):
             if order is None and 'main_product' in d:
                 order = itmByName[d['main_product']].order
             assert(order is not None)
-            return Recipe(v['name'],categories.get(v['category'], None),inputs,outputs,time,order)
-        try:
-            normal_recipe = toRecipe(v['normal'])
-        except KeyError:
-            recipe = toRecipe(v)
-            normal_recipe = recipe
-        addRecipe(normal_recipe)
+            return Recipe(v['name'],categories.get(v['category'], None),inputs,outputs,time,order,mainOutput)
+        recipe = toRecipe(v)
+        addRecipe(recipe)
 
     rp = rcpByName['rocket-part']
     rocket_parts_inputs = tuple(RecipeComponent(rc.num*100, rc.item) for rc in rp.inputs)
@@ -247,7 +250,7 @@ def standardCraftingHints(gi):
 
     return craftingHints
 
-def importGameInfo(gameInfo, includeHidden = True, researchHacks = False, craftingHints = None):
+def importGameInfo(gameInfo, includeDisabled = True, researchHacks = False, craftingHints = None):
     from . import config
     
     if isinstance(gameInfo, Path):
@@ -256,7 +259,7 @@ def importGameInfo(gameInfo, includeHidden = True, researchHacks = False, crafti
     else:
         d = gameInfo
 
-    res = _importGameInfo(d, includeHidden)
+    res = _importGameInfo(d, includeDisabled)
 
     res.defaultFuel = res.itm.coal
 

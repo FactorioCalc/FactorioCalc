@@ -13,7 +13,7 @@ class Category(Uniq):
         self.name = name
         self.members = members
     def __repr__(self):
-        return f'<Category: self.name>'
+        return f'<Category: {self.name}>'
 
 @dataclass(init=False)
 class _BurnerMixin:
