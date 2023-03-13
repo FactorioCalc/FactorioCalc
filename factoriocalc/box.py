@@ -240,6 +240,7 @@ class Box(BoxBase):
     def __init__(self, inner, *, name = None,
                  outputs = None, extraOutputs = (), outputTouchups = {}, outputsLoose = False,
                  inputs = None, extraInputs = (), inputTouchups = {}, inputsLoose = True,
+                 unconstrained = (),
                  constraints = None, priorities = None,
                  allowExtraInput = False):
         """Create a new box.
@@ -286,6 +287,11 @@ class Box(BoxBase):
         *inputsLoose* 
             If True (the default) than all input rates will become
             constraints
+
+        *unconstrained* 
+            Ignored flows.  Neither input or outputs and the exact values can
+            be either postive or negative depending on the machine
+            configuration.  The values are completly ignored by the solver.
         
         *constraints*
             FIXME: UPDATE
@@ -320,6 +326,7 @@ class Box(BoxBase):
         self.name = name
         self.outputs = Box.Outputs(outputs)
         self.inputs = Box.Inputs(inputs)
+        self.unconstrained = set(unconstrained)
         self.priorities = Box.Priorities(priorities)
         self.simpleConstraints = Box.SimpleConstraints()
         self.otherConstraints = Box.OtherConstraints()
@@ -332,14 +339,14 @@ class Box(BoxBase):
                 outputs_ |= m.outputs.keys()
             common = inputs_ & outputs_
             if outputs is None:
-                self.outputs = Box.Outputs(outputs_ - common)
+                self.outputs = Box.Outputs(outputs_ - common - self.unconstrained)
             if inputs is None:
                 if allowExtraInput:
-                    self.inputs = Box.Inputs(inputs_ - self.outputs.keys())
+                    self.inputs = Box.Inputs(inputs_ - self.outputs.keys() - self.unconstrained)
                     for item in self.inputs.keys() & common:
                         self.priorities[item] = IGNORE
                 else:
-                    self.inputs = Box.Inputs(inputs_ - common)
+                    self.inputs = Box.Inputs(inputs_ - common - self.unconstrained)
                     
         mainOutput = [item for item in self.outputs if item is not itm.empty_barrel]
         
@@ -429,6 +436,8 @@ class Box(BoxBase):
             flows = None
         out.write(f'{prefix}Outputs: {self.outputs.str(flows)}\n')
         out.write(f'{prefix}Inputs: {self.inputs.str(flows)}\n')
+        if self.unconstrained:
+            out.write(f'{prefix}Unconstrained: {self.unconstrained}\n')
         if self.simpleConstraints or self.otherConstraints:
             # FIXME
             out.write(f'{prefix}Constraints: {self.simpleConstraints} {self.otherConstraints}\n')
@@ -489,13 +498,14 @@ class Box(BoxBase):
             if flow.rateIn == 0 == flow.rateOut:
                 continue
             annotation = ''
-            if flow.rate() < 0:
-                state = max(state, FlowsState.UNSOLVED)
-                annotation = '!'
-            elif flow.rate() > 0:
-                state = max(state, FlowsState.UNSOLVED)
-                annotation = '*'
-            if _includeInner:
+            if flow.item not in self.unconstrained:
+                if flow.rate() < 0:
+                    state = max(state, FlowsState.UNSOLVED)
+                    annotation = '!'
+                elif flow.rate() > 0:
+                    state = max(state, FlowsState.UNSOLVED)
+                    annotation = '*'
+            if _includeInner or flow.item in self.unconstrained:
                 res.byItem[flow.item] = flow.copy(factor = throttle, adjusted = False, annotation = annotation)
             else:
                 pass

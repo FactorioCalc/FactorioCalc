@@ -494,6 +494,8 @@ class LinearEqSystem:
                 row.target.append(_Target(EQ, rate))
             if rate != 0:
                 row.target.append(_Target(Cond.NONE, -1))
+        for item in box.unconstrained:
+            eqs[item].target = [_Target(Cond.NONE, 0)]
         for row in eqs.values():
             if not row.target and row.id is not itm.electricity:
                 row.target = [_Target(EQ, 0)]
