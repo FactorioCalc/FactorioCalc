@@ -171,7 +171,7 @@ def produce(outputs, using = (), *,
         priority = 1000 if i < origLen else 800
         item = l[i]
         i += 1
-        rs = recipesThatUse.get(item, ())
+        rs = [r.name for r in recipesThatUse.get(item, ())]
         if len(rs) == 1:
             r = rs[0]
             recipePrefs[r] = max(recipePrefs.get(r, priority), priority)
@@ -195,7 +195,7 @@ def produce(outputs, using = (), *,
     while toResolve:
         item = toResolve.popleft()
         try:
-            recipes = recipesThatMake[item]
+            recipes = [r.name for r in recipesThatMake[item]]
         except KeyError:
             continue
         maxPriority = None

@@ -12,16 +12,17 @@ class Objs:
 
 @_dc.dataclass
 class GameInfo:
-    rcp: Objs
-    rcpByName: dict
-    itm: Objs
-    itmByName: dict
-    mch: Objs
-    mchByName: dict
+    rcp: Objs = _dc.field(default_factory = Objs)
+    rcpByName: dict = None
+    itm: Objs = _dc.field(default_factory = Objs)
+    itmByName: dict = None
+    mch: Objs = _dc.field(default_factory = Objs)
+    mchByName: dict = None
     recipesThatMake: dict = None
     recipesThatUse: dict = None
     craftingHints: dict = None
     translatedNames: dict = None
+    aliases: dict = _dc.field(default_factory = dict)
 
     def finalize(self):
         self.recipesThatMake = {}
@@ -29,10 +30,9 @@ class GameInfo:
         
         for r in self.rcpByName.values():
             for _, item in r.outputs:
-                self.recipesThatMake.setdefault(item, []).append(r.name)
+                self.recipesThatMake.setdefault(item, []).append(r)
             for _, item in r.inputs:
-                self.recipesThatUse.setdefault(item, []).append(r.name)
-
+                self.recipesThatUse.setdefault(item, []).append(r)
 
 class DictProxy:
     __slots__ = ('field')
@@ -53,6 +53,9 @@ class DictProxy:
     def __iter__(self):
         from .config import gameInfo
         return getattr(gameInfo.get(), self.field).__iter__()
+    def items(self):
+        from .config import gameInfo
+        return getattr(gameInfo.get(), self.field).items()
     def keys(self):
         from .config import gameInfo
         return getattr(gameInfo.get(), self.field).keys()

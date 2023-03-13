@@ -58,18 +58,21 @@ class Ingredient(Uniq,Immutable):
         object.__setattr__(self, 'name', name)
         object.__setattr__(self, 'order', order)
     @property
+    def alias(self):
+        from .config import gameInfo
+        return gameInfo.get().aliases.get(self.name, self.name)
+    @property
     def descr(self):
         from .config import gameInfo
         return gameInfo.get().translatedNames.get(f'itm {self.name}', self.name)
     def __str__(self):
-        return self.name
+        return self.alias
     def __repr__(self):
-        from ._helper import toPythonName
-        pythonName = toPythonName(self.name)
-        if getattr(itm, pythonName, None) is self:
-            return 'itm.'+toPythonName(self.name)
+        alias = self.alias
+        if getattr(itm, alias, None) is self:
+            return 'itm.'+alias
         else:
-            return f'<{type(self).__name__}: {self.name}>'
+            return f'<{type(self).__name__}: {alias}>'
     def __matmul__(self, rate):
         return (self, rate)
         
@@ -161,6 +164,9 @@ class MachineMeta(type):
     def descr(self):
         from .config import gameInfo
         return gameInfo.get().translatedNames.get(f'mch {self.name}', self.name)
+    @property
+    def alias(self):
+        return self.__name__
 
 @dataclass(init=False)
 class Machine(MachineBase, metaclass=MachineMeta):
@@ -184,7 +190,11 @@ class Machine(MachineBase, metaclass=MachineMeta):
 
     @property
     def descr(self):
-        return type(self).descr
+        return self.__class__.descr
+
+    @property
+    def alias(self):
+        return self.__class__.alias
 
     def resetThrottle(self):
         self.throttle = 1
@@ -213,7 +223,7 @@ class Machine(MachineBase, metaclass=MachineMeta):
         name = type(self).__name__
         parts = []
         if self.recipe:
-            parts.append(self.recipe.name)
+            parts.append(self.recipe.alias)
         if self.throttle != 1:
             parts.append(f'@{self.throttle:g}')
         modulesStr = self._modulesStr()
@@ -604,7 +614,7 @@ class Group(Sequence,MachineBase):
                     x['bonus'] += m.num*m.machine.bonus()
                     x['throttle'] += m.num*m.machine.throttle
                 g = Group(val)
-                out.write('{}{: >4.3g}x {}: '.format(prefix, num, key.name))
+                out.write('{}{: >4.3g}x {}: '.format(prefix, num, key.alias))
                 pos = 0
                 for k, v in byMachine.items():
                     if v['num'] ==  0:
@@ -613,7 +623,7 @@ class Group(Sequence,MachineBase):
                         out.write('; ')
                     if v['num'] != num:
                         out.write('{}x '.format(v['num']))
-                    out.write(k.name)
+                    out.write(k.alias)
                     throttle = div(v['throttle'], v['num'])
                     if (throttle != 1):
                         out.write('  @{:.6g}'.format(throttle))
@@ -1045,6 +1055,10 @@ class Recipe(Uniq,Immutable):
         else:
             object.__setattr__(self, 'mainOutput', None)
     @property
+    def alias(self):
+        from .config import gameInfo
+        return gameInfo.get().aliases.get(self.name, self.name)
+    @property
     def descr(self):
         from .config import gameInfo
         return gameInfo.get().translatedNames.get(f'rcp {self.name}', self.name)
@@ -1054,13 +1068,14 @@ class Recipe(Uniq,Immutable):
         return object.__ne__(self, other)
     def __hash__(self):
         return hash(self.name)
+    def __str__(self):
+        return self.alias
     def __repr__(self):
-        from ._helper import toPythonName
-        pythonName = toPythonName(self.name)
-        if getattr(rcp, pythonName, None) is self:
-            return 'rcp.' + pythonName
+        alias = self.alias
+        if getattr(rcp, alias, None) is self:
+            return 'rcp.' + alias
         else:
-            return '<{}: {}>'.format(type(self).__name__, self.name)
+            return f'<{type(self).__name__}: {alias}>'
     def str(self):
         return '{} <={:n}s= {}'.format(
             ', '.join(map(str, self.outputs)),

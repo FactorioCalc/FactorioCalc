@@ -13,7 +13,6 @@ _dir = Path(__file__).parent.resolve()
 def _importGameInfo(gameInfo, includeDisabled = True):
     #with open(_dir / 'recipes-base.json') as f:
     #    d = json.load(f)
-    rcp, itm, mch = data.Objs(), data.Objs(), data.Objs()
     rcpByName, itmByName, mchByName = {}, {}, {}
     translatedNames = {}
     categories = {}
@@ -21,7 +20,6 @@ def _importGameInfo(gameInfo, includeDisabled = True):
     def addItem(item, descr = ''):
         name = item.name
         pythonName = toPythonName(name)
-        setattr(itm, pythonName, item)
         itmByName[name] = item
         if descr:
             translatedNames[f'itm {item.name}'] = descr
@@ -45,7 +43,6 @@ def _importGameInfo(gameInfo, includeDisabled = True):
     def addRecipe(recipe, descr = ''):
         name = recipe.name
         pythonName = toPythonName(name)
-        setattr(rcp, pythonName, recipe)
         rcpByName[name] = recipe
         if descr:
             translatedNames[f'rcp {recipe.name}'] = descr
@@ -78,7 +75,6 @@ def _importGameInfo(gameInfo, includeDisabled = True):
                 cls = existing
                 #cls = type(clsName, (existing,), {})
                 #cls.__module__ = mch
-                setattr(mch, clsName, cls)
                 mchByName[cls.name] = cls
             continue
         dict = {'name': v['name'],
@@ -104,7 +100,6 @@ def _importGameInfo(gameInfo, includeDisabled = True):
             cls.craftingCategories = {categories[c] for c in v['crafting_categories']}
         if module_inventory_size > 0:
             cls.allowdEffects = v['allowed_effects']
-        setattr(mch, clsName, cls)
         mchByName[cls.name] = cls
         descr = v.get('translated_name','')
         if descr:
@@ -170,9 +165,10 @@ def _importGameInfo(gameInfo, includeDisabled = True):
             name = f'{item.name}'
         else:
             name = f'{item.name}-'
-        recipe = mch.RocketSilo.Recipe(
+        RocketSilo = mchByName['rocket-silo']
+        recipe = RocketSilo.Recipe(
             name = name,
-            category = mch.RocketSilo.craftingCategory,
+            category = RocketSilo.craftingCategory,
             order = item.order,
             inputs = rocket_parts_inputs,
             outputs = (RecipeComponent(num = rocket_launch_product['amount'] * rocket_launch_product.get('probability',1),
@@ -184,7 +180,7 @@ def _importGameInfo(gameInfo, includeDisabled = True):
 
     steam = Recipe(
         name = 'steam',
-        category = Category('Boiler', [mch.Boiler]),
+        category = Category('Boiler', [mchByName['boiler']]),
         inputs = (RecipeComponent(60, lookupItem('water')),),
         outputs = (RecipeComponent(60, lookupItem('steam')),),
         time = 1,
@@ -192,11 +188,8 @@ def _importGameInfo(gameInfo, includeDisabled = True):
     addRecipe(steam)
 
     res = data.GameInfo(
-        rcp = rcp,
         rcpByName = rcpByName,
-        itm = itm,
         itmByName = itmByName,
-        mch = mch,
         mchByName = mchByName,
         translatedNames = translatedNames,
     )
@@ -233,7 +226,6 @@ def _addResearchHacks(gi):
     addResearch('_military_research', 'zz1', sciencePacks - {itm.production_science_pack})
     addResearch('_combined_research', 'zz2', sciencePacks)
 
-
 def standardCraftingHints(gi):
     craftingHints = {}
     
@@ -259,7 +251,20 @@ def standardCraftingHints(gi):
 
     return craftingHints
 
-def importGameInfo(gameInfo, includeDisabled = True, researchHacks = False, craftingHints = None):
+def standardAliasPass(gi):
+    for name,obj in gi.itmByName.items():
+        setattr(gi.itm, toPythonName(name), obj)
+        gi.aliases[name] = toPythonName(name)
+    
+    for name,obj in gi.rcpByName.items():
+        setattr(gi.rcp, toPythonName(name), obj)
+        gi.aliases[name] = toPythonName(name)
+
+    for name,obj in gi.mchByName.items():
+        setattr(gi.mch, toClassName(name), obj)
+        gi.aliases[name] = toClassName(name)
+
+def importGameInfo(gameInfo, includeDisabled = True, researchHacks = False, aliasPass = standardAliasPass, craftingHints = None):
     from . import config
     
     if isinstance(gameInfo, Path):
@@ -270,7 +275,7 @@ def importGameInfo(gameInfo, includeDisabled = True, researchHacks = False, craf
 
     res = _importGameInfo(d, includeDisabled)
 
-    res.defaultFuel = res.itm.coal
+    aliasPass(res)
 
     token = config.gameInfo.set(res)
 
