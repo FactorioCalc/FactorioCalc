@@ -15,7 +15,7 @@ class Category(Uniq):
     def __repr__(self):
         return f'<Category: {self.name}>'
 
-@dataclass(init=False)
+@dataclass(init=False,repr=False)
 class _BurnerMixin:
     energyType = 'burner'
     fuel: Item = None
@@ -25,6 +25,9 @@ class _BurnerMixin:
         super().__init__(*args, **kws)
         fuel = asItem(fuel)
         self.fuel = fuel
+
+    def _repr_parts(self, lst):
+        lst.append(f'fuel={self.fuel!r}')
 
     def _jsonObj(self, **kwargs):
         obj = super()._jsonObj(**kwargs)
@@ -45,7 +48,7 @@ class _BurnerMixin:
         flows.addFlow(self.fuel, rateIn = fuelRate, adjusted = self.throttle != 1)
         return flows
 
-@dataclass(init=False)
+@dataclass(init=False,repr=False)
 class _ElectricMixin:
     energyType = 'electric'
 
@@ -54,7 +57,7 @@ class _ElectricMixin:
         flows.addFlow(itm.electricity, rateIn = div(self.energyUsage(throttle), 1_000_000))
         return flows
 
-@dataclass(init=False)
+@dataclass(init=False,repr=False)
 class _ModulesMixin:
     modules: tuple[Module, ...]
     beacons: list[Beacon]
@@ -63,6 +66,12 @@ class _ModulesMixin:
         super().__init__(*args, **kws)
         self.modules = () if modules is None else modules
         self.beacons = [] if beacons is None else beacons
+
+    def _repr_parts(self, lst):
+        if len(self.modules) > 0:
+            lst.append(f'modules={self.modules!r}')
+        if len(self.beacons) > 0:
+            lst.append(f'beacons={self.beacons!r}')
 
     def _jsonObj(self, **kwargs):
         obj = super()._jsonObj(**kwargs)
@@ -138,7 +147,7 @@ class _ModulesMixin:
             return Bonus(self.modules[0].effect)
         return Bonus(sum([m.effect for m in self.modules],Effect()) + sum([b.effect() for b in self.beacons],Effect()))
 
-@dataclass(init=False)
+@dataclass(init=False,repr=False)
 class Beacon(_ElectricMixin,Machine):
     name = 'beacon'
     width = 3
@@ -161,6 +170,10 @@ class Beacon(_ElectricMixin,Machine):
     def __init__(self, modules = None, **kws):
         super().__init__(**kws)
         self.modules = [] if modules is None else modules
+
+    def _repr_parts(self, lst):
+        if len(self.modules) > 0:
+            lst.append(f'{self.modules!r}')
     
     def effect(self):
         return sum([m.effect for m in self.modules],Effect()) / 2
@@ -187,7 +200,7 @@ class AssemblingMachine(CraftingMachine):
 class Furnace(CraftingMachine):
     pass
     
-@dataclass(init=False)
+@dataclass(init=False, repr=False)
 class RocketSilo(_ModulesMixin,_ElectricMixin,CraftingMachine):
     class Recipe(Recipe):
         __slots__ = ('cargo')

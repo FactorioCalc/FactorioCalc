@@ -168,7 +168,7 @@ class MachineMeta(type):
     def alias(self):
         return self.__name__
 
-@dataclass(init=False)
+@dataclass(init=False,repr=False)
 class Machine(MachineBase, metaclass=MachineMeta):
     """A entity that used directly or indirectly to produce something."""
     throttle: Rational
@@ -218,6 +218,19 @@ class Machine(MachineBase, metaclass=MachineMeta):
 
     def summarize(self):
         return self
+
+    def __repr__(self):
+        name = type(self).__name__
+        parts = []
+        if self.recipe:
+            parts.append(repr(self.recipe))
+        if self.throttle != 1:
+            parts.append(f'throttle={self.throttle!r}')
+        self._repr_parts(parts)
+        return 'mch.{}({})'.format(name, ', '.join(parts))
+
+    def _repr_parts(self, lst):
+        pass
 
     def __str__(self):
         name = type(self).__name__
@@ -293,7 +306,7 @@ class Machine(MachineBase, metaclass=MachineMeta):
             throttle = self.throttle
         return self.energyDrain + throttle * self.baseEnergyUsage * (1 + self.bonus().consumption)
 
-@dataclass(init = False)
+@dataclass(init=False, repr=False)
 class CraftingMachine(Machine):
     """An entity that produce something."""
     recipe: Recipe = None
