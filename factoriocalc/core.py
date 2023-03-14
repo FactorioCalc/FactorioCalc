@@ -1118,24 +1118,29 @@ class Recipe(Uniq,Immutable):
                 and self.mainOutput == other.mainOutput
                 and self.time == other.time
                 and self.order == other.order)
-    def produce(self, machinePrefs = Default, fuel = None, modules = (), beacons = ()):
+    def produce(self, machinePrefs = Default, fuel = None, machine = None, modules = (), beacons = ()):
         from collections import deque
         from . import config, data
         if machinePrefs is Default:
             machinePrefs = config.machinePrefs.get()
         candidates = deque()
         for m in machinePrefs:
-            if self.category in m.craftingCategories and (m.recipe is None or m.recipe.name == self.name):
+            if (((machine is None and self.category in m.craftingCategories)
+                 or (machine is not None and type(m) == machine))
+                and (m.recipe is None or m.recipe.name == self.name)):
                 candidates.append(copy(m))
         if not candidates:
-            machines = self.category.members
-            if len(machines) == 1:
-                candidates.append(machines[0]())
-            elif len(machines) == 0:
-                raise ValueError(f'No matching machine for "{self.name}".')
+            if machine is None:
+                machines = self.category.members
+                if len(machines) == 1:
+                    candidates.append(machines[0]())
+                elif len(machines) == 0:
+                    raise ValueError(f'No matching machine for "{self.name}".')
+                else:
+                    candidatesStr = ' '.join(c.name for c in machines)
+                    raise ValueError(f'Multiple matching machines for "{self.name}": {candidatesStr}')
             else:
-                candidatesStr = ' '.join(c.name for c in machines)
-                raise ValueError(f'Multiple matching machines for "{self.name}": {candidatesStr}')
+                 candidates.append(machine())
         while candidates:
             m = candidates.popleft()
             try:
@@ -1156,8 +1161,8 @@ class Recipe(Uniq,Immutable):
             else:
                 m.fuel = fuel
         return m
-    def __call__(self, machinePrefs = Default, fuel = Default, modules = Default, beacons = Default):
-        return self.produce(machinePrefs = machinePrefs, fuel = fuel, modules = modules, beacons = beacons)
+    def __call__(self, machinePrefs = Default, fuel = Default, machine = None, modules = Default, beacons = Default):
+        return self.produce(machinePrefs = machinePrefs, fuel = fuel, machine = machine, modules = modules, beacons = beacons)
 
 class InvalidModulesError(ValueError):
     def __init__(self, m):
