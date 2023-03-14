@@ -535,6 +535,18 @@ class Box(BoxBase):
         res.state = state
         return BoxFlows(res)
 
+    def internalFlows(self):
+        res = _MutableFlows()
+        orig = self.inner.flows()
+        for flow in orig:
+            if (flow.item in self.outputs
+                or flow.item in self.inputs
+                or flow.item in self.unconstrained
+                or flow.item is itm.electricity): 
+                continue
+            res.byItem[flow.item] = flow
+        return res
+
     def find(self, **kwargs):
         return self.inner.find(**kwargs)
     
