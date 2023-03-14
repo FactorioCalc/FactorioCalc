@@ -16,6 +16,7 @@ def _importGameInfo(gameInfo, includeDisabled = True):
     rcpByName, itmByName, mchByName = {}, {}, {}
     translatedNames = {}
     categories = {}
+    disabledRecipes = set()
     
     def addItem(item, descr = ''):
         name = item.name
@@ -149,6 +150,8 @@ def _importGameInfo(gameInfo, includeDisabled = True):
             return Recipe(v['name'],categories.get(v['category'], None),inputs,outputs,time,order,mainOutput)
         recipe = toRecipe(v)
         addRecipe(recipe, v.get('translated_name', ''))
+        if not v.get('enabled', False):
+            disabledRecipes.add(v['name'])
 
     rp = rcpByName['rocket-part']
     rocket_parts_inputs = tuple(RecipeComponent(rc.num*100, rc.item) for rc in rp.inputs)
@@ -192,6 +195,7 @@ def _importGameInfo(gameInfo, includeDisabled = True):
         itmByName = itmByName,
         mchByName = mchByName,
         translatedNames = translatedNames,
+        disabledRecipes = disabledRecipes,
     )
 
     return res

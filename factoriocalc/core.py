@@ -1077,6 +1077,10 @@ class Recipe(Uniq,Immutable):
     def descr(self):
         from .config import gameInfo
         return gameInfo.get().translatedNames.get(f'rcp {self.name}', self.name)
+    @property
+    def enabled(self):
+        from .config import gameInfo
+        return self.name not in gameInfo.get().disabledRecipes
     def __eq__(self, other):
         return object.__eq__(self, other)
     def __ne__(self, other):

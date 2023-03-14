@@ -23,6 +23,7 @@ class GameInfo:
     craftingHints: dict = None
     translatedNames: dict = None
     aliases: dict = _dc.field(default_factory = dict)
+    disabledRecipes: set = _dc.field(default_factory = set)
 
     def finalize(self):
         self.recipesThatMake = {}
