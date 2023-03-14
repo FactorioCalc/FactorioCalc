@@ -147,9 +147,9 @@ class Box(BoxBase):
             self[item] = rate
         def str(self, flows = None):
             if flows:
-                return ', '.join(str(flows[item]) for item in self.keys())
+                return ', '.join(str(flows[item]) for item in sorted(self.keys()))
             else:
-                return ', '.join(str(item) if rate is None else f'{item} @ {rate}' for item,rate in self.items())
+                return ', '.join(str(item) if self[item] is None else f'{item} @ {self[item]}' for item in sorted(self.keys()))
         __str__ = str
         def __setitem__(self, item, rate):
             raise NotImplementedError
@@ -339,14 +339,14 @@ class Box(BoxBase):
                 outputs_ |= m.outputs.keys()
             common = inputs_ & outputs_
             if outputs is None:
-                self.outputs = Box.Outputs(outputs_ - common - self.unconstrained)
+                self.outputs = Box.Outputs(sorted(outputs_ - common - self.unconstrained))
             if inputs is None:
                 if allowExtraInputs:
                     self.inputs = Box.Inputs(inputs_ - self.outputs.keys() - self.unconstrained)
                     for item in self.inputs.keys() & common:
                         self.priorities[item] = IGNORE
                 else:
-                    self.inputs = Box.Inputs(inputs_ - common - self.unconstrained)
+                    self.inputs = Box.Inputs(sorted(inputs_ - common - self.unconstrained))
                     
         mainOutput = [item for item in self.outputs if item is not itm.empty_barrel]
         
@@ -533,6 +533,7 @@ class Box(BoxBase):
         if not _includeInner and not state.ok():
             res.byItem.clear()
         res.state = state
+        res.reorder()
         return BoxFlows(res)
 
     def internalFlows(self):

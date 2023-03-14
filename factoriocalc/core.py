@@ -13,7 +13,7 @@ import sys
 from . import itm, rcp
 
 __all__ = ('Default',
-           'Ingredient', 'Item', 'Research', 'Electricity', 'Module', 'FakeModule',
+           'Ingredient', 'Item', 'Fluid', 'Research', 'Electricity', 'Module', 'FakeModule',
            'MachineBase', 'Machine', 'CraftingMachine', 'Mul', 'Group',
            'Flow', 'OneWayFlow', 'FlowsState', 'Flows', 'EffectBase', 'Effect', 'Bonus',
            'Recipe', 'RecipeComponent', 'IGNORE', 'InvalidModulesError')
@@ -50,8 +50,23 @@ class DefaultType(Uniq):
         return self
 
 Default = object.__new__(DefaultType)
+
+class _SortByOrderKey:
+    def __lt__(self, other):
+        if not isinstance(other, Ingredient):
+            return NotImplemented
+        return self.order < other.order
+    def __le__(self, other):
+        return self.__eq__(other) or self.__lt__(other)
+    def __gt__(self, other):
+        if not isinstance(other, Ingredient):
+            return NotImplemented
+        return self.order > other.order
+    def __ge__(self, other):
+        return self.__eq__(other) or self.__gt__(other)
+
     
-class Ingredient(Uniq,Immutable):
+class Ingredient(_SortByOrderKey,Uniq,Immutable):
     """Base class for all items."""
     __slots__ = ('name', 'order')
     def __init__(self, name, order):
@@ -76,19 +91,6 @@ class Ingredient(Uniq,Immutable):
     def __matmul__(self, rate):
         return (self, rate)
         
-    # def __lt__(self, other):
-    #     if not isinstance(other, Ingredient):
-    #         return NotImplemented
-    #     return self.order < other.order
-    # def __le__(self, other):
-    #     return self.__eq__(other) or self.__lt__(other)
-    # def __gt__(self, other):
-    #     if not isinstance(other, Ingredient):
-    #         return NotImplemented
-    #     return self.order > other.order
-    # def __ge__(self, other):
-    #     return self.__eq__(other) or self.__gt__(other)
-
 class Item(Ingredient):
     __slots__ = ('stackSize', 'fuelValue', 'fuelCategory')
     def __init__(self, name, order, stackSize, fuelValue = 0, fuelCategory = ''):
@@ -96,6 +98,10 @@ class Item(Ingredient):
         object.__setattr__(self, 'stackSize', stackSize)
         object.__setattr__(self, 'fuelValue', fuelValue)
         object.__setattr__(self, 'fuelCategory', fuelCategory)
+
+class Fluid(Ingredient):
+    __slots__ = ()
+    pass
 
 class Research(Ingredient):
     __slots__ = ()
@@ -925,7 +931,7 @@ class _MutableFlows(Flows):
         self._merge(flow, num, markAsAdjusted, False)
     def reorder(self):
         def sort(flows):
-            return sorted(flows, key=lambda flow: (flow.item.order, flow.item.name, flow.item))
+            return sorted(flows, key=lambda flow: (flow.item.order))
         flows = chain(
             sort(flow for flow in self if flow.rateOut != 0 and flow.rateIn == 0),
             sort(flow for flow in self if flow.rateOut != 0 and flow.rateIn != 0),
@@ -1051,7 +1057,7 @@ class RecipeComponent(NamedTuple):
     def __str__(self):
         return '{:n} {}'.format(float(self.num), self.item)
 
-class Recipe(Uniq,Immutable):
+class Recipe(_SortByOrderKey,Uniq,Immutable):
     """A recipe to produce something.
 
     """

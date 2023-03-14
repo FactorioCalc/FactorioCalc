@@ -17,6 +17,11 @@ def _importGameInfo(gameInfo, includeDisabled = True):
     translatedNames = {}
     categories = {}
     disabledRecipes = set()
+
+    groups = gameInfo['groups']
+
+    def getOrderKey(d):
+        return (groups[d['group']]['order'],groups[d['subgroup']]['order'],d['order'])
     
     def addItem(item, descr = ''):
         name = item.name
@@ -33,11 +38,11 @@ def _importGameInfo(gameInfo, includeDisabled = True):
         pythonName = toPythonName(name)
         try:
             d = gameInfo['items'][name]
-            item = Item(name, d['order'], d['stack_size'], fuelValue=d['fuel_value'], fuelCategory=d.get('fuel_category',''))
-            descr = d.get('translated_name', '')
+            item = Item(name, getOrderKey(d), d['stack_size'], fuelValue=d['fuel_value'], fuelCategory=d.get('fuel_category',''))
         except KeyError:
-            item = Ingredient(name,'z-'+name)
-            descr = ''
+            d = gameInfo['fluids'][name]
+            item = Fluid(name, getOrderKey(d))
+        descr = d.get('translated_name', '')
         addItem(item, descr)
         return item
 
@@ -48,7 +53,7 @@ def _importGameInfo(gameInfo, includeDisabled = True):
         if descr:
             translatedNames[f'rcp {recipe.name}'] = descr
 
-    addItem(Electricity('electricity', 'zzz'))
+    addItem(Electricity('electricity', ('z','z','zzz')))
 
     # import machines
     for k,v in gameInfo['entities'].items():
@@ -80,7 +85,7 @@ def _importGameInfo(gameInfo, includeDisabled = True):
             continue
         dict = {'name': v['name'],
                 'type': v['type'],
-                'order': v['order'],
+                'order': getOrderKey(v),
                 'group': v['group'],
                 'subgroup': v['group'],
                 'width': frac(v['width']),
@@ -121,7 +126,7 @@ def _importGameInfo(gameInfo, includeDisabled = True):
             limitation = set(limitation)
             if 'rocket-part' in limitation:
                 limitation.add('space-science-pack')
-        item = Module(k, v['order'], v['stack_size'], e, limitation)
+        item = Module(k, getOrderKey(v), v['stack_size'], e, limitation)
         addItem(item, v.get('translated_name',''))
 
     # import recipes
@@ -141,12 +146,7 @@ def _importGameInfo(gameInfo, includeDisabled = True):
             outputs = tuple(toRecipeComponent(rc) for rc in d['products'])
             mainOutput = lookupItem(d['main_product']['name']) if 'main_product' in d else None
             time = frac(d.get('energy', 0.5), float_conv_method = 'round')
-            order = v.get('order',None)
-            if order is None and len(outputs) == 1:
-                order = outputs[0].item.order
-            if order is None and 'main_product' in d:
-                order = itmByName[d['main_product']].order
-            assert(order is not None)
+            order = getOrderKey(v)
             return Recipe(v['name'],categories.get(v['category'], None),inputs,outputs,time,order,mainOutput)
         recipe = toRecipe(v)
         addRecipe(recipe, v.get('translated_name', ''))
@@ -187,7 +187,7 @@ def _importGameInfo(gameInfo, includeDisabled = True):
         inputs = (RecipeComponent(60, lookupItem('water')),),
         outputs = (RecipeComponent(60, lookupItem('steam')),),
         time = 1,
-        order = '')
+        order = ('','',''))
     addRecipe(steam)
 
     res = data.GameInfo(
@@ -216,6 +216,7 @@ def _addResearchHacks(gi):
     from .helper import FakeLab, sciencePacks
     
     def addResearch(name, order, inputs):
+        order = ('z', 'z', order)
         from . import helper
         item = addItem(Research, name, order)
         recipe = Recipe(name = name,
