@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass,field
-from collections.abc import Mapping
+from collections.abc import Mapping,Sequence
 from copy import copy as _copy
 from numbers import Number
 import sys
@@ -608,7 +608,10 @@ class UnboundedBox(Box):
     def __init__(self, inner, **kwargs):
         """Create a new `UnboundedBox`, the parameters are the same as `Box`."""
         if not isinstance(inner, (Group, Mul)):
-            inner = Group(Mul(1,inner))
+            if isinstance(inner, Sequence):
+                inner = Group(Mul(1,m) for m in inner)
+            else:
+                inner = Group(Mul(1,inner))
         super().__init__(inner, **kwargs)
     def scale(self, factor):
         """Adjust the number of machines uniformly."""
