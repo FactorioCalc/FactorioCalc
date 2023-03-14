@@ -471,6 +471,8 @@ class Box(BoxBase):
         state = orig.state
         if throttle is None:
             throttle = 1
+        else:
+            throttle = frac(throttle)
         for item,rate in self.outputs.items():
             flow = orig[item]
             underflow = flow.underflow

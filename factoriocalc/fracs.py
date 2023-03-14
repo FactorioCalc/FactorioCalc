@@ -89,7 +89,7 @@ def frac(num = 0, den = None, *, float_conv_method = 'if int'):
                 return tuple.__new__(Frac, (num.numerator, num.denominator))
             except AttributeError:
                 pass
-            raise TypeError
+            raise TypeError(f"cannot convert '{type(num).__qualname__}' to 'Frac'")
 
     return div(num, den)
 

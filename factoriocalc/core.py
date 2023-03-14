@@ -267,6 +267,8 @@ class Machine(MachineBase, metaclass=MachineMeta):
     def _flows(self, throttle, _includeInner):
         if throttle is None:
             throttle = self.throttle
+        else:
+            throttle = frac(throttle)
         if throttle == 1 and self.__flows1 is not None:
             return self.__flows1
         if throttle == self.throttle and self.__flows is not None:
