@@ -242,7 +242,7 @@ class Box(BoxBase):
                  inputs = None, extraInputs = (), inputTouchups = {}, inputsLoose = True,
                  unconstrained = (),
                  constraints = None, priorities = None,
-                 allowExtraInput = False):
+                 allowExtraInputs = False):
         """Create a new box.
 
         A box is a wrapper around a group with additional constraints to
@@ -341,7 +341,7 @@ class Box(BoxBase):
             if outputs is None:
                 self.outputs = Box.Outputs(outputs_ - common - self.unconstrained)
             if inputs is None:
-                if allowExtraInput:
+                if allowExtraInputs:
                     self.inputs = Box.Inputs(inputs_ - self.outputs.keys() - self.unconstrained)
                     for item in self.inputs.keys() & common:
                         self.priorities[item] = IGNORE
