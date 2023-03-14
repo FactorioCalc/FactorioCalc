@@ -223,9 +223,9 @@ class LinearEqId(NamedTuple):
     qualifier: str = ''
     def __str__(self):
         if self.qualifier:
-            return f'{self.boxid}-{self.item}-{self.qualifier}'
+            return f'{self.boxid}_{self.item}_{self.qualifier}'
         else:
-            return f'{self.boxid}-{self.item}'
+            return f'{self.boxid}_{self.item}'
     def __repr__(self):
         return f'<eqid: {self}>'
 
@@ -413,9 +413,9 @@ class LinearEqSystem:
                 return ((id(box), id(m)), 'BOX' if m.name is None else m.name)
             elif m.recipe is not None:
                 if hasattr(m, 'fuel'):
-                    return ((id(box), m.recipe, m.fuel), f'{m.recipe.name}-u-{m.fuel}')
+                    return ((id(box), m.recipe, m.fuel), f'{m.recipe.alias}_u_{m.fuel}')
                 else:
-                    return ((id(box), m.recipe), m.recipe.name)
+                    return ((id(box), m.recipe), m.recipe.alias)
             else:
                 return (None, 'unknown')
 
@@ -446,9 +446,9 @@ class LinearEqSystem:
             suffix = 't' if isfinite(varMax) else 'm'
             if len(tally[name]) > 1:
                 num = tally[name][key]
-                name = f'{name}-{num-1}-{suffix}'
+                name = f'{name}_{num-1}_{suffix}'
             else:
-                name = f'{name}-{suffix}'
+                name = f'{name}_{suffix}'
             var = Var(key,name,varMax)
             if var not in byVar:
                 byVar[var] = VarGroup(var)
@@ -727,14 +727,14 @@ class Solver:
                     toMin.append(var)
             if toMax:
                 # maximize all vars
-                objtv = [OptFun(defaultdict(dict), f'{p}-max')]
+                objtv = [OptFun(defaultdict(dict), f'{p}_max')]
                 for var in toMax:
                     objtv[0].terms[var] = 1
                     objtv.append(OptFun({var: 1}, var))
                 objectives.append(objtv)
             if toMin:
                 # minimize all vars
-                objtv = [OptFun(defaultdict(dict), f'{p}-min')]
+                objtv = [OptFun(defaultdict(dict), f'{p}_min')]
                 for var in toMin:
                     objtv[0].terms[var] = -1
                     objtv.append(OptFun({var: -1}, var))
