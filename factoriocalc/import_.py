@@ -144,7 +144,13 @@ def _importGameInfo(gameInfo, includeDisabled = True):
         def toRecipe(d):
             inputs = tuple(toRecipeComponent(rc) for rc in d['ingredients'])
             outputs = tuple(toRecipeComponent(rc) for rc in d['products'])
-            mainOutput = lookupItem(d['main_product']['name']) if 'main_product' in d else None
+            mainOutput = None
+            if 'main_product' in d:
+                mainOutput = lookupItem(d['main_product']['name'])
+            if mainOutput is None:
+                o = [o for o in outputs if o.item.name != 'empty-barrel']
+                if len(o) == 1:
+                    mainOutput = o[0].item
             time = frac(d.get('energy', 0.5), float_conv_method = 'round')
             order = getOrderKey(v)
             return Recipe(v['name'],categories.get(v['category'], None),inputs,outputs,time,order,mainOutput)
