@@ -357,6 +357,7 @@ class CraftingMachine(Machine):
             rateIn = div(numIn, time)
             rateOut = div(numOut + bonusOut, time)
             flows.addFlow(item, rateIn = throttle*rateIn, rateOut = throttle*rateOut, adjusted = throttle != 1)
+        flows._mainOutput = self.recipe.mainOutput
         return flows
 
 @dataclass(repr=False)
