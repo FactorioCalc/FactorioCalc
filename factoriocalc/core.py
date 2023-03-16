@@ -65,6 +65,10 @@ class _SortByOrderKey:
     def __ge__(self, other):
         return self.__eq__(other) or self.__gt__(other)
 
+class RecipesForItems(NamedTuple):
+    products: list
+    byproducts: list
+    inputs: list
     
 class Ingredient(_SortByOrderKey,Uniq,Immutable):
     """Base class for all items."""
@@ -90,6 +94,18 @@ class Ingredient(_SortByOrderKey,Uniq,Immutable):
             return f'<{type(self).__name__}: {alias}>'
     def __matmul__(self, rate):
         return (self, rate)
+    def recipes(self):
+        from .config import gameInfo
+        gi = gameInfo.get()
+        products, byproducts = [], []
+        for rcp in gi.recipesThatMake[self]:
+            for rc in rcp.products:
+                if self == rc.item:
+                    products.append(rcp)
+            for rc in rcp.byproducts:
+                if self == rc.item:
+                    byproducts.append(rcp)
+        return RecipesForItems(products, byproducts,  gi.recipesThatUse[self])
         
 class Item(Ingredient):
     __slots__ = ('stackSize', 'fuelValue', 'fuelCategory')
