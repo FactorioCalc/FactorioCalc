@@ -437,6 +437,7 @@ class LinearEqSystem:
             l = cls.fromBox(m.machine, _tally = tally)
             l.box = m.machine
             l *= m.num
+            priorities.update(l.priorities) # fixme is this right
             inners.append(l)
             machines[idx] = None
             
@@ -471,7 +472,7 @@ class LinearEqSystem:
         for l in inners:
             for item, terms in l.external():
                 eqs[item].terms += terms
-            byVar.update(l.byVar)                
+            byVar.update(l.byVar)
         
         for (item,rate) in box.outputs.items():
             row = eqs[item]
@@ -1251,6 +1252,8 @@ class Tableau:
             if self.optFunInfo[i].max > self.tableau[i][-1]:
                 unique = False
                 self.optFunInfo[i].optimal = False
+                print(f'warning: non optimal: {self.optFunInfo[i].note}')
+                # ^fixme: find a better way to convey this information
             elif unique is None:
                 unique = True
             i += 1
