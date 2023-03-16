@@ -214,16 +214,6 @@ class Box(BoxBase):
     class OtherConstraints(list):
         pass
 
-    class Proportions(list):
-        __slots__ = ()
-        def __init__(self, vals = None):
-            if vals is None:
-                return
-            for num, item in vals:
-                num = frac(num)
-                item = asItem(item)
-                self.append((num, item))
-
     class Priorities(_Dict):
         __slots__ = ()
         def __str__(self):
@@ -250,7 +240,7 @@ class Box(BoxBase):
     def __init__(self, inner, *, name = None,
                  outputs = None, extraOutputs = (), outputTouchups = {}, outputsLoose = False,
                  inputs = None, extraInputs = (), inputTouchups = {}, inputsLoose = True,
-                 constraints = None, proportions = None, priorities = None,
+                 constraints = None, priorities = None,
                  allowExtraInput = False):
         """Create a new box.
 
@@ -307,9 +297,6 @@ class Box(BoxBase):
             that then a constraints is added of the form::
 
               <key-item> = <num> * <item>
-
-        *proportions*
-            WRITE ME
 
         *priority* 
             A mapping of priories for the solver.  The key is either a
