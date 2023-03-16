@@ -204,8 +204,8 @@ class Furnace(CraftingMachine):
 class RocketSilo(_ModulesMixin,_ElectricMixin,CraftingMachine):
     class Recipe(Recipe):
         __slots__ = ('cargo')
-        def __init__(self, name, category, inputs, outputs, time, order, cargo):
-            super().__init__(name, category, inputs, outputs, time, order)
+        def __init__(self, name, category, inputs, products, byproducts, time, order, cargo):
+            super().__init__(name, category, inputs, products, byproducts, time, order)
             object.__setattr__(self, 'cargo', cargo)
         
     name = "rocket-silo"

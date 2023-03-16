@@ -296,6 +296,14 @@ class Machine(MachineBase, metaclass=MachineMeta):
     def outputs(self):
         return {flow.item: None for flow in self.flows(1) if flow.rate() > 0}
 
+    @property
+    def products(self):
+        return {flow.item: None for flow in self.flows(1).products()}
+
+    @property
+    def byproducts(self):
+        return {flow.item: None for flow in self.flows(1).byproducts()}
+
     def _calc_flows(self, throttle):
         return _MutableFlows()
 
@@ -373,7 +381,7 @@ class CraftingMachine(Machine):
             rateIn = div(numIn, time)
             rateOut = div(numOut + bonusOut, time)
             flows.addFlow(item, rateIn = throttle*rateIn, rateOut = throttle*rateOut, adjusted = throttle != 1)
-        flows._mainOutput = self.recipe.mainOutput
+        flows._byproducts = tuple(rc.item for rc in self.recipe.byproducts)
         return flows
 
 @dataclass(repr=False)
@@ -428,6 +436,15 @@ class Mul(MachineBase):
     @property
     def outputs(self):
         return self.machine.outputs
+
+    @property
+    def products(self):
+        return self.machine.products
+
+    @property
+    def byproducts(self):
+        return self.machine.byproducts
+    
 
     @property
     def recipe(self):
@@ -825,6 +842,10 @@ class Flow(NamedTuple):
                 s += ', {} self'.format(_fmt_rate(self.item, self.rateSelf, unit))
             s += ')'
         return s
+    def print(self, out = None, prefix = ''):
+        out.write(prefix)
+        out.write(str(self))
+        out.write('\n')
     def __repr__(self):
         return '<{}>'.format(self.__str__())
     def __mul__(self, factor):
@@ -851,7 +872,8 @@ class FlowsState(OrdEnum):
         return self.value < FlowsState.UNSOLVED.value
 
 class Flows:
-    # self.byItem and self._mainOutput and self.state are expected to be defined
+    __slots__ = ('byItem', '_byproducts', 'state')
+    # self.byItem and self._byproducts and self.state are expected to be defined
     def flow(self, item):
         if isinstance(item, Ingredient):
             return self.byItem.get(item,Flow(item))
@@ -882,14 +904,16 @@ class Flows:
             out = sys.stdout
         for flow in self.byItem.values():
             if not self._showFlow(flow): continue
-            out.write(f'{prefix}{flow}\n')
+            flow.print(out, prefix)
         if self.state:
             out.write(f'{prefix}{self.state.name}\n')
     __getitem__ = flow
     def __len__(self):
         return len(self.byItem)
-    def mainOutput(self):
-        return self.flow(self._mainOutput)
+    def products(self):
+        return [flow for flow in self.outputs() if flow.item not in self._byproducts]
+    def byproducts(self):
+        return [flow for flow in self.outputs() if flow.item in self._byproducts]
     def mul(self,num,markAsAdjusted=False): 
         flows = _MutableFlows(initFrom = self)
         for f in self:
@@ -916,16 +940,17 @@ class Flows:
     def __eq__(self, other):
         if not isinstance(other, Flows):
             return False
-        return self.byItem == other.byItem and self._mainOutput == other._mainOutput and self.state == other.state
+        return self.byItem == other.byItem and self._byproducts == other._byproducts and self.state == other.state
 
 class _MutableFlows(Flows):
+    __slots__ = ('byItem', '_byproducts', 'state')
     def __init__(self, *, initFrom = None):
         self.byItem = {}
         if initFrom is not None:
-            self._mainOutput = initFrom.mainOutput
+            self._byproducts = initFrom._byproducts
             self.state = initFrom.state
         else:
-            self._mainOutput = None
+            self._byproducts = ()
             self.state = FlowsState.OK
     def _merge(self, flow, num, markAsAdjusted, singleFacility):
         singleFacility = False # fixme: hack
@@ -962,7 +987,7 @@ class _MutableFlows(Flows):
 class SimpleFlows(Flows):
     def __init__(self, mutableFlows):
         self.byItem = mutableFlows.byItem
-        self._mainOutput = mutableFlows._mainOutput
+        self._byproducts = mutableFlows._byproducts
         self.state = mutableFlows.state
     def output(self, item):
         return self.flow(item).rateOut
@@ -976,7 +1001,7 @@ class SimpleFlows(Flows):
 class NetFlows(Flows):
    def __init__(self, mutableFlows):
        self.byItem = mutableFlows.byItem
-       self._mainOutput = mutableFlows._mainOutput
+       self._byproducts = mutableFlows._byproducts
        self.state = mutableFlows.state
    def output(self, item):
        rate = self.flow(item).rate()
@@ -1078,20 +1103,15 @@ class Recipe(_SortByOrderKey,Uniq,Immutable):
     """A recipe to produce something.
 
     """
-    __slots__ = ('name', 'category', 'inputs', 'outputs', 'mainOutput', 'time', 'order')
-    def __init__(self, name, category, inputs, outputs, time, order, mainOutput = None):
+    __slots__ = ('name', 'category', 'inputs', 'products', 'byproducts', 'time', 'order')
+    def __init__(self, name, category, inputs, products, byproducts, time, order):
         object.__setattr__(self, 'name', name)
         object.__setattr__(self, 'category', category)
         object.__setattr__(self, 'inputs', tuple(inputs))
-        object.__setattr__(self, 'outputs', tuple(outputs))
+        object.__setattr__(self, 'products', tuple(products))
+        object.__setattr__(self, 'byproducts', tuple(byproducts))
         object.__setattr__(self, 'time', time)
         object.__setattr__(self, 'order', order)
-        if mainOutput is not None:
-            object.__setattr__(self, 'mainOutput', mainOutput)
-        elif len(outputs) == 1:
-            object.__setattr__(self, 'mainOutput', outputs[0].item)
-        else:
-            object.__setattr__(self, 'mainOutput', None)
     @property
     def alias(self):
         from .config import gameInfo
@@ -1104,6 +1124,9 @@ class Recipe(_SortByOrderKey,Uniq,Immutable):
     def enabled(self):
         from .config import gameInfo
         return self.name not in gameInfo.get().disabledRecipes
+    @property
+    def outputs(self):
+        return self.products + self.byproducts
     def __eq__(self, other):
         return object.__eq__(self, other)
     def __ne__(self, other):
@@ -1141,8 +1164,8 @@ class Recipe(_SortByOrderKey,Uniq,Immutable):
                 and self.name == other.name
                 and self.category == other.category
                 and self.inputs == other.inputs
-                and self.outputs == other.outputs
-                and self.mainOutput == other.mainOutput
+                and self.products == other.products
+                and self.byproducts == other.byproducts
                 and self.time == other.time
                 and self.order == other.order)
     def produce(self, machinePrefs = Default, fuel = None, machine = None, modules = (), beacons = ()):

@@ -240,7 +240,7 @@ class Box(BoxBase):
     def __init__(self, inner, *, name = None,
                  outputs = None, extraOutputs = (), outputTouchups = {}, outputsLoose = False,
                  inputs = None, extraInputs = (), inputTouchups = {}, inputsLoose = True,
-                 unconstrained = (),
+                 unconstrained = None,
                  constraints = None, priorities = None,
                  allowExtraInputs = False):
         """Create a new box.
@@ -326,17 +326,28 @@ class Box(BoxBase):
         self.name = name
         self.outputs = Box.Outputs(outputs)
         self.inputs = Box.Inputs(inputs)
-        self.unconstrained = set(unconstrained)
         self.priorities = Box.Priorities(priorities)
         self.simpleConstraints = Box.SimpleConstraints()
         self.otherConstraints = Box.OtherConstraints()
+
+        inputs_ = set()
+        outputs_ = set()
+        products_ = set()
+        for m in self.inner.flatten():
+            inputs_ |= m.inputs.keys()
+            outputs_ |= m.outputs.keys()
+            products_ |= m.products.keys()
+        byproducts_ = outputs_ - products_
         
+        if unconstrained is None:
+            # # fixme: is this a good idea?
+            # # byproducts also consumed
+            # self.unconstrained = byproducts_ & inputs_
+            self.unconstrained = set()
+        else:
+            self.unconstrained = set(unconstrained)
+
         if outputs is None or inputs is None:
-            inputs_ = set()
-            outputs_ = set()
-            for m in self.inner.flatten():
-                inputs_ |= m.inputs.keys()
-                outputs_ |= m.outputs.keys()
             common = inputs_ & outputs_
             if outputs is None:
                 self.outputs = Box.Outputs(sorted(outputs_ - common - self.unconstrained))
@@ -347,12 +358,7 @@ class Box(BoxBase):
                         self.priorities[item] = IGNORE
                 else:
                     self.inputs = Box.Inputs(sorted(inputs_ - common - self.unconstrained))
-                    
-        mainOutput = [item for item in self.outputs if item is not itm.empty_barrel]
-        
-        if len(mainOutput) == 1 and self.name is None:
-            self.name = 'b-{}'.format(mainOutput[0].name)
-            
+
         for item in extraOutputs:
             self.outputs[item] = None
             self.priorities[item] = IGNORE
@@ -375,7 +381,13 @@ class Box(BoxBase):
                 if rate is not None:
                     self.simpleConstraints[item] = rate
                     self.inputs[item] = None
-                    
+
+        self.products = Box.Outputs({item:rate for item,rate in self.outputs.items() if item in products_})
+        self.byproducts = Box.Outputs({item:rate for item,rate in self.outputs.items() if item not in products_})
+
+        if len(self.products) == 1 and self.name is None:
+            self.name = 'b-{}'.format(next(iter(self.products)).name)
+
         for c in constraints:
             if isinstance(c, Equal):
                 self.otherConstraints.append(c)
@@ -422,7 +434,7 @@ class Box(BoxBase):
         if getattr(self, 'throttle', 1) != 1:
             nameSuffix = f' @{self.throttle:.6g}'
         if self.name is None:
-            out.write(f'{_namePrefix}Box{nameSuffix}:\n')
+            out.write(f'{_namePrefix}{self.__class__.__name__}{nameSuffix}:\n')
         else:
             out.write(f'{_namePrefix}{self.name}{nameSuffix}:\n')
         prefix = prefix + '  '
@@ -434,7 +446,11 @@ class Box(BoxBase):
             pass
         else:
             flows = None
-        out.write(f'{prefix}Outputs: {self.outputs.str(flows)}\n')
+        if self.byproducts:
+            out.write(f'{prefix}Products: {self.products.str(flows)}\n')
+            out.write(f'{prefix}Byproducts: {self.byproducts.str(flows)}\n')
+        else:
+            out.write(f'{prefix}Outputs: {self.outputs.str(flows)}\n')
         out.write(f'{prefix}Inputs: {self.inputs.str(flows)}\n')
         if self.unconstrained:
             out.write(f'{prefix}Unconstrained: {self.unconstrained}\n')
@@ -661,6 +677,14 @@ class BlackBox(BoxBase):
     @property
     def outputs(self):
         return self._inner.outputs
+
+    @property
+    def products(self):
+        return self._inner.products
+
+    @property
+    def byproducts(self):
+        return self._inner.byproducts
 
     def resetThrottle(self):
         self.throttle = 1

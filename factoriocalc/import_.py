@@ -7,12 +7,11 @@ from .fracs import frac, frac_from_float_round
 from .core import *
 from .data import CraftingHint
 from ._helper import toPythonName,toClassName
+from collections import defaultdict
 
 _dir = Path(__file__).parent.resolve()
 
-def _importGameInfo(gameInfo, includeDisabled = True):
-    #with open(_dir / 'recipes-base.json') as f:
-    #    d = json.load(f)
+def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, logger):
     rcpByName, itmByName, mchByName = {}, {}, {}
     translatedNames = {}
     categories = {}
@@ -54,6 +53,40 @@ def _importGameInfo(gameInfo, includeDisabled = True):
             translatedNames[f'rcp {recipe.name}'] = descr
 
     addItem(Electricity('electricity', ('z','z','zzz')))
+
+    # process commonByproducts_ param
+    commonByproducts = set()
+    byproductPriority = defaultdict(set)
+    for d in commonByproducts_:
+        if isinstance(d, str):
+            commonByproducts.add(d)
+        else:
+            prev = None
+            for n_ in d:
+                if isinstance(n_, str):
+                    n_ = [n_]
+                for n in n_:
+                    if prev:
+                        byproductPriority[prev].add(n)
+                    if n != '*fluid*':
+                        commonByproducts.add(n)
+                prev = n
+    fluids = {n for n in commonByproducts if n in gameInfo['fluids']}
+    for a,bs in byproductPriority.items():
+        if '*fluid*' in bs:
+            bs.remove('*fluid*')
+            bs.update(fluids)
+    # take that transitive closure that is if a > b and b > c then a > c
+    again = True
+    while again:
+        again = False
+        for a,bs in byproductPriority.items():
+            for b in list(bs):
+                if b in byproductPriority:
+                    new = byproductPriority[b] - bs
+                    if not new: continue
+                    bs |= new
+                    again = True
 
     # import machines
     for k,v in gameInfo['entities'].items():
@@ -143,17 +176,59 @@ def _importGameInfo(gameInfo, includeDisabled = True):
             return RecipeComponent(item=lookupItem(d['name']), num = num)
         def toRecipe(d):
             inputs = tuple(toRecipeComponent(rc) for rc in d['ingredients'])
-            outputs = tuple(toRecipeComponent(rc) for rc in d['products'])
-            mainOutput = None
-            if 'main_product' in d:
-                mainOutput = lookupItem(d['main_product']['name'])
-            if mainOutput is None:
-                o = [o for o in outputs if o.item.name != 'empty-barrel']
-                if len(o) == 1:
-                    mainOutput = o[0].item
+            products = []
+            byproducts = []
+            for product in d['products']:
+                rc = toRecipeComponent(product)
+                try:
+                    amount = product['amount']
+                except KeyError:
+                    amount = product['amount_max']
+                catalyst_amount = product.get('catalyst_amount', 0)
+                if catalyst_amount == 0:
+                    for rc0 in inputs:
+                        if rc0.item == rc.item:
+                            catalyst_amount = rc0.num
+                if amount - catalyst_amount > 0:
+                    products.append(rc)
+                else:
+                    byproducts.append(rc)
+            if not products:
+                products = byproducts
+                byproducts = []
+            if len(products) > 1:
+                products_, byproducts_ = [], []
+                if 'main_product' in d:
+                    for o in products:
+                        if o.item.name == d['main_product']['name']:
+                            products_.append(o)
+                        else:
+                            byproducts_.append(o)
+                    assert(len(products_) == 1)
+                else:
+                    for o in products:
+                        if o.item.name in commonByproducts:
+                            byproducts_.append(o)
+                        else:
+                            products_.append(o)
+                    if len(products_) == 0:
+                        byproductNames = {rc.item.name for rc in byproducts_}
+                        newProducts = set()
+                        for o in byproducts_:
+                            name = o.item.name
+                            if byproductPriority[name] & byproductNames:
+                                newProducts |= byproductPriority[name] & byproductNames
+                        if len(newProducts) == 0:
+                            logger(f"{d['name']}: unable to determine main produce from byproducts {byproductNames}")
+                        else:
+                            products_ = tuple(rc for rc in byproducts_ if rc.item.name in newProducts)
+                            byproducts_ = tuple(rc for rc in byproducts_ if rc.item.name not in newProducts)
+                if len(products_) > 0:
+                    products = products_
+                    byproducts += byproducts_
             time = frac(d.get('energy', 0.5), float_conv_method = 'round')
             order = getOrderKey(v)
-            return Recipe(v['name'],categories.get(v['category'], None),inputs,outputs,time,order,mainOutput)
+            return Recipe(v['name'],categories.get(v['category'], None),inputs,products,byproducts,time,order)
         recipe = toRecipe(v)
         addRecipe(recipe, v.get('translated_name', ''))
         if not v.get('enabled', False):
@@ -180,8 +255,9 @@ def _importGameInfo(gameInfo, includeDisabled = True):
             category = RocketSilo.craftingCategory,
             order = item.order,
             inputs = rocket_parts_inputs,
-            outputs = (RecipeComponent(num = rocket_launch_product['amount'] * rocket_launch_product.get('probability',1),
-                                       item = item),),
+            products = (RecipeComponent(num = rocket_launch_product['amount'] * rocket_launch_product.get('probability',1),
+                                        item = item),),
+            byproducts = (),
             time = rocket_parts_time,
             cargo = RecipeComponent(num=1, item=lookupItem(k)),
         )
@@ -191,7 +267,8 @@ def _importGameInfo(gameInfo, includeDisabled = True):
         name = 'steam',
         category = Category('Boiler', [mchByName['boiler']]),
         inputs = (RecipeComponent(60, lookupItem('water')),),
-        outputs = (RecipeComponent(60, lookupItem('steam')),),
+        products = (RecipeComponent(60, lookupItem('steam')),),
+        byproducts = (),
         time = 1,
         order = ('','',''))
     addRecipe(steam)
@@ -228,7 +305,8 @@ def _addResearchHacks(gi):
         recipe = Recipe(name = name,
                         category = Category('FakeLab', [FakeLab]),
                         inputs = (RecipeComponent(1, i) for i in sorted(inputs, key = lambda k: k.order)),
-                        outputs = (RecipeComponent(1, item),),
+                        products = (RecipeComponent(1, item),),
+                        byproducts = (),
                         time = 1,
                         order = order)
         addRecipe(recipe)
@@ -275,16 +353,20 @@ def standardAliasPass(gi):
         setattr(gi.mch, toClassName(name), obj)
         gi.aliases[name] = toClassName(name)
 
-def importGameInfo(gameInfo, includeDisabled = True, researchHacks = False, aliasPass = standardAliasPass, craftingHints = None):
+def importGameInfo(gameInfo, includeDisabled = True, researchHacks = False,
+                   aliasPass = standardAliasPass, craftingHints = None, byproducts = ('empty-barrel',),
+                   logger = None):
     from . import config
-    
+    if logger is None:
+        logger = lambda str: None
+
     if isinstance(gameInfo, Path):
         with open(gameInfo) as f:
             d = json.load(f)
     else:
         d = gameInfo
 
-    res = _importGameInfo(d, includeDisabled)
+    res = _importGameInfo(d, includeDisabled, set(byproducts), logger)
 
     aliasPass(res)
 
@@ -310,6 +392,7 @@ def defaultImport(expensiveMode = False):
     
     return importGameInfo(path,
                           researchHacks = True,
-                          craftingHints = standardCraftingHints)
+                          craftingHints = standardCraftingHints,
+                          logger = lambda str: None)
 
 __all__ = ('standardCraftingHints', 'importGameInfo', 'defaultImport')
