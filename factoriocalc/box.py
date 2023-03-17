@@ -242,7 +242,7 @@ class Box(BoxBase):
                  outputs = None, extraOutputs = (), outputTouchups = {}, outputsLoose = False,
                  inputs = None, extraInputs = (), inputTouchups = {}, inputsLoose = True,
                  unconstrained = None,
-                 constraints = None, priorities = None,
+                 constraints = (), priorities = (),
                  allowExtraInputs = False):
         """Create a new box.
 
@@ -328,8 +328,6 @@ class Box(BoxBase):
                        and unconstrained is None
                        and len(constraints) == 0
                        and len(priorities) == 0 and allowExtraInputs is False)
-        if constraints is None:
-            constraints = []
             
         self.inner = inner
         self.name = name
@@ -338,6 +336,7 @@ class Box(BoxBase):
         self.priorities = Box.Priorities(priorities)
         self.simpleConstraints = Box.SimpleConstraints()
         self.otherConstraints = Box.OtherConstraints()
+        self.unconstrainedHints = set()
 
         inputs_ = set()
         outputs_ = set()
@@ -346,12 +345,13 @@ class Box(BoxBase):
             inputs_ |= m.inputs.keys()
             outputs_ |= m.outputs.keys()
             products_ |= m.products.keys()
+            self.unconstrainedHints |= getattr(m, 'unconstrained', set())
+            self.unconstrainedHints |= getattr(m, 'unconstrainedHints', set())
         byproducts_ = outputs_ - products_
-        
+
+        self.unconstrainedHints |= byproducts_ & inputs_
+
         if unconstrained is None:
-            # # fixme: is this a good idea?
-            # # byproducts also consumed
-            # self.unconstrained = byproducts_ & inputs_
             self.unconstrained = set()
         else:
             self.unconstrained = set(unconstrained)
@@ -393,6 +393,8 @@ class Box(BoxBase):
 
         self.products = Box.Outputs({item:rate for item,rate in self.outputs.items() if item in products_})
         self.byproducts = Box.Outputs({item:rate for item,rate in self.outputs.items() if item not in products_})
+
+        self.internal = (inputs_ | outputs_) - self.inputs.keys() - self.outputs.keys()
 
         if len(self.products) == 1 and self.name is None:
             self.name = 'b-{}'.format(next(iter(self.products)).name)
