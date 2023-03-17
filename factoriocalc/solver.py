@@ -819,7 +819,9 @@ class Solver:
         solution, other = self.tableau.solution()
         res = self._result
         if res.ok() and other:
-            res = SolveRes.PARTIAL
+            for value in other.values():
+                if value != 0:
+                    res = SolveRes.PARTIAL
         for var, terms in self.subs.items():
             rate = 0
             for v, r in terms.items():
