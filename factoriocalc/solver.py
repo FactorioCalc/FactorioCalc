@@ -484,9 +484,7 @@ class LinearEqSystem:
             if rate != 0:
                 row.target.append(_Target(Cond.NONE, 1))
         for (item,rate) in box.inputs.items():
-            if item in box.outputs: # if in both input and output then value in unconstrained
-                eqs[item].target = [_Target(Cond.NONE, 0)]
-                continue
+            assert(item not in box.outputs)
             row = eqs[item]
             if rate is None:
                 if any(term.rate > 0 for term in row.terms):
@@ -892,7 +890,7 @@ class Tableau:
         eqs0 = eqs
         eqs = {}
         
-        def addEq(terms, minv, maxv):
+        def addEq(terms, minv, maxv, id = None):
             #assert(minv <= maxv)
             factor = 0
             for var, rate in terms:
@@ -909,19 +907,20 @@ class Tableau:
                 minv, maxv = maxv, minv
             orig = eqs.get(terms, None)
             if orig is None:
-                combined = (minv, maxv)
+                combined = (minv, maxv, [id])
             else:
                 combined = (max(orig[0], minv),
-                            min(orig[1], maxv))
+                            min(orig[1], maxv),
+                            orig[2] + [id])
             eqs[terms] = combined
         
         for eq in eqs0:
             if eq.cond is EQ:
-                addEq(eq.terms, eq.rate, eq.rate)
+                addEq(eq.terms, eq.rate, eq.rate, eq.id)
             elif eq.cond is LE:
-                addEq(eq.terms, -Inf, eq.rate)
+                addEq(eq.terms, -Inf, eq.rate, eq.id)
             elif eq.cond is GE:
-                addEq(eq.terms, eq.rate, Inf)
+                addEq(eq.terms, eq.rate, Inf, eq.id)
             else:
                 raise ValueError
             
@@ -931,7 +930,9 @@ class Tableau:
                 addEq(t, -Inf, var.max)
         
         eql = []
-        for rowIdx, (terms, (minv,maxv)) in enumerate(eqs.items()):
+        self.rowInfo = []
+        for rowIdx, (terms, (minv,maxv,ids)) in enumerate(eqs.items()):
+            self.rowInfo.append({'ids': ids})
             if minv == maxv:
                 eql.append((terms, EQ, minv))
                 continue
@@ -1254,7 +1255,7 @@ class Tableau:
             if self.optFunInfo[i].max > self.tableau[i][-1]:
                 unique = False
                 self.optFunInfo[i].optimal = False
-                print(f'warning: non optimal: {self.optFunInfo[i].note}')
+                print(f'warning: non optimal: {self.optFunInfo[rowIdx]} {self.optFunInfo[i].note}')
                 # ^fixme: find a better way to convey this information
             elif unique is None:
                 unique = True
