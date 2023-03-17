@@ -336,6 +336,10 @@ class Machine(MachineBase, metaclass=MachineMeta):
             throttle = self.throttle
         return self.energyDrain + throttle * self.baseEnergyUsage * (1 + self.bonus().consumption)
 
+    def __invert__(self):
+        from .box import UnboundedBox
+        return UnboundedBox(self)
+
 @dataclass(init=False, repr=False)
 class CraftingMachine(Machine):
     """An entity that produce something."""
@@ -620,10 +624,14 @@ class Group(Sequence,MachineBase):
         return Group(grp)
  
     def _summary(self, out, prefix, includeSolvedBoxFlows, includeMachineFlows, includeBoxDetails, flowsItemFilter):
-        from .box import BoxBase, Box
+        from .box import BoxBase, Box, UnboundedBox
         byRecipe = defaultdict(list)
         grpNum = 0
+        wasUnboundedBox = set()
         for m in self.machines:
+            if isinstance(m, UnboundedBox) and m.simple:
+                m = m.inner[0]
+                wasUnboundedBox.add(m.machine.recipe)
             if isinstance(m.machine, Group) or isinstance(m.machine, BoxBase):
                 byRecipe[grpNum] = m
                 grpNum += 1
@@ -669,7 +677,10 @@ class Group(Sequence,MachineBase):
                     x['bonus'] += m.num*m.machine.bonus()
                     x['throttle'] += m.num*m.machine.throttle
                 g = Group(val)
-                out.write('{}{: >4.3g}x {}: '.format(prefix, num, key.alias))
+                if key in wasUnboundedBox:
+                    out.write('{}({: >3.3g}x){}: '.format(prefix, num, key.alias))
+                else:
+                    out.write('{}{: >4.3g}x {}: '.format(prefix, num, key.alias))
                 pos = 0
                 for k, v in byMachine.items():
                     if v['num'] ==  0:

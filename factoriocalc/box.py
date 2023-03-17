@@ -236,6 +236,7 @@ class Box(BoxBase):
     simpleConstraints: SimpleConstraints
     otherConstraints: OtherConstraints
     priorities: Priorities
+    simple: Bool
 
     def __init__(self, inner, *, name = None,
                  outputs = None, extraOutputs = (), outputTouchups = {}, outputsLoose = False,
@@ -319,6 +320,14 @@ class Box(BoxBase):
         
         if not isinstance(inner, Group):
             inner = Group(inner)
+
+        self.simple = (len(inner) == 1
+                       and outputs is None and inputs is None
+                       and len(extraOutputs) == 0 and len(outputTouchups) == 0
+                       and len(extraInputs) == 0 and len(inputTouchups) == 0
+                       and unconstrained is None
+                       and len(constraints) == 0
+                       and len(priorities) == 0 and allowExtraInputs is False)
         if constraints is None:
             constraints = []
             
