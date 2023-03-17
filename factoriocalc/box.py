@@ -179,7 +179,15 @@ class Box(BoxBase):
             if rate > 0:
                 rate = -rate
             return dict.__setitem__(self, item, rate)
-    
+
+    class OtherFlows(_ExternalFlows):
+        __slots__ = ()
+        def __setitem__(self, item, rate):
+            item = asItem(item)
+            if rate is None:
+                return dict.__setitem__(self, item, None)
+            rate = frac(rate)
+            return dict.__setitem__(self, item, rate)
 
     class _Dict(dict):
         __slots__ = ()
@@ -336,37 +344,39 @@ class Box(BoxBase):
         self.priorities = Box.Priorities(priorities)
         self.simpleConstraints = Box.SimpleConstraints()
         self.otherConstraints = Box.OtherConstraints()
+        self.unconstrained = Box.OtherFlows(unconstrained)
         self.unconstrainedHints = set()
 
         inputs_ = set()
         outputs_ = set()
         products_ = set()
+        innerUnconstrained = set()
         for m in self.inner.flatten():
             inputs_ |= m.inputs.keys()
             outputs_ |= m.outputs.keys()
             products_ |= m.products.keys()
-            self.unconstrainedHints |= getattr(m, 'unconstrained', set())
-            self.unconstrainedHints |= getattr(m, 'unconstrainedHints', set())
+            if isinstance(m, Box):
+                innerUnconstrained |= m.unconstrained.keys()
+                self.unconstrainedHints |= m.unconstrained.keys()
+                self.unconstrainedHints |= m.unconstrainedHints
         byproducts_ = outputs_ - products_
 
         self.unconstrainedHints |= byproducts_ & inputs_
 
-        if unconstrained is None:
-            self.unconstrained = set()
-        else:
-            self.unconstrained = set(unconstrained)
+        for item in (innerUnconstrained - inputs_ - outputs_):
+            self.unconstrained[item] = None
 
         if outputs is None or inputs is None:
             common = inputs_ & outputs_
             if outputs is None:
-                self.outputs = Box.Outputs(sorted(outputs_ - common - self.unconstrained))
+                self.outputs = Box.Outputs(sorted(outputs_ - common - innerUnconstrained - self.unconstrained.keys()))
             if inputs is None:
                 if allowExtraInputs:
-                    self.inputs = Box.Inputs(inputs_ - self.outputs.keys() - self.unconstrained)
+                    self.inputs = Box.Inputs(inputs_ - self.outputs.keys() - innerUnconstrained - self.unconstrained.keys())
                     for item in self.inputs.keys() & common:
                         self.priorities[item] = IGNORE
                 else:
-                    self.inputs = Box.Inputs(sorted(inputs_ - common - self.unconstrained))
+                    self.inputs = Box.Inputs(sorted(inputs_ - common - self.unconstrained.keys()))
 
         for item in extraOutputs:
             self.outputs[item] = None
@@ -464,7 +474,7 @@ class Box(BoxBase):
             out.write(f'{prefix}Outputs: {self.outputs.str(flows)}\n')
         out.write(f'{prefix}Inputs: {self.inputs.str(flows)}\n')
         if self.unconstrained:
-            out.write(f'{prefix}Unconstrained: {self.unconstrained}\n')
+            out.write(f'{prefix}Unconstrained: {self.unconstrained.str(flows)}\n')
         if self.simpleConstraints or self.otherConstraints:
             # FIXME
             out.write(f'{prefix}Constraints: {self.simpleConstraints} {self.otherConstraints}\n')
