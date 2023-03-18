@@ -65,7 +65,7 @@ class _BoxFailedInfo:
     
 
 def produce(outputs, using = (), *,
-            stopAt = (), fuel = None, constraints = None,
+            stopAt = (), fuel = None, constraints = (),
             name = None, abortOnMultiChoice = True,
             recursive = True, roundUp = False, minSolveRes = SolveRes.MULTI, solve = True):
     """Create a factory to produce outputs.
@@ -310,9 +310,11 @@ def merge(*args, mergeFun = operator.add):
     res = _merge(args[0], args[1], mergeFun)
     for i in range(2, len(args)):
         res = _merge(res, args[i], mergeFun)
-    views = [Box(res, name = b.name,
-                 outputs = b.outputs, inputs = b.inputs,
-                 constraints = b.constraints, priorities = b.priorities) for b in args]
+    views = []
+    for b in args:
+        view = copy(b)
+        view.inner = res
+        views.append(view)
     return (res,*views)
 
 def union(*args):
