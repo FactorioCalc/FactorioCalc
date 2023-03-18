@@ -1099,8 +1099,10 @@ class Bonus(EffectBase):
             if type(other) is Bonus:
                 return other
             elif type(other) is Effect:
+                speed = other.speed if other.speed > frac(-4, 5) else frac(-4, 5)
                 consumption =  other.consumption if other.consumption > frac(-4, 5) else frac(-4, 5)
-                return EffectBase.__new__(cls, other.speed, other.productivity, consumption, other.pollution)
+                pollution = other.pollution if other.pollution > frac(-4, 5) else frac(-4, 5)
+                return EffectBase.__new__(cls, speed, other.productivity, consumption, pollution)
         else:
             return EffectBase.__new__(cls, *args, **kwargs)
 
