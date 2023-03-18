@@ -551,13 +551,13 @@ class Box(BoxBase):
         for item,rate in self.inputs.items():
             flow = orig[item]
             annotation = ''
-            if -flow.rate() < 0 or (rate is not None and -flow.rate() < rate):
+            if flow.rate() > 0 or (rate is not None and flow.rate() < rate):
                 state = max(state, FlowsState.UNSOLVED)
                 annotation = '!'
             elif item in self.simpleConstraints and flow.rate() < self.simpleConstraints[item]:
                 state = max(state, FlowsState.UNSOLVED)
                 annotation = '!'
-            elif rate is not None and -flow.rate() > rate:
+            elif rate is not None and flow.rate() > rate:
                 state = max(state, FlowsState.UNSOLVED)
                 annotation = '*'
             if flow.rateIn == 0 == flow.rateOut and annotation == '':
