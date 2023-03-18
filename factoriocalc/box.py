@@ -247,8 +247,8 @@ class Box(BoxBase):
     simple: Bool
 
     def __init__(self, inner, *, name = None,
-                 outputs = None, extraOutputs = (), outputTouchups = {}, outputsLoose = False,
-                 inputs = None, extraInputs = (), inputTouchups = {}, inputsLoose = True,
+                 outputs = None, extraOutputs = (), outputTouchups = (), outputsLoose = False,
+                 inputs = None, extraInputs = (), inputTouchups = (), inputsLoose = True,
                  unconstrained = None,
                  constraints = (), priorities = (),
                  allowExtraInputs = False):
