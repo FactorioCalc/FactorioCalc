@@ -711,7 +711,7 @@ class BlackBox(BoxBase):
         self.throttle = 1
 
 def _finalizeInner(m, roundUp, recursive):
-    if isinstance(m, Box) and recursive:
+    if isinstance(m, Box) and (recursive or m.simple):
         m.finalize(roundUp = roundUp, recursive = True)
     elif isinstance(m, Group):
         _finalizeGroup(m, roundUp, recursive)
@@ -736,8 +736,8 @@ def _finalizeGroup(grp, roundUp, recursive):
         wasUnboundedBox = isinstance(m, UnboundedBox)
         m = _finalizeInner(m, roundUp, recursive)
         if m is None: continue
-        # fixme: if recursive and wasUnboundedBox with a single machine
-        # and no constraints then remove the box as is now unnecessary
+        if wasUnboundedBox and m.simple:
+            m = m.inner[0]
         machines.append(m)
     grp.machines = machines
 
