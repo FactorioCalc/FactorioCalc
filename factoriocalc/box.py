@@ -12,7 +12,7 @@ from .core import _MutableFlows,NetFlows
 from ._helper import asItem
 from . import itm
 
-__all__ = ('BoxBase', 'Equal', 'AtLeast', 'Box', 'UnboundedBox', 'BlackBox')
+__all__ = ('BoxBase', 'Equal', 'AtLeast', 'Box', 'UnboundedBox', 'BlackBox', 'finalizeGroup')
 
 class BoxFlows(NetFlows):
     def _showFlow(self, flow):
@@ -714,7 +714,7 @@ def _finalizeInner(m, roundUp, recursive):
     if isinstance(m, Box) and (recursive or m.simple):
         m.finalize(roundUp = roundUp, recursive = True)
     elif isinstance(m, Group):
-        _finalizeGroup(m, roundUp, recursive)
+        finalizeGroup(m, roundUp, recursive)
     elif isinstance(m, Mul) and isinstance(m.machine, (Machine, BlackBox)):
         throttle = m.num * m.machine.throttle
         if throttle == 0: return None
@@ -730,7 +730,7 @@ def _finalizeInner(m, roundUp, recursive):
         m.machine = m0
     return m
 
-def _finalizeGroup(grp, roundUp, recursive):
+def finalizeGroup(grp, roundUp = True, recursive = True):
     machines = []
     for m in grp:
         wasUnboundedBox = isinstance(m, UnboundedBox)
