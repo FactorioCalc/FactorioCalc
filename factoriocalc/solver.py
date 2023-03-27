@@ -1255,7 +1255,7 @@ class Tableau:
             if self.optFunInfo[i].max > self.tableau[i][-1]:
                 unique = False
                 self.optFunInfo[i].optimal = False
-                print(f'warning: non optimal: {self.optFunInfo[rowIdx]} {self.optFunInfo[i].note}')
+                print(f'warning: non optimal: {self.optFunInfo[rowIdx].note}: {self.optFunInfo[i].note}')
                 # ^fixme: find a better way to convey this information
             elif unique is None:
                 unique = True
