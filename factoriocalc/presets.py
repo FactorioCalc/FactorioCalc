@@ -52,10 +52,9 @@ SPEED_BEACON = mch.Beacon(modules=[itm.speed_module_3, itm.speed_module_3])
 def withSettings(settings, fun, *args, **kwargs):
     "helper function to locally set a ContextVar"
     ctx = copy_context()
-    return ctx.run(__withSettings, settings, fun, *args, **kwargs)
-        
+    return ctx.run(_withSettings, settings, fun, *args, **kwargs)
 
-def __withSettings(settings, fun, *args, **kwargs):
+def _withSettings(settings, fun, *args, **kwargs):
     for var, val in settings.items():
         var.set(val)
     return fun(*args, **kwargs)
