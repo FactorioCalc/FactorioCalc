@@ -168,30 +168,34 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, logger):
     for (k,v) in gameInfo['recipes'].items():
         if not includeDisabled and not v.get('enabled', False):
             continue
-        def toRecipeComponent(d):
+        def toRecipeComponent(d, isProduct):
             try:
                 num = d['amount']*d.get('probability',1)
             except KeyError:
                 num = d.get('probability',1) * (d['amount_max'] + d['amount_min']) / 2
             if type(num) is float:
                 num = frac(num, float_conv_method = 'round')
-            return RecipeComponent(item=lookupItem(d['name']), num = num)
+            if isProduct:
+                catalyst = d.get('catalyst_amount', 0)
+            else:
+                catalyst = 0
+            return RecipeComponent(item=lookupItem(d['name']), num = num, catalyst = catalyst)
         def toRecipe(d):
-            inputs = tuple(toRecipeComponent(rc) for rc in d['ingredients'])
+            inputs = tuple(toRecipeComponent(rc, False) for rc in d['ingredients'])
             products = []
             byproducts = []
             for product in d['products']:
-                rc = toRecipeComponent(product)
+                rc = toRecipeComponent(product, True)
                 try:
                     amount = product['amount']
                 except KeyError:
                     amount = product['amount_max']
-                catalyst_amount = product.get('catalyst_amount', 0)
-                if catalyst_amount == 0:
+                catalyst = rc.catalyst
+                if catalyst == 0:
                     for rc0 in inputs:
                         if rc0.item == rc.item:
-                            catalyst_amount = rc0.num
-                if amount - catalyst_amount > 0:
+                            catalyst = rc0.num
+                if amount - catalyst > 0:
                     products.append(rc)
                 else:
                     byproducts.append(rc)
@@ -237,7 +241,7 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, logger):
             disabledRecipes.add(v['name'])
 
     rp = rcpByName['rocket-part']
-    rocket_parts_inputs = tuple(RecipeComponent(rc.num*100, rc.item) for rc in rp.inputs)
+    rocket_parts_inputs = tuple(RecipeComponent(rc.num*100, 0, rc.item) for rc in rp.inputs)
     rocket_parts_time = rp.time*100
 
     # create recipes for rocket launch products
@@ -258,18 +262,19 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, logger):
             order = item.order,
             inputs = rocket_parts_inputs,
             products = (RecipeComponent(num = rocket_launch_product['amount'] * rocket_launch_product.get('probability',1),
+                                        catalyst = 0,
                                         item = item),),
             byproducts = (),
             time = rocket_parts_time,
-            cargo = RecipeComponent(num=1, item=lookupItem(k)),
+            cargo = RecipeComponent(num=1, catalyst=0, item=lookupItem(k)),
         )
         addRecipe(recipe)
 
     steam = Recipe(
         name = 'steam',
         category = Category('Boiler', [mchByName['boiler']]),
-        inputs = (RecipeComponent(60, lookupItem('water')),),
-        products = (RecipeComponent(60, lookupItem('steam')),),
+        inputs = (RecipeComponent(60, 0, lookupItem('water')),),
+        products = (RecipeComponent(60, 0, lookupItem('steam')),),
         byproducts = (),
         time = 1,
         order = ('','',''))
@@ -306,8 +311,8 @@ def _addResearchHacks(gi):
         item = addItem(Research, name, order)
         recipe = Recipe(name = name,
                         category = Category('FakeLab', [FakeLab]),
-                        inputs = (RecipeComponent(1, i) for i in sorted(inputs, key = lambda k: k.order)),
-                        products = (RecipeComponent(1, item),),
+                        inputs = (RecipeComponent(1, 0, i) for i in sorted(inputs, key = lambda k: k.order)),
+                        products = (RecipeComponent(1, 0, item),),
                         byproducts = (),
                         time = 1,
                         order = order)
@@ -321,7 +326,7 @@ def standardCraftingHints(gi):
     craftingHints = {}
     
     for r in gi.rcpByName.values():       
-        if any(item == gi.itm.empty_barrel for _, item in r.outputs) and len(r.outputs) > 1:
+        if any(item == gi.itm.empty_barrel for _, _, item in r.outputs) and len(r.outputs) > 1:
             craftingHints[r.name] = CraftingHint(priority = IGNORE)
 
     craftingHints['advanced-oil-processing'] = CraftingHint(also=['light-oil-cracking','heavy-oil-cracking'])

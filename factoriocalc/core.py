@@ -371,19 +371,17 @@ class CraftingMachine(Machine):
     def _calc_flows(self, throttle):
         flows = _MutableFlows()
         if self.recipe is None: return flows
-        numInOut = defaultdict(lambda: [0,0])
+        inOut = defaultdict(lambda: [RecipeComponent(0,0,None), RecipeComponent(0,0,None)])
         for rc in self.recipe.inputs:
-            numInOut[rc.item][0] = rc.num
+            inOut[rc.item][0] = rc
         for rc in self.recipe.outputs:
-            numInOut[rc.item][1] = rc.num
+            inOut[rc.item][1] = rc
         b = self.bonus()
         time = diva(self.recipe.time, self.craftingSpeed, 1 + b.speed)
-        for item, (numIn, numOut) in numInOut.items():
-            bonusOut = 0
-            if numOut > numIn:
-                bonusOut = (numOut-numIn)*b.productivity
-            rateIn = div(numIn, time)
-            rateOut = div(numOut + bonusOut, time)
+        for item, (in_, out_) in inOut.items():
+            rateIn = div(in_.num, time)
+            bonusOut = out_.product() * b.productivity
+            rateOut = div(out_.num + bonusOut, time)
             flows.addFlow(item, rateIn = throttle*rateIn, rateOut = throttle*rateOut, adjusted = throttle != 1)
         flows._byproducts = tuple(rc.item for rc in self.recipe.byproducts)
         return flows
@@ -1108,9 +1106,17 @@ class Bonus(EffectBase):
 
 class RecipeComponent(NamedTuple):
     num: Rational
+    catalyst: Rational
     item: Item
+    def product(self):
+        product = self.num-self.catalyst
+        return 0 if product <= 0 else product
     def __str__(self):
-        return '{:n} {}'.format(float(self.num), self.item)
+        if self.catalyst == 0:
+            return f'{self.num:g} {self.item}'.format(float(self.num), self.item)
+        else:
+            return f'{self.num:g} ({self.product():g}) {self.item}'.format(float(self.num), self.item)
+
 
 class Recipe(_SortByOrderKey,Uniq,Immutable):
     """A recipe to produce something.

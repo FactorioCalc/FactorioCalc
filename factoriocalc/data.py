@@ -30,9 +30,9 @@ class GameInfo:
         self.recipesThatUse = {}
         
         for r in self.rcpByName.values():
-            for _, item in r.outputs:
+            for _, _, item in r.outputs:
                 self.recipesThatMake.setdefault(item, []).append(r)
-            for _, item in r.inputs:
+            for _, _, item in r.inputs:
                 self.recipesThatUse.setdefault(item, []).append(r)
 
 class DictProxy:
