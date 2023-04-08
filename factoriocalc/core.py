@@ -1187,7 +1187,7 @@ class Recipe(_SortByOrderKey,Uniq,Immutable):
                 and self.byproducts == other.byproducts
                 and self.time == other.time
                 and self.order == other.order)
-    def produce(self, machinePrefs = Default, fuel = None, machine = None, modules = (), beacons = ()):
+    def produce(self, machinePrefs = Default, fuel = None, machine = None, modules = (), beacons = (), rate=None):
         from collections import deque
         from . import config, data
         if machinePrefs is Default:
@@ -1229,9 +1229,13 @@ class Recipe(_SortByOrderKey,Uniq,Immutable):
                 m.fuel = config.defaultFuel.get()
             else:
                 m.fuel = fuel
+        if rate is not None:
+            if len(self.products) != 1:
+                raise ValueError('can not specify rate for "{self.name}" as it produces more than one product')
+            m = Mul(div(frac(rate), m.flow(self.products[0].item).rate()), m)
         return m
-    def __call__(self, machinePrefs = Default, fuel = Default, machine = None, modules = Default, beacons = Default):
-        return self.produce(machinePrefs = machinePrefs, fuel = fuel, machine = machine, modules = modules, beacons = beacons)
+    def __call__(self, machinePrefs = Default, fuel = Default, machine = None, modules = Default, beacons = Default, rate = None):
+        return self.produce(machinePrefs = machinePrefs, fuel = fuel, machine = machine, modules = modules, beacons = beacons, rate = rate)
 
 class InvalidModulesError(ValueError):
     def __init__(self, m):
