@@ -154,7 +154,9 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, logger):
                    productivity = get('productivity'),
                    consumption = get('consumption'),
                    pollution = get('pollution'))
-        limitation = v.get('limitation', None)
+        limitation = v.get('limitations', None)
+        if not limitation:
+            limitation = None
         if limitation is not None:
             limitation = set(limitation)
             if 'rocket-part' in limitation:
