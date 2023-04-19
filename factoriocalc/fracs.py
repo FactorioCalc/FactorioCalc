@@ -91,7 +91,7 @@ def frac(num = 0, den = None, *, float_conv_method = 'if int'):
                 pass
             raise TypeError(f"cannot convert '{type(num).__qualname__}' to 'Frac'")
 
-    return div(num, den)
+    return div(frac(num), den)
 
 def frac_from_real(other):
     try:
