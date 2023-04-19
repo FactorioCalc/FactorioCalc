@@ -15,7 +15,7 @@ from . import itm, rcp
 __all__ = ('Default',
            'Ingredient', 'Item', 'Fluid', 'Research', 'Electricity', 'Module', 'FakeModule',
            'MachineBase', 'Machine', 'CraftingMachine', 'Mul', 'Group',
-           'Flow', 'OneWayFlow', 'FlowsState', 'Flows', 'EffectBase', 'Effect', 'Bonus',
+           'Flow', 'OneWayFlow', 'FlowsState', 'Flows', 'SimpleFlows', 'NetFlows', 'EffectBase', 'Effect', 'Bonus',
            'Recipe', 'RecipeComponent', 'IGNORE', 'InvalidModulesError')
 
 class Uniq:
@@ -93,7 +93,7 @@ class Ingredient(_SortByOrderKey,Uniq,Immutable):
         else:
             return f'<{type(self).__name__}: {alias}>'
     def __matmul__(self, rate):
-        return (self, rate)
+        return OneWayFlow(self, _rate(rate))
     def recipes(self):
         from .config import gameInfo
         gi = gameInfo.get()
@@ -106,7 +106,17 @@ class Ingredient(_SortByOrderKey,Uniq,Immutable):
                 if self == rc.item:
                     byproducts.append(rcp)
         return RecipesForItems(products, byproducts,  gi.recipesThatUse[self])
-        
+
+def _rate(r):
+    if isinstance(r, str):
+        if r.endswith('/s'):
+            return frac(r[:-2])
+        elif r.endswith('/m'):
+            return frac(r[:-2],60)
+        elif r.endswith('/h'):
+            return frac(r[:-2],360)
+    return frac(r)
+
 class Item(Ingredient):
     __slots__ = ('stackSize', 'fuelValue', 'fuelCategory')
     def __init__(self, name, order, stackSize, fuelValue = 0, fuelCategory = ''):
@@ -813,6 +823,13 @@ class OneWayFlow(NamedTuple):
         return OneWayFlow(self.item, -self.rate, self.annotations)
     def __repr__(self):
         return '<{}>'.format(str(self))
+    def asFlow(self):
+        if self.annotations != '':
+            raise ValueError("can't convert OneWayFlow with annotations to Flow'")
+        if self.rate <= 0:
+            return Flow(self.item, rateIn = -self.rate)
+        else:
+            return Flow(self.item, rateOut = self.rate)
 
 class Flow(NamedTuple):
     item: Ingredient
@@ -942,6 +959,24 @@ class Flows:
         if not isinstance(self, _MutableFlows):
             flows = self.__class__(flows)
         return flows
+    def __add__(self, obj):
+        flows = _MutableFlows(initFrom = self)
+        if isinstance(obj, Flow):
+            flows.merge(obj)
+        elif isinstance(obj, OneWayFlow):
+            flows.merge(obj.asFlow())
+        elif isinstance(obj, Flows):
+            for f in obj:
+                flows.merge(f)
+        else:
+            return NotImplemented
+        for f in self:
+            flows.merge(f)
+        flows.reorder()
+        if not isinstance(self, _MutableFlows):
+            flows = self.__class__(flows)
+        return flows
+    __radd__ = __add__
     def __mul__(self,num):
         return self.mul(num)
     def __rmul__(self,num):
@@ -994,10 +1029,12 @@ class _MutableFlows(Flows):
             self.byItem[f.item] = f
 
 class SimpleFlows(Flows):
-    def __init__(self, mutableFlows):
-        self.byItem = mutableFlows.byItem
-        self._byproducts = mutableFlows._byproducts
-        self.state = mutableFlows.state
+    def __init__(self, _mutableFlows = None):
+        if _mutableFlows is None:
+            _mutableFlows = _MutableFlows()
+        self.byItem = _mutableFlows.byItem
+        self._byproducts = _mutableFlows._byproducts
+        self.state = _mutableFlows.state
     def output(self, item):
         return self.flow(item).rateOut
     def input(self, item):
@@ -1008,10 +1045,12 @@ class SimpleFlows(Flows):
         return [OneWayFlow(flow.item, flow.rateIn) for flow in self if flow.rateIn > 0]
 
 class NetFlows(Flows):
-   def __init__(self, mutableFlows):
-       self.byItem = mutableFlows.byItem
-       self._byproducts = mutableFlows._byproducts
-       self.state = mutableFlows.state
+   def __init__(self, _mutableFlows = None):
+       if _mutableFlows is None:
+           _mutableFlows = _MutableFlows()
+       self.byItem = _mutableFlows.byItem
+       self._byproducts = _mutableFlows._byproducts
+       self.state = _mutableFlows.state
    def output(self, item):
        rate = self.flow(item).rate()
        if rate <= 0: return 0

@@ -154,6 +154,8 @@ def produce(outputs, using = (), *,
             recipePrefs[v.name] = 1000
         elif isinstance(v, Machine):
             machinePrefs.append(v)
+        elif isinstance(v, OneWayFlow):
+            inputs[v.item] = v.rate
         elif type(v) is tuple:
             item, rate = v
             if not isinstance(item, Ingredient):
