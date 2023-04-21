@@ -315,7 +315,8 @@ def merge(*args, mergeFun = operator.add):
     views = []
     for b in args:
         view = copy(b)
-        view.inner = res
+        view.__class__ = Box
+        view.inner = res.inner
         views.append(view)
     return (res,*views)
 

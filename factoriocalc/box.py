@@ -1,7 +1,8 @@
 from __future__ import annotations
 from dataclasses import dataclass,field
+from collections import defaultdict
 from collections.abc import Mapping,Sequence
-from copy import copy as _copy
+from copy import copy as _copy, deepcopy as _deepcopy
 from numbers import Number
 import sys
 import operator
@@ -325,7 +326,12 @@ class Box(BoxBase):
 
         """
         from .solver import SolveRes
-        
+
+        orig = None
+        if isinstance(inner, Box):
+            orig = inner
+            inner = _deepcopy(orig.inner)
+
         if not isinstance(inner, Group):
             inner = Group(inner)
 
@@ -335,18 +341,47 @@ class Box(BoxBase):
                        and len(extraInputs) == 0 and len(inputTouchups) == 0
                        and unconstrained is None
                        and len(constraints) == 0
-                       and len(priorities) == 0 and allowExtraInputs is False)
-            
-        self.inner = inner
-        self.name = name
-        self.outputs = Box.Outputs(outputs)
-        self.inputs = Box.Inputs(inputs)
-        self.priorities = Box.Priorities(priorities)
-        self.simpleConstraints = Box.SimpleConstraints()
-        self.otherConstraints = Box.OtherConstraints()
-        self.unconstrained = Box.OtherFlows(unconstrained)
-        self.unconstrainedHints = set()
+                       and len(priorities) == 0 and allowExtraInputs is False
+                       and (orig is None or orig.simple))
 
+        outputRates = {}
+        if outputs is not None:
+            outputs = Box.Outputs(outputs)
+            for item, rate in outputs.items():
+                if rate is not None:
+                    outputRates[item] = rate
+
+        inputRates = {}
+        if inputs is not None:
+            inputs = Box.Inputs(inputs)
+            for item, rate in inputs.items():
+                if rate is not None:
+                    inputRates[item] = rate
+
+        if orig is None:
+            self.name = name
+            self.priorities = Box.Priorities(priorities)
+            self.simpleConstraints = Box.SimpleConstraints()
+            self.otherConstraints = Box.OtherConstraints()
+            self.unconstrained = Box.OtherFlows(unconstrained)
+        else:
+            if constraints:
+                raise ValueError('cannot specify constraints when inner is another box')
+            if outputs is None:
+                outputs = _copy(orig.outputs)
+            if inputs is None:
+                inputs = _copy(orig.inputs)
+            self.name = orig.name if name is None else name
+            self.priorities = _copy(orig.priorities) if priorities is None else Box.Priorities(priorities)
+            self.simpleConstraints = _copy(orig.simpleConstraints)
+            self.otherConstraints = _copy(orig.otherConstraints)
+            self.unconstrained = _copy(orig.unconstrained) if unconstrained is None else Box.OtherFlows(unconstrained)
+
+        self.inner = inner
+        self.outputs = outputs
+        self.inputs = inputs
+        self.unconstrainedHints = set()
+                    
         inputs_ = set()
         outputs_ = set()
         products_ = set()
@@ -387,19 +422,22 @@ class Box(BoxBase):
             
         for item, rate in Box.Outputs(outputTouchups).items():
             self.outputs[item] = rate
+            if rate is not None:
+                outputRates[item] = rate
+                
         for item, rate in Box.Inputs(inputTouchups).items():
             self.inputs[item] = rate
+            if rate is not None:
+                inputRates[item] = rate
             
         if outputsLoose:
-            for item, rate in self.outputs.items():
-                if rate is not None:
-                    self.simpleConstraints[item] = rate
-                    self.outputs[item] = None
+            for item, rate in outputRates.items():
+                self.simpleConstraints[item] = rate
+                self.outputs[item] = None
         if inputsLoose:
-            for item, rate in self.inputs.items():
-                if rate is not None:
-                    self.simpleConstraints[item] = rate
-                    self.inputs[item] = None
+            for item, rate in inputRates.items():
+                self.simpleConstraints[item] = rate
+                self.inputs[item] = None
 
         self.products = Box.Outputs({item:rate for item,rate in self.outputs.items() if item in products_})
         self.byproducts = Box.Outputs({item:rate for item,rate in self.outputs.items() if item not in products_})
@@ -572,6 +610,59 @@ class Box(BoxBase):
         res.state = state
         res.reorder()
         return BoxFlows(res)
+
+    def flowSummary(self, out = None, includeInner = False):
+        if out is None:
+            out = sys.stdout
+        flowTally = defaultdict(lambda: defaultdict(lambda: 0))
+        nameLookup = {}
+        boxNum = 1
+        for m in self.inner.flatten():
+            m = m.machine
+            if m.recipe:
+                id_ = m.recipe
+            elif isinstance(m, Box):
+                id_ = id(m)
+                if m.name:
+                    name = m.name
+                else:
+                    name = f'box#{boxNum}'
+                    boxNum += 1
+                nameLookup[id_] = name
+            else:
+                name = 'unknown'
+                id_ = id(m)
+                nameLookup[id_] = name
+            for flow in m.flows():
+                rate = flow.rate()
+                if rate != 0:
+                    flowTally[flow.item][id_] += rate
+
+        flows = self.flows()
+
+        def printFlows(label, items):
+            out.write(f'{label}:\n')
+            for item in items:
+                out.write(f'  {flows[item]}:')
+                for id_,rate in flowTally[item].items():
+                    if isinstance(id_, Recipe):
+                        name = id_.alias
+                    else:
+                        name = nameLookup[id_]
+                    out.write(f' {name} {rate:.3g},')
+                out.write('\n')
+            for item in list(items):
+                del flowTally[item]
+
+        if self.byproducts:
+            printFlows('Products', self.products.keys())
+            printFlows('Byproducts', self.byproducts.keys())
+        else:
+            printFlows('Outputs', self.outputs.keys())
+        printFlows('Inputs', self.inputs.keys())
+        if self.unconstrained:
+            printFlows('Unconstrained', self.unconstrained)
+        printFlows('Other', flowTally.keys())
 
     def internalFlows(self):
         res = _MutableFlows()

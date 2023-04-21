@@ -16,7 +16,9 @@ __all__ = ('Default',
            'Ingredient', 'Item', 'Fluid', 'Research', 'Electricity', 'Module', 'FakeModule',
            'MachineBase', 'Machine', 'CraftingMachine', 'Mul', 'Group',
            'Flow', 'OneWayFlow', 'FlowsState', 'Flows', 'SimpleFlows', 'NetFlows', 'EffectBase', 'Effect', 'Bonus',
-           'Recipe', 'RecipeComponent', 'IGNORE', 'InvalidModulesError')
+           'Recipe', 'RecipeComponent', 'IGNORE', 'InvalidModulesError',
+           'maxInputs'
+           )
 
 class Uniq:
     def __copy__(self):
@@ -171,8 +173,8 @@ class MachineBase:
     def _flows(self, throttle, _includeInner):
         raise NotImplementedError
 
-    def flows(self, throttle = None):
-        return self._flows(throttle, True)
+    def flows(self, throttle = None, includeInner = True):
+        return self._flows(throttle, includeInner)
 
     def flow(self, item, throttle = None):
         return self.flows(throttle).flow(item)
@@ -985,6 +987,21 @@ class Flows:
         if not isinstance(other, Flows):
             return False
         return self.byItem == other.byItem and self._byproducts == other._byproducts and self.state == other.state
+
+def _mergeFlows(f, *args):
+    tally = {}
+    for flows in args:
+        print('.')
+        for flow in flows:
+            tally[flow.item] = f(tally.get(flow.item, 0), flow.rate())
+    res = _MutableFlows()
+    for item, rate in tally.items():
+        if rate != 0:
+            res.byItem[item] = OneWayFlow(item, rate)
+    return SimpleFlows(res)
+
+def maxInputs(*args):
+    return _mergeFlows(min, *args)
 
 class _MutableFlows(Flows):
     __slots__ = ('byItem', '_byproducts', 'state')
