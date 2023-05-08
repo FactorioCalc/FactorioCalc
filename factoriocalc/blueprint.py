@@ -20,6 +20,12 @@ class Blueprint:
         self.raw = bp
     def convert(self, *, burnerFuel=None, rocketSiloRecipe='space-science-pack') -> Group:
         """Convert a blueprint into a `Group`."""
+
+        def as_int(x):
+            if not x.is_integer():
+                raise ValeuError
+            return int(x)
+
         gameInfo = config.gameInfo.get()
         itmByName = gameInfo.itmByName
         mchByName = gameInfo.mchByName
@@ -29,8 +35,8 @@ class Blueprint:
             burnerFuel = getDefaultFuel()
         
         machines = []
+        machinesOnGrid = {}
         beacons = []
-        beaconsOnGrid = {}
 
         for v in self.raw['blueprint']['entities']:
             try:
@@ -44,37 +50,39 @@ class Blueprint:
             elif 'recipe' in v:
                 m.recipe = recipeMap[v['recipe']]
             if hasattr(m, 'fuel'):
-                m.fuel = burnerFuel 
+                m.fuel = burnerFuel
             if 'items' in v:
                 m.modules = [*chain.from_iterable(repeat(itmByName[item], num) for item, num in v['items'].items())]
             if isinstance(m, machine.Beacon):
                 beacons.append(m)
-            else:
+            elif m :
                 machines.append(m)
+                if hasattr(m, 'beacons'):
+                    x_min = as_int(m.blueprintInfo['position']['x'] - m.width/2)
+                    x_max = as_int(m.blueprintInfo['position']['x'] + m.width/2) - 1
+                    y_min = as_int(m.blueprintInfo['position']['y'] - m.height/2)
+                    y_max = as_int(m.blueprintInfo['position']['y'] + m.height/2) - 1
+                    machinesOnGrid.setdefault(x_min, {})[y_min] = m
+                    machinesOnGrid.setdefault(x_min, {})[y_max] = m
+                    machinesOnGrid.setdefault(x_max, {})[y_min] = m
+                    machinesOnGrid.setdefault(x_max, {})[y_max] = m
 
-        for m in beacons:
-            x = math.floor(m.blueprintInfo['position']['x'])
-            y = math.floor(m.blueprintInfo['position']['y'])
-            beaconsOnGrid.setdefault(x, {})[y] = m
-
-        for m in machines:
-            if not hasattr(m, 'beacons'):
-                continue
-            def as_int(x):
-                if not x.is_integer():
-                    raise ValeuError
-                return int(x)
-            x_min = as_int(m.blueprintInfo['position']['x'] - m.width/2)
-            x_max = as_int(m.blueprintInfo['position']['x'] + m.width/2)
-            y_min = as_int(m.blueprintInfo['position']['y'] - m.height/2)
-            y_max = as_int(m.blueprintInfo['position']['y'] + m.height/2)
-            for x in range(x_min-4,x_max+4):
-                yp = beaconsOnGrid.get(x, {})
-                for y in range(y_min-4,y_max+4):
-                    beacon = yp.get(y, None)
-                    if beacon is not None:
-                        m.beacons.append(beacon)
-                        pass
+        for beacon in beacons:
+            x_min = as_int(beacon.blueprintInfo['position']['x'] - beacon.width/2) - beacon.supplyAreaDistance
+            x_max = as_int(beacon.blueprintInfo['position']['x'] + beacon.width/2) + beacon.supplyAreaDistance - 1
+            y_min = as_int(beacon.blueprintInfo['position']['y'] - beacon.height/2) - beacon.supplyAreaDistance
+            y_max = as_int(beacon.blueprintInfo['position']['y'] + beacon.height/2) + beacon.supplyAreaDistance - 1
+            seen = set()
+            for x in range(x_min, x_max + 1):
+                yp = machinesOnGrid.get(x, None)
+                if yp is None:
+                    continue
+                for y in range(y_min,y_max + 1):
+                    m = yp.get(y, None)
+                    if m is None or id(m) in seen:
+                        continue
+                    m.beacons.append(beacon)
+                    seen.add(id(m))
 
         return Group(Group(machines), Group(beacons))
 

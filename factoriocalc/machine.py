@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from collections import defaultdict
 from collections.abc import Sequence
 
-from .fracs import frac,div,diva
+from .fracs import frac,div,diva,Inf
 from .core import *
 from .core import Uniq,_MutableFlows
 from . import itm, rcp
@@ -148,12 +148,13 @@ class _ModulesMixin:
         return Bonus(sum([m.effect for m in self.modules],Effect()) + sum([b.effect() for b in self.beacons],Effect()))
 
 @dataclass(init=False,repr=False)
-class Beacon(_ElectricMixin,Machine):
+class Beacon(Machine):
     name = 'beacon'
     width = 3
     height = 3
-    baseEnergyUsage = 0
-    energyDrain = 480_000
+    moduleInventorySize = Inf
+    distributionEffectivity = frac(1,2)
+    supplyAreaDistance = 3
 
     modules: list[Module]
 
@@ -176,7 +177,7 @@ class Beacon(_ElectricMixin,Machine):
             lst.append(f'{self.modules!r}')
     
     def effect(self):
-        return sum([m.effect for m in self.modules],Effect()) / 2
+        return sum([m.effect for m in self.modules],Effect()) * self.distributionEffectivity
 
     def _modulesStr(self):
         modules = defaultdict(lambda: 0)

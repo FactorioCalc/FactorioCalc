@@ -94,7 +94,7 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, logger):
         clsName = toClassName(v['name'])
         bases = []
         module_inventory_size = v.get('module_inventory_size', 0)
-        if module_inventory_size > 0:
+        if module_inventory_size > 0 and v['type'] != 'beacon':
             bases.append(machine._ModulesMixin)
         energy_source = v.get('energy_source', None)
         if energy_source == 'burner':
@@ -108,6 +108,8 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, logger):
         elif v['type'] == 'furnace':
             isCraftingMachine = True
             bases.append(machine.Furnace)
+        elif v['type'] == 'beacon':
+            bases.append(machine.Beacon)
         else:
             existing = getattr(machine, clsName, None)
             if existing is not None:
@@ -138,7 +140,12 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, logger):
                     categories[c] = Category(c, [cls])
             cls.craftingCategories = {categories[c] for c in v['crafting_categories']}
         if module_inventory_size > 0:
+            cls.moduleInventorySize = module_inventory_size
             cls.allowdEffects = v['allowed_effects']
+        if v['type'] == 'beacon':
+            cls.distributionEffectivity = frac(v['distribution_effectivity'], float_conv_method = 'round')
+            cls.supplyAreaDistance = frac(v['supply_area_distance'], float_conv_method = 'round')
+            cls.__hash__ = machine.Beacon.__hash__
         mchByName[cls.name] = cls
         descr = v.get('translated_name','')
         if descr:
