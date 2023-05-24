@@ -109,13 +109,16 @@ class _ModulesMixin:
         elif prop == 'beacons' and isinstance(val, Mul):
             val = val.num*[val.machine]
         elif prop == 'beacons':
-            beacons = []
-            for v in val:
-                if isinstance(v, Mul):
-                    beacons += v.num*[v.machine]
-                else:
-                    beacons.append(v)
-            val = beacons
+            if isinstance(val, Beacon):
+                val = [val]
+            else:
+                beacons = []
+                for v in val:
+                    if isinstance(v, Mul):
+                        beacons += v.num*[v.machine]
+                    else:
+                        beacons.append(v)
+                val = beacons
         return super().__setattr__(prop, val)
 
     def _modulesStr(self):
