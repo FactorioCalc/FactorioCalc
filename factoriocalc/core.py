@@ -206,6 +206,7 @@ class MachineMeta(type):
 class Machine(MachineBase, metaclass=MachineMeta):
     """A entity that used directly or indirectly to produce something."""
     throttle: Rational
+    unbounded: bool = False
     blueprintInfo: dict = field(default = None, init = False, repr = False, compare = False)
     __flows1: Flows = field(default = None, init = False, repr = False, compare = False)
     __flows: Flows = field(default = None, init = False, repr = False, compare = False)
@@ -232,12 +233,19 @@ class Machine(MachineBase, metaclass=MachineMeta):
 
     def resetThrottle(self):
         self.throttle = 1
+
+    def __invert__(self):
+        # fixme: should likely make a copy ...
+        self.unbounded = True
+        return self
     
     def __setattr__(self, prop, val):
         if prop == 'throttle':
             val = frac(val)
-            if val < 0 or val > 1:
-                raise ValueError('throttle must be between 0 and 1, inclusive')
+            if val < 0:
+                raise ValueError('throttle must be positive')
+            if val > 1 and not self.unbounded:
+                raise ValueError('throttle must be <= 1')
         if prop != '_Machine__flows' and  prop != '_Machine__flows1' and prop != 'blueprintInfo':
             self.__flows = None
             if prop != 'throttle':
@@ -260,8 +268,9 @@ class Machine(MachineBase, metaclass=MachineMeta):
             parts.append(repr(self.recipe))
         if self.throttle != 1:
             parts.append(f'throttle={self.throttle!r}')
+        prefix = '~' if self.unbounded else ''
         self._repr_parts(parts)
-        return 'mch.{}({})'.format(name, ', '.join(parts))
+        return '{}mch.{}({})'.format(prefix, name, ', '.join(parts))
 
     def _repr_parts(self, lst):
         pass
@@ -273,11 +282,12 @@ class Machine(MachineBase, metaclass=MachineMeta):
             parts.append(self.recipe.alias)
         if self.throttle != 1:
             parts.append(f'@{self.throttle:g}')
+        prefix = '~' if self.unbounded else ''
         modulesStr = self._modulesStr()
         if modulesStr:
             parts.append(modulesStr)
         if parts:
-            return '{}({})'.format(name, '; '.join(parts))
+            return '{}{}({})'.format(prefix, name, '; '.join(parts))
         else:
             return name
 
@@ -347,10 +357,6 @@ class Machine(MachineBase, metaclass=MachineMeta):
         if throttle is None:
             throttle = self.throttle
         return self.energyDrain + throttle * self.baseEnergyUsage * (1 + self.bonus().consumption)
-
-    def __invert__(self):
-        from .box import UnboundedBox
-        return UnboundedBox(self)
 
 def _toRecipe(val):
     if val is None or isinstance(val, Recipe):
@@ -636,14 +642,10 @@ class Group(Sequence,MachineBase):
         return Group(grp)
  
     def _summary(self, out, prefix, includeSolvedBoxFlows, includeMachineFlows, includeBoxDetails, flowsItemFilter):
-        from .box import BoxBase, Box, UnboundedBox
+        from .box import BoxBase, Box
         byRecipe = defaultdict(list)
         grpNum = 0
-        wasUnboundedBox = set()
         for m in self.machines:
-            if isinstance(m, UnboundedBox) and m.simple:
-                m = m.inner[0]
-                wasUnboundedBox.add(m.machine.recipe)
             if isinstance(m.machine, Group) or isinstance(m.machine, BoxBase):
                 byRecipe[grpNum] = m
                 grpNum += 1
@@ -689,8 +691,9 @@ class Group(Sequence,MachineBase):
                     x['bonus'] += m.num*m.machine.bonus()
                     x['throttle'] += m.num*m.machine.throttle
                 g = Group(val)
-                if key in wasUnboundedBox:
-                    out.write('{}({: >3.3g}x){}: '.format(prefix, num, key.alias))
+                unbounded = num == 1 and len(val) == 1 and getattr(val[0].machine, 'unbounded', False)
+                if unbounded:
+                    out.write('{}({: >3.3g}x){}: '.format(prefix, val[0].machine.throttle, key.alias))
                 else:
                     out.write('{}{: >4.3g}x {}: '.format(prefix, num, key.alias))
                 pos = 0
@@ -702,9 +705,11 @@ class Group(Sequence,MachineBase):
                     if v['num'] != num:
                         out.write('{}x '.format(v['num']))
                     out.write(k.alias)
-                    throttle = div(v['throttle'], v['num'])
-                    if (throttle != 1):
+                    throttle = 1 if unbounded else div(v['throttle'], v['num'])
+                    if throttle != 1:
                         out.write('  @{:.6g}'.format(throttle))
+                    if throttle > 1:
+                        out.write('!')
                     if x['bonus']:
                         out.write('  {}'.format(x['bonus'] / v['num']))
                     pos += 1

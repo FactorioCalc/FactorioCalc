@@ -13,7 +13,7 @@ from .core import _MutableFlows,NetFlows
 from ._helper import asItem
 from . import itm
 
-__all__ = ('BoxBase', 'Equal', 'AtLeast', 'Box', 'UnboundedBox', 'BlackBox', 'finalizeGroup')
+__all__ = ('BoxBase', 'Equal', 'AtLeast', 'Box', 'BlackBox', 'finalizeGroup')
 
 class BoxFlows(NetFlows):
     def _showFlow(self, flow):
@@ -685,12 +685,10 @@ class Box(BoxBase):
     def finalize(self, *, roundUp = True, recursive = True, _res = None):
         """Finalize the result.
 
-        Finalize the result by converting `UnboundedBox`'es into a normal ones
-        and if *roundUp* is True (the default) also round up multiples of
-        machines and adjusting the throttle to compensate.  If *recursive* is
-        True (default False) than recurse into any inner boxes, otherwise
-        the contents of inner boxes are left alone.  `UnboundedBox`'es one
-        level deep are always converted.
+        Finalize the result by removing unbounded throttles and if *roundUp*
+        is True (the default) also round up multiples of machines and
+        adjusting the throttle to compensate.  If *recursive* is True (default
+        False) than recurse into any inner boxes.
 
         Returns an instance of `FinalizeResult`.
 
@@ -715,8 +713,6 @@ class Box(BoxBase):
             else:
                 filteredInputs[item] = rate
         self.inputs = filteredInputs
-        if self.__class__ is UnboundedBox:
-            self.__class__ = Box
         return res
 
     def finalizeAll(self, roundUp = True):
@@ -726,41 +722,6 @@ class Box(BoxBase):
         """
         return self.finalize(roundUp = roundUp, recursive = True)
 
-class UnboundedBox(Box):
-    """A special type of box for use with the solver.
-        
-    When used with the solver, the solver will adjust the number of machines
-    rather then the machine's throttle.
-
-    The inner parameter must be a machine or a group of the form::
-
-       Group(Mul(1,machine1), Mul(1,machine2), ...)
-
-    i.e::
-
-       1*machine1 + 1*machine2 + ...
-
-    The inner `Mul` is important to give the solver a number to adjust.  The
-    actual number is unimportant.
-
-    An UnboundedBox can nest instead a normal box, which is useful to let
-    the solver tell you the number of machines you need to support another
-    machine.
-    """
-    _fallbackName = '<unbounded box>'
-    def __init__(self, inner, **kwargs):
-        """Create a new `UnboundedBox`, the parameters are the same as `Box`."""
-        if not isinstance(inner, (Group, Mul)):
-            if isinstance(inner, Sequence):
-                inner = Group(Mul(1,m) for m in inner)
-            else:
-                inner = Group(Mul(1,inner))
-        super().__init__(inner, **kwargs)
-    def scale(self, factor):
-        """Adjust the number of machines uniformly."""
-        factor = frac(factor)
-        for m in self.inner:
-            m.num *= factor
 
 class BlackBox(BoxBase):
     """Wrap a box to hide it's internals.
@@ -802,7 +763,7 @@ class BlackBox(BoxBase):
         self.throttle = 1
 
 def _finalizeInner(m, roundUp, recursive):
-    if isinstance(m, Box) and (recursive or m.simple):
+    if isinstance(m, Box) and recursive:
         m.finalize(roundUp = roundUp, recursive = True)
     elif isinstance(m, Group):
         finalizeGroup(m, roundUp, recursive)
@@ -819,16 +780,18 @@ def _finalizeInner(m, roundUp, recursive):
         m0 = _finalizeInner(m.machine, roundUp, recursive)
         if m0 is None: return None
         m.machine = m0
+    elif isinstance(m, Machine) and m.unbounded:
+        throttle = m.throttle
+        m.throttle = 1
+        m._unbounded = False
+        return Mul(throttle, m)
     return m
 
 def finalizeGroup(grp, roundUp = True, recursive = True):
     machines = []
     for m in grp:
-        wasUnboundedBox = isinstance(m, UnboundedBox)
         m = _finalizeInner(m, roundUp, recursive)
         if m is None: continue
-        if wasUnboundedBox and m.simple:
-            m = m.inner[0]
         machines.append(m)
     grp.machines = machines
 

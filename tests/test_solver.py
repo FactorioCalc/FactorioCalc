@@ -262,8 +262,8 @@ class SolverTests2(unittest.TestCase):
                         inputTouchups = [itm.iron_plate@(45*4), itm.copper_plate@(45*6)])
 
         cls.speedModules = Box(rcp.speed_module_3(modules=2*itm.speed_module_3,beacons=[])
-                               + UnboundedBox(rcp.speed_module_2(beacons=[]))
-                               + UnboundedBox(rcp.speed_module(beacons=[])))
+                               + ~rcp.speed_module_2(beacons=[])
+                               + ~rcp.speed_module(beacons=[]))
 
         cls.rocketControlUnits6 = rocketControlUnits6 = box(12*rcp.rocket_control_unit(beacons=8*SPEED_BEACON)
                                                             + 4*rcp.rocket_control_unit(beacons=10*SPEED_BEACON)

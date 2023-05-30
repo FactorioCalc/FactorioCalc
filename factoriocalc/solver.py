@@ -402,10 +402,7 @@ class LinearEqSystem:
         outputPriorities = {}
         inputPriorities = {}
 
-        if isinstance(box, UnboundedBox):
-            machines = box.inner.machines
-        else:
-            machines = box.inner.flatten().machines
+        machines = box.inner.flatten().machines
 
         def varInfo(m):
             m = m.machine
@@ -418,8 +415,6 @@ class LinearEqSystem:
                     return ((id(box), m.recipe), m.recipe.alias)
             else:
                 return (None, 'unknown')
-
-        varMax = Inf if isinstance(box, UnboundedBox) else 1
 
         tally = _tally
         if tally is None:
@@ -444,24 +439,20 @@ class LinearEqSystem:
         for m in machines:
             if m is None: continue
             (key, name) = varInfo(m)
-            suffix = 't' if isfinite(varMax) else 'm'
+            unbounded = getattr(m.machine, 'unbounded', False)
+            suffix = 'm' if unbounded else 't'
             if len(tally[name]) > 1:
                 num = tally[name][key]
                 name = f'{name}_{num-1}_{suffix}'
             else:
                 name = f'{name}_{suffix}'
-            var = Var(key,name,varMax)
+            var = Var(key,name,Inf if unbounded else 1)
             if var not in byVar:
                 byVar[var] = VarGroup(var)
             byVar[var].machines.append(m)
 
         for var, grp in byVar.items():
-            if varMax == Inf:
-                if len(grp) != 1 or not isinstance(grp[0], Mul):
-                    raise ValueError('UnboundedBox is not in proper form')
-                grp.flows = grp[0].machine.flows(throttle = 1)
-            else:
-                grp.flows = grp.flows(throttle = 1)
+            grp.flows = grp.flows(throttle = 1)
             for flow in grp.flows:
                 #assert(flow.rate() != 0)
                 if flow.rate() == 0:
@@ -842,14 +833,7 @@ class Solver:
         if res.failed():
             return res, solution
         for var,grp in self.leqs.byVar.items():
-            if var.max == 1:
-                grp.setThrottle(solution.get(var, 1))
-            elif var.max == Inf:
-                if len(grp) != 1 or not isinstance(grp[0], Mul):
-                    raise ValueError(f'can not apply to {var}')
-                grp[0].num = solution.get(var, 1)
-            else:
-                raise ValueError(f'{var}: unrecognized var type')
+            grp.setThrottle(solution.get(var, 1))
         return res, solution
         
 

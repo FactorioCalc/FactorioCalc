@@ -16,7 +16,7 @@ from .data import *
 from .data import craftingHints
 from ._helper import getDefaultFuel
 
-__all__ = ('box', 'unboundedBox', 'produce', 'merge', 'union',
+__all__ = ('box', 'produce', 'merge', 'union',
            'ProduceResult', 'MultipleChoiceError', 'SolveFailedError', 'NonUniqueSolutionError')
 
 def _box(inner, minSolveRes, cls, **kwargs):
@@ -41,14 +41,6 @@ def box(inner, *, minSolveRes = None, **kwargs):
 
     """
     return _box(inner, minSolveRes, Box, **kwargs)
-
-def unboundedBox(inner, *, minSolveRes = None, **kwargs):
-    """Create an `UnboundedBox` and then solve it.
-    
-    See `box`.
-
-    """
-    return _box(inner, minSolveRes, UnboundedBox, **kwargs)
 
 def blackBox(inner, *, minSolveRes = None, **kwargs):
     """Create a `BlackBox` and then solve it.
@@ -260,11 +252,11 @@ def produce(outputs, using = (), *,
             for item in m_outputs.keys():
                 if item not in boxOutputs:
                     boxOutputs[item] = None
-    b = res.factory = UnboundedBox(name = name,
-                                   inner = Group([Mul(1, m) for m in machines.values()]),
-                                   outputs = boxOutputs, inputTouchups = inputs,
-                                   priorities = boxPriorities,
-                                   constraints = constraints)
+    b = res.factory = Box(name = name,
+                          inner = Group([~m for m in machines.values()]),
+                          outputs = boxOutputs, inputTouchups = inputs,
+                          priorities = boxPriorities,
+                          constraints = constraints)
     someOutputRatesSpecified = any(r != None for r in outputs.values())
     for item in b.outputs.keys():
         if item not in outputs:
