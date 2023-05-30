@@ -352,6 +352,16 @@ class Machine(MachineBase, metaclass=MachineMeta):
         from .box import UnboundedBox
         return UnboundedBox(self)
 
+def _toRecipe(val):
+    if val is None or isinstance(val, Recipe):
+        return val
+    if isinstance(val, Rcp):
+        return val.inst()
+    if isinstance(val, str):
+        from .config import gameInfo
+        return gameInfo.get().rcpByName[str].inst()
+    raise TypeError(f'unexpected type for recipe: {type(val)}')
+
 @dataclass(init=False, repr=False)
 class CraftingMachine(Machine):
     """An entity that produce something."""
@@ -369,15 +379,7 @@ class CraftingMachine(Machine):
 
     def __setattr__(self, prop, val):
         if prop == 'recipe':
-            if val is None or isinstance(val, Recipe):
-                pass
-            elif isinstance(val, Rcp):
-                val = val.inst()
-            elif isinstance(val, str):
-                from .config import gameInfo
-                val = gameInfo.get().rcpByName[str].inst()
-            else:
-                raise TypeError(f'unexpected type for recipe: {type(val)}')
+            val = _toRecipe(val)
         super().__setattr__(prop, val)
 
     def _calc_flows(self, throttle):
@@ -1200,6 +1202,9 @@ class Recipe(_SortByOrderKey,Uniq,Immutable):
         from .config import gameInfo
         return self.name not in gameInfo.get().disabledRecipes
     @property
+    def origRecipe(self):
+        return self
+    @property
     def outputs(self):
         return self.products + self.byproducts
     def __eq__(self, other):
@@ -1257,25 +1262,35 @@ class Recipe(_SortByOrderKey,Uniq,Immutable):
         if not candidates:
             if machine is None:
                 machines = self.category.members
+                machines = [m for m in machines if not hasattr(m, 'fixedRecipe') or m.fixedRecipe is self.origRecipe]
                 if len(machines) == 1:
                     candidates.append(machines[0]())
                 elif len(machines) == 0:
-                    raise ValueError(f'No matching machine for "{self.name}".')
+                    raise ValueError(f'No matching machine for "{self.alias}".')
                 else:
                     candidatesStr = ' '.join(c.name for c in machines)
-                    raise ValueError(f'Multiple matching machines for "{self.name}": {candidatesStr}')
+                    raise ValueError(f'Multiple matching machines for "{self.alias}": {candidatesStr}')
             else:
                  candidates.append(machine())
+        maybe = None
         while candidates:
             m = candidates.popleft()
             try:
                 m.recipe = self
                 break
-            except InvalidModulesError as err:
-                invalidModules = err.invalid
+            except InvalidModulesError:
+                maybe = m
+            except InvalidRecipe:
+                pass
         else:
-            m.modules = tuple(m for m in m.modules if m not in invalidModules)
-            m.recipe = self
+            if maybe:
+                try:
+                    m.recipe = self
+                except InvalidModulesError as err:
+                    m.modules = tuple(m for m in m.modules if m not in err.invalid)
+                    m.recipe = self
+            else:
+                raise ValueError(f'No matching machine for "{self.alias}". [2]')
         if modules is not Default:
             m.modules = modules
         if beacons is not Default:
@@ -1287,7 +1302,7 @@ class Recipe(_SortByOrderKey,Uniq,Immutable):
                 m.fuel = fuel
         if rate is not None:
             if len(self.products) != 1:
-                raise ValueError('can not specify rate for "{self.name}" as it produces more than one product')
+                raise ValueError('can not specify rate for "{self.alias}" as it produces more than one product')
             m = Mul(div(frac(rate), m.flow(self.products[0].item).rate()), m)
         return m
     def __call__(self, machinePrefs = Default, fuel = Default, machine = None, modules = Default, beacons = Default, rate = None):
@@ -1296,6 +1311,9 @@ class Recipe(_SortByOrderKey,Uniq,Immutable):
 class InvalidModulesError(ValueError):
     def __init__(self, m):
         self.invalid = m
+    pass
+
+class InvalidRecipe(ValueError):
     pass
 
 IGNORE = -100

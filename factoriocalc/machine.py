@@ -5,7 +5,7 @@ from collections.abc import Sequence
 
 from .fracs import frac,div,diva,Inf
 from .core import *
-from .core import Uniq,_MutableFlows
+from .core import Uniq,_MutableFlows,_toRecipe,InvalidRecipe
 from . import itm, rcp
 
 class Category(Uniq):
@@ -205,19 +205,14 @@ class Furnace(CraftingMachine):
     pass
     
 @dataclass(init=False, repr=False)
-class RocketSilo(_ModulesMixin,_ElectricMixin,CraftingMachine):
+class RocketSilo(CraftingMachine):
     class Recipe(Recipe):
-        __slots__ = ('cargo')
-        def __init__(self, name, category, inputs, products, byproducts, time, order, cargo):
+        __slots__ = ('origRecipe', 'cargo')
+        def __init__(self, name, category, origRecipe, inputs, products, byproducts, time, order, cargo):
             super().__init__(name, category, inputs, products, byproducts, time, order)
+            object.__setattr__(self, 'origRecipe', origRecipe)
             object.__setattr__(self, 'cargo', cargo)
         
-    name = "rocket-silo"
-    width = 9
-    height = 9
-    craftingSpeed = 1
-    baseEnergyUsage = 4_000_000
-    energyDrain = 0
     delay = frac(2420 + 13, 60)
 
     def _calc_flows(self, throttle):
@@ -237,6 +232,4 @@ class RocketSilo(_ModulesMixin,_ElectricMixin,CraftingMachine):
                       adjusted = throttle != 1)
         return flows
 
-RocketSilo.craftingCategory = Category('RocketSilo', [RocketSilo])
-RocketSilo.craftingCategories = {RocketSilo.craftingCategory}
 

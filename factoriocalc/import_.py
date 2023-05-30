@@ -11,8 +11,10 @@ from collections import defaultdict
 
 _dir = Path(__file__).parent.resolve()
 
-def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, logger):
+def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHints, logger):
     rcpByName, itmByName, mchByName = {}, {}, {}
+    rocketSilos = []
+    fixedRecipes = []
     translatedNames = {}
     categories = {}
     disabledRecipes = set()
@@ -108,6 +110,9 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, logger):
         elif v['type'] == 'furnace':
             isCraftingMachine = True
             bases.append(machine.Furnace)
+        elif v['type'] == 'rocket-silo':
+            isCraftingMachine = True
+            bases.append(machine.RocketSilo)
         elif v['type'] == 'beacon':
             bases.append(machine.Beacon)
         else:
@@ -142,10 +147,15 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, logger):
         if module_inventory_size > 0:
             cls.moduleInventorySize = module_inventory_size
             cls.allowdEffects = v['allowed_effects']
+        if 'fixed_recipe' in v:
+            fixedRecipes.append((cls, v['fixed_recipe']))
         if v['type'] == 'beacon':
             cls.distributionEffectivity = frac(v['distribution_effectivity'], float_conv_method = 'round')
             cls.supplyAreaDistance = frac(v['supply_area_distance'], float_conv_method = 'round')
             cls.__hash__ = machine.Beacon.__hash__
+        if v['type'] == 'rocket-silo':
+            cls.rocketPartsRequired = v['rocket_parts_required']
+            rocketSilos.append(cls)
         mchByName[cls.name] = cls
         descr = v.get('translated_name','')
         if descr:
@@ -247,9 +257,8 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, logger):
         if not v.get('enabled', False):
             disabledRecipes.add(v['name'])
 
-    rp = rcpByName['rocket-part']
-    rocket_parts_inputs = tuple(RecipeComponent(rc.num*100, 0, rc.item) for rc in rp.inputs)
-    rocket_parts_time = rp.time*100
+    for cls, recipeName in fixedRecipes:
+        cls.fixedRecipe = rcpByName[recipeName]
 
     # create recipes for rocket launch products
     for k,v in gameInfo['items'].items():
@@ -258,24 +267,43 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, logger):
         assert len(rocket_launch_products) == 1
         rocket_launch_product = rocket_launch_products[0]
         item = lookupItem(rocket_launch_product['name'])
-        if item.name not in gameInfo['recipes']:
-            name = f'{item.name}'
-        else:
-            name = f'{item.name}-'
-        RocketSilo = mchByName['rocket-silo']
-        recipe = RocketSilo.Recipe(
-            name = name,
-            category = RocketSilo.craftingCategory,
-            order = item.order,
-            inputs = rocket_parts_inputs,
-            products = (RecipeComponent(num = rocket_launch_product['amount'] * rocket_launch_product.get('probability',1),
-                                        catalyst = 0,
-                                        item = item),),
-            byproducts = (),
-            time = rocket_parts_time,
-            cargo = RecipeComponent(num=1, catalyst=0, item=lookupItem(k)),
-        )
-        addRecipe(recipe)
+
+        for rocketSilo in rocketSilos:
+            if rocketRecipeHints.get(rocketSilo.name, '') == 'skip':
+                continue
+            key = f'{rocketSilo.name}::{item.name}'
+            try:
+                useHint = rocketRecipeHints[key]
+            except KeyError:
+                logger(f"no entry for '{key}' in rocketRecipeHints using anyway")
+                useHint = ''
+            if useHint == 'skip':
+                continue
+            recipe = getattr(rocketSilo, 'fixedRecipe', rcpByName['rocket-part'])
+            # ^^FIXME: getattr default value a hack until JSON files are updated
+            num = rocketSilo.rocketPartsRequired
+            rocket_parts_inputs = tuple(RecipeComponent(rc.num*num, 0, rc.item) for rc in recipe.inputs)
+            rocket_parts_time = recipe.time*num
+            if useHint == '':
+                name = f'{item.name}--{rocketSilo.name}'
+            elif useHint == 'default':
+                name = item.name
+            else:
+                raise ValueError(f"expected one of 'skip', 'default' ot '' for rocketRecipeHints['{name}'] but got '{useHint}'")
+            recipe = rocketSilo.Recipe(
+                name = name,
+                category = categories['rocket-building'],
+                origRecipe = recipe,
+                order = item.order,
+                inputs = rocket_parts_inputs,
+                products = (RecipeComponent(num = rocket_launch_product['amount'] * rocket_launch_product.get('probability',1),
+                                            catalyst = 0,
+                                            item = item),),
+                byproducts = (),
+                time = rocket_parts_time,
+                cargo = RecipeComponent(num=1, catalyst=0, item=lookupItem(k)),
+            )
+            addRecipe(recipe)
 
     steam = Recipe(
         name = 'steam',
@@ -367,20 +395,23 @@ def standardAliasPass(gi):
         setattr(gi.mch, toClassName(name), obj)
         gi.aliases[name] = toClassName(name)
 
-def importGameInfo(gameInfo, includeDisabled = True, researchHacks = False,
+def importGameInfo(gameInfo, *, includeDisabled = True, researchHacks = False,
                    aliasPass = standardAliasPass, craftingHints = None, byproducts = ('empty-barrel',),
+                   rocketRecipeHints = None,
                    logger = None):
     from . import config
     if logger is None:
         logger = lambda str: None
-
+    if rocketRecipeHints is None:
+        rocketRecipeHints = {}
+    
     if isinstance(gameInfo, Path):
         with open(gameInfo) as f:
             d = json.load(f)
     else:
         d = gameInfo
 
-    res = _importGameInfo(d, includeDisabled, set(byproducts), logger)
+    res = _importGameInfo(d, includeDisabled, set(byproducts), rocketRecipeHints, logger)
 
     aliasPass(res)
 
@@ -407,6 +438,7 @@ def defaultImport(expensiveMode = False):
     return importGameInfo(path,
                           researchHacks = True,
                           craftingHints = standardCraftingHints,
+                          rocketRecipeHints = {'rocket-silo::space-science-pack': 'default'},
                           logger = lambda str: None)
 
 __all__ = ('standardCraftingHints', 'importGameInfo', 'defaultImport')
