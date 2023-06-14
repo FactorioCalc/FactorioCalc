@@ -244,8 +244,6 @@ class Machine(MachineBase, metaclass=MachineMeta):
             val = frac(val)
             if val < 0:
                 raise ValueError('throttle must be positive')
-            if val > 1 and not self.unbounded:
-                raise ValueError('throttle must be <= 1')
         if prop != '_Machine__flows' and  prop != '_Machine__flows1' and prop != 'blueprintInfo':
             self.__flows = None
             if prop != 'throttle':
@@ -498,6 +496,8 @@ class Group(Sequence,MachineBase):
     """A group of machines."""
     machines: List[MachineBase]
     def __init__(self, *machines):
+        from .machine import Beacon, UnresolvedBeacon
+        
         super().__init__()
         if len(machines) == 1 and isinstance(machines[0], Sequence) and not isinstance(machines[0], Group):
             self.machines = list(machines[0])
@@ -505,6 +505,28 @@ class Group(Sequence,MachineBase):
             self.machines = list(machines[0])
         else:
             self.machines = list(machines)
+        beaconMap = {}
+        unresolved = []
+        for m in self.machines:
+            if isinstance(m.machine, Beacon) and m.machine.id is not None:
+                beaconMap[b.id] = b
+                continue
+            try:
+                beacons = m.machine.beacons
+            except AttributeError:
+                continue
+            unresolved_ = None
+            for b in beacons:
+                if isinstance(b, Beacon) and b.id is not None:
+                    beaconMap[b.id] = b
+                elif isinstance(b, UnresolvedBeacon):
+                    unresolved_ = m
+            if unresolved_ is not None:
+                unresolved.append(unresolved_)
+        for m in unresolved:
+            for i, b in enumerate(m.machine.beacons):
+                if isinstance(b, UnresolvedBeacon):
+                    m.machine.beacons[i] = beaconMap[b.id]
 
     @property
     def machine(self):

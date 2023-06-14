@@ -319,6 +319,8 @@ def _merge(b1, b2, mergeFun):
     combined = {}
     for m in b1.inner:
         num = m.num
+        if getattr(m, 'unbounded', False):
+            num *= m.throttle
         m = m.machine
         if isinstance(m, Box):
             combined[id(m)] = (num, m)
@@ -326,6 +328,8 @@ def _merge(b1, b2, mergeFun):
             combined[m.recipe] = (num, m)
     for m in b2.inner:
         num = m.num
+        if getattr(m, 'unbounded', False):
+            num *= m.throttle
         m = m.machine
         if isinstance(m, Box):
             existing = combined.get(id(m), (0, None))

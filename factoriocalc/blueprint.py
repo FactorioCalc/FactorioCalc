@@ -129,6 +129,7 @@ class BlueprintBook:
         """Convert a blueprint with *label* into a `Group`"""
         return self.find(label).convert(**convertArgs)
 
+# fixme: rename to importBlueprint
 def decodeBlueprint(bp):
     """Decode a string or file (if `pathlib.Path <https://docs.python.org/3/library/pathlib.html>`_) to a blueprint or blueprint book.
     """

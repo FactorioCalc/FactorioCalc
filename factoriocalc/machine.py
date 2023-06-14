@@ -106,19 +106,25 @@ class _ModulesMixin:
                     modules.append(v)
             self._checkModules(self.recipe, modules)
             val = tuple(modules)
-        elif prop == 'beacons' and isinstance(val, Mul):
-            val = val.num*[val.machine]
         elif prop == 'beacons':
-            if isinstance(val, Beacon):
+            if isinstance(val, Mul):
+                val = val.num*[val.machine]
+            elif isinstance(val, (Beacon, str)):
                 val = [val]
-            else:
-                beacons = []
-                for v in val:
-                    if isinstance(v, Mul):
-                        beacons += v.num*[v.machine]
-                    else:
-                        beacons.append(v)
-                val = beacons
+            beacons = []
+            def asBeacon(b):
+                if isinstance(b, Beacon):
+                    return b
+                if isinstance(b, str):
+                    return UnresolvedBeacon(b)
+                else:
+                    raise TypeError('expected Beacon type')
+            for v in val:
+                if isinstance(v, Mul):
+                    beacons += v.num*[asBeacon(v.machine)]
+                else:
+                    beacons.append(asBeacon(v))
+            val = beacons
         return super().__setattr__(prop, val)
 
     def _modulesStr(self):
@@ -159,6 +165,7 @@ class Beacon(Machine):
     distributionEffectivity = frac(1,2)
     supplyAreaDistance = 3
 
+    id: str
     modules: list[Module]
 
     def __hash__(self):
@@ -171,8 +178,12 @@ class Beacon(Machine):
         obj['modules'] = [m._jsonObj() for m in self.modules]
         return obj
 
-    def __init__(self, modules = None, **kws):
+    def __init__(self, id = None, *, modules = None, **kws):
         super().__init__(**kws)
+        if not isinstance(id, (type(None), str)):
+            modules = id
+            id = None
+        self.id = id
         self.modules = [] if modules is None else modules
 
     def _repr_parts(self, lst):
@@ -187,6 +198,11 @@ class Beacon(Machine):
         for m in self.modules:
             modules[m] += 1
         return ', '.join(str(m) if num == 1 else f'{num:g} {m}' for m, num in modules.items())
+
+class UnresolvedBeacon:
+    __slots__ = ('id')
+    def __init__(self, id):
+        self.id = id
 
 class Boiler(_BurnerMixin,CraftingMachine):
     name = "boiler"

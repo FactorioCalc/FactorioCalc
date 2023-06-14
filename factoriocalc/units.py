@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import NamedTuple as _NamedTuple
 
 from .core import Electricity as _Electricity, Item as _Item
-from .fracs import frac as _frac
+from .fracs import frac as _frac, div as _div
 
 class Unit(_NamedTuple):
     abbr: str
@@ -20,6 +20,7 @@ def wagonsPerUnit(item, rate, conv):
 
 def wagonsPerMinute(*args):
     if len(args) == 1:
+        flow = args[0]
         return wagonsPerUnit(flow.item, flow.rate(), 60)
     elif len(args) == 2:
         return wagonsPerUnit(args[0], args[1], 60)
@@ -33,6 +34,8 @@ UNIT_EXPRESS_BELTS  = Unit('eb', ' ', _frac(1, 45))
 UNIT_FAST_BELTS     = Unit('fb', ' ', _frac(1, 30))
 UNIT_TRANSFER_BELTS = Unit('tb', ' ', _frac(1, 15))
 UNIT_MEGAWATT       = Unit('MW', ' ', 1)
+UNIT_STACKS_PER_SEC = Unit('s/s', ' ', lambda item, rate: _div(rate,item.stackSize))
+UNIT_STACKS_PER_MIN = Unit('s/m', ' ', lambda item, rate: 60*_div(rate,item.stackSize))
 UNIT_WAGONS_PER_MIN = Unit('w/m', ' ', wagonsPerMinute)
 
 DU_SECONDS =  ((_Electricity, UNIT_MEGAWATT), (None, UNIT_SECONDS))
@@ -41,6 +44,8 @@ DU_HOURS   =  ((_Electricity, UNIT_MEGAWATT), (None, UNIT_HOURS))
 DU_EXPRESS_BELTS  = ((_Item, UNIT_EXPRESS_BELTS),  (_Electricity, UNIT_MEGAWATT), (None, UNIT_SECONDS))
 DU_FAST_BELTS     = ((_Item, UNIT_FAST_BELTS),     (_Electricity, UNIT_MEGAWATT), (None, UNIT_SECONDS))
 DU_TRANSFER_BELTS = ((_Item, UNIT_TRANSFER_BELTS), (_Electricity, UNIT_MEGAWATT), (None, UNIT_SECONDS))
+DU_STACKS_PER_SEC = ((_Item, UNIT_STACKS_PER_SEC), (_Electricity, UNIT_MEGAWATT), (None, UNIT_SECONDS))
+DU_STACKS_PER_MIN = ((_Item, UNIT_STACKS_PER_MIN), (_Electricity, UNIT_MEGAWATT), (None, UNIT_SECONDS))
 DU_WAGONS_PER_MIN = ((_Electricity, UNIT_MEGAWATT), (None, UNIT_WAGONS_PER_MIN))
 
 __all__ = [sym for sym in globals() if not sym.startswith('_') and sym not in ('annotations')]
