@@ -96,15 +96,21 @@ class _ModulesMixin:
             modules = getattr(self, 'modules', None)
             if modules:
                 self._checkModules(val, modules)
-        elif prop == 'modules' and self.recipe is not None:
-            modules = []
-            for v in val:
-                if isinstance(v, Sequence):
-                    for m in v:
-                        modules.append(m)
-                else:
-                    modules.append(v)
-            self._checkModules(self.recipe, modules)
+        elif prop == 'modules':
+            if isinstance(val, Module):
+                modules = self.moduleInventorySize * val
+            else:
+                modules = []
+                for v in val:
+                    if isinstance(v, Sequence):
+                        for m in v:
+                            modules.append(m)
+                    else:
+                        modules.append(v)
+                if len(modules) > self.moduleInventorySize:
+                    raise ValueError(f'too many modules for {self.alias}: {len(modules)} > {self.moduleInventorySize}')
+            if self.recipe is not None:
+                self._checkModules(self.recipe, modules)
             val = tuple(modules)
         elif prop == 'beacons':
             if isinstance(val, Mul):
@@ -185,6 +191,17 @@ class Beacon(Machine):
             id = None
         self.id = id
         self.modules = [] if modules is None else modules
+
+    def __setattr__(self, prop, val):
+        if hasattr(self,  'moduleInventorySize') and prop == 'modules':
+            if isinstance(val, Module):
+                modules = self.moduleInventorySize * val
+            else:
+                modules = val
+                if len(modules) > self.moduleInventorySize:
+                    raise ValueError(f'too many modules for {self.alias}: {len(modules)} > {self.moduleInventorySize}')
+            val = tuple(modules)
+        return super().__setattr__(prop, val)
 
     def _repr_parts(self, lst):
         if len(self.modules) > 0:
