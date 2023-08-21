@@ -1275,7 +1275,12 @@ class Recipe(_SortByOrderKey,Uniq,Immutable):
                 and self.byproducts == other.byproducts
                 and self.time == other.time
                 and self.order == other.order)
-    def produce(self, machinePrefs = Default, fuel = None, machine = None, modules = (), beacons = (), rate=None):
+    def produce(self, machinePrefs = Default, fuel = None, machine = None,
+                modules = (), beacons = (), beacon = Default, rate = None):
+        if beacon is None:
+            beacons = []
+        elif beacon is not Default:
+            beacons = [beacon]
         from collections import deque
         from . import config, data
         if machinePrefs is Default:
@@ -1332,8 +1337,10 @@ class Recipe(_SortByOrderKey,Uniq,Immutable):
                 raise ValueError('can not specify rate for "{self.alias}" as it produces more than one product')
             m = Mul(div(frac(rate), m.flow(self.products[0].item).rate()), m)
         return m
-    def __call__(self, machinePrefs = Default, fuel = Default, machine = None, modules = Default, beacons = Default, rate = None):
-        return self.produce(machinePrefs = machinePrefs, fuel = fuel, machine = machine, modules = modules, beacons = beacons, rate = rate)
+    def __call__(self, machinePrefs = Default, fuel = Default, machine = None,
+                 modules = Default, beacon = Default, beacons = Default, rate = None):
+        return self.produce(machinePrefs = machinePrefs, fuel = fuel, machine = machine,
+                            modules = modules, beacons = beacons, beacon = beacon, rate = rate)
 
 class InvalidModulesError(ValueError):
     def __init__(self, m):

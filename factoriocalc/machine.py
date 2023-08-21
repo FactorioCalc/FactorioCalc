@@ -62,10 +62,17 @@ class _ModulesMixin:
     modules: tuple[Module, ...]
     beacons: list[Beacon]
 
-    def __init__(self, *args, modules = None, beacons = None, **kws):
+    def __init__(self, *args, modules = None, beacons = None, beacon = None, **kws):
         super().__init__(*args, **kws)
         self.modules = () if modules is None else modules
-        self.beacons = [] if beacons is None else beacons
+        if beacon is None and beacons is None:
+            self.beacons = []
+        elif beacon is None:
+            self.beacons = beacons
+        elif beacons is None:
+            self.beacons = [beacon]
+        else:
+            raise ValueError("both 'beacon' and 'beacons' can not be provided at the same time")
 
     def _repr_parts(self, lst):
         if len(self.modules) > 0:
@@ -99,6 +106,8 @@ class _ModulesMixin:
         elif prop == 'modules':
             if isinstance(val, Module):
                 modules = self.moduleInventorySize * val
+            elif val is None:
+                modules = []
             else:
                 modules = []
                 for v in val:
@@ -112,11 +121,11 @@ class _ModulesMixin:
             if self.recipe is not None:
                 self._checkModules(self.recipe, modules)
             val = tuple(modules)
+        elif prop == 'beacon':
+            raise AttributeError
         elif prop == 'beacons':
             if isinstance(val, Mul):
                 val = val.num*[val.machine]
-            elif isinstance(val, (Beacon, str)):
-                val = [val]
             beacons = []
             def asBeacon(b):
                 if isinstance(b, Beacon):
