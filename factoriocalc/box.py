@@ -685,10 +685,11 @@ class Box(BoxBase):
     def finalize(self, *, roundUp = True, recursive = True, _res = None):
         """Finalize the result.
 
-        Finalize the result by removing unbounded throttles and if *roundUp*
-        is True (the default) also round up multiples of machines and
-        adjusting the throttle to compensate.  If *recursive* is True (default
-        False) than recurse into any inner boxes.
+        Finalize the result by turning unbounded throttles into `Mul`.  If the
+        unbounded throttle is 0 the machine is removed.  If *roundUp* is True
+        (the default) then also round up multiples of machines (i.e. `Mul`)
+        and adjust the throttle to compensate.  If *recursive* is True
+        (default False) than recurse into any inner boxes.
 
         Returns an instance of `FinalizeResult`.
 
@@ -782,8 +783,9 @@ def _finalizeInner(m, roundUp, recursive):
         m.machine = m0
     elif isinstance(m, Machine) and m.unbounded:
         throttle = m.throttle
+        if throttle == 0: return None
         m.throttle = 1
-        m._unbounded = False
+        m.unbounded = False
         return Mul(throttle, m)
     return m
 
