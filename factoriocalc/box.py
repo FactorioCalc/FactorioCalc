@@ -94,7 +94,7 @@ class Equal(Constraint):
     def __repr__(self):
         return 'Equal(' + ', '.join(repr(expr) for expr in self.expressions) + ')'
     def __str__(self):
-        return ' == '.join(str(expr) for expr in self.expressions)
+        return ' = '.join(str(expr) for expr in self.expressions)
     def __getitem__(self, index):
         return self.expressions[index]
     def __len__(self):
@@ -221,13 +221,15 @@ class Box(BoxBase):
             return {k.name: _jsonObj(v) for k,v in self.items()}
 
     class OtherConstraints(list):
+        def __str__(self):
+            return ', '.join(f'({c})' for c in self)
         pass
 
     class Priorities(_Dict):
         __slots__ = ()
         def __str__(self):
             def tostr(k):
-                return str(k) if isinstance(k, Ingredient) else f'recipe {k.name}'
+                return f'itm.{k}' if isinstance(k, Ingredient) else f'rcp.{k}'
             return ', '.join(f'ignore {tostr(k)}' if p <= IGNORE else f'{tostr(k)}: {p}' for k, p in self.items())
         def __setitem__(self, key, priority):
             priority = frac(priority)
@@ -447,18 +449,22 @@ class Box(BoxBase):
         if len(self.products) == 1 and self.name is None:
             self.name = 'b-{}'.format(next(iter(self.products)).name)
 
-        for c in constraints:
-            if isinstance(c, Equal):
-                self.otherConstraints.append(c)
-                # fixme, if one of the expressions is a constant, than turn
-                # the constrainst into fixed valuses for input and/or outputs
-            elif isinstance(c, AtLeast):
-                if c.lhs.num > 0 and c.rhs.item is None:
-                    self.simpleConstraints[c.lhs.item] = frac(c.rhs.num, c.lhs.num)
-                else:
+        if isinstance(constraints, Mapping):
+            for item, rate in constraints.items():
+                self.simpleConstraints[item] = rate
+        else:
+            for c in constraints:
+                if isinstance(c, Equal):
                     self.otherConstraints.append(c)
-            else:
-                raise ValueError
+                    # fixme, if one of the expressions is a constant, than turn
+                    # the constrainst into fixed valuses for input and/or outputs
+                elif isinstance(c, AtLeast):
+                    if c.lhs.num > 0 and c.rhs.item is None:
+                        self.simpleConstraints[c.lhs.item] = frac(c.rhs.num, c.lhs.num)
+                    else:
+                        self.otherConstraints.append(c)
+                else:
+                    raise ValueError(f'invalid constraint: {c}')
 
     def _jsonObj(self, objs, **kwargs):
         from .jsonconv import _jsonObj
@@ -514,8 +520,12 @@ class Box(BoxBase):
         if self.unconstrained:
             out.write(f'{prefix}Unconstrained: {self.unconstrained.str(flows)}\n')
         if self.simpleConstraints or self.otherConstraints:
-            # FIXME
-            out.write(f'{prefix}Constraints: {self.simpleConstraints} {self.otherConstraints}\n')
+            out.write(f'{prefix}Constraints:')
+            if self.simpleConstraints:
+                out.write(f' {self.simpleConstraints}')
+            if self.otherConstraints:
+                out.write(f' {self.otherConstraints}')
+            out.write('\n')
         if self.priorities:
             out.write(f'{prefix}Priorities: {self.priorities}\n')
 
