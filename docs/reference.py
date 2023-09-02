@@ -87,32 +87,23 @@ Core
 {documentSymbols('core')}
 {documentSymbols('data', docValues = False)}
 
+`mch` module
+------------
+
+.. automodule:: factoriocalc.mch
+   :no-members:
+
 `itm` module
 ------------
 
 .. automodule:: factoriocalc.itm
+   :no-members:
 
 `rcp` module
 ------------
 
 .. automodule:: factoriocalc.rcp
-
-`rcpinst` module
-----------------
-
-.. automodule:: factoriocalc.rcpinst
-
-`rcpinst.expensive` module
---------------------------
-
-.. automodule:: factoriocalc.rcpinst.expensive
-
-Machines
---------
-
-.. py:currentmodule:: factoriocalc
-
-{documentSymbols('machines')}
+   :no-members:
 
 `config` module
 ---------------
@@ -166,6 +157,13 @@ Helpers
 .. py:currentmodule:: factoriocalc
 
 {documentSymbols('helper')}
+
+Mod Support
+-----------
+
+.. :currentmodule:: factoriocalc
+
+{documentSymbols('import_')}
 
 Miscellaneous
 -------------

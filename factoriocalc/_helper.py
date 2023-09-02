@@ -1,9 +1,11 @@
 from .core import *
 
 def toPythonName(name):
+    """Convert all ``-`` to ``_``"""
     return name.replace('-','_')
 
 def toClassName(name):
+    """Convert `name` to title case."""
     return name.title().replace('-','')
 
 def asItem(item):

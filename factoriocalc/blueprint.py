@@ -7,7 +7,7 @@ from .core import *
 from . import config, machine
 from ._helper import getDefaultFuel
 
-__all__ = ('Blueprint', 'BlueprintBook', 'decodeBlueprint')
+__all__ = ('Blueprint', 'BlueprintBook', 'decodeBlueprint', 'importBlueprint')
 
 class Blueprint:
     def __init__(self, bp):
@@ -150,4 +150,5 @@ def decodeBlueprint(bp):
         return BlueprintBook(json)
     else:
         return Blueprint(json)
-    
+
+importBlueprint = decodeBlueprint

@@ -4,7 +4,11 @@ The name of the symbol is the same as the internal name but with ``-``
 converted to ``_``.  For example, to refer to the recipe for an
 "electronic-circuit" use `rcp.electronic_circuit`.
 
-This module also provides some special recipes:
+The contents of this module are dynamic and controlled via the `config.gameInfo`
+context variable.
+
+When the gameInfo context variable is configured for the base game this module
+also provides some special recipes:
 
 .. py:data:: space_science_pack
 

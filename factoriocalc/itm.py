@@ -1,10 +1,14 @@
-"""Symbols for entities in factorio.
+"""Symbols for items and fluids in factorio.
 
 The name of the symbol is the same as the internal name but with ``-``
 converted to ``_``.  For example, to refer to an "electronic-circuit" use
 `itm.electronic_circuit`.
 
-This module also provides a few special items.
+The contents of this module are dynamic and controlled via the `config.gameInfo`
+context variable.
+
+When the gameInfo context variable is configured for the base game this module
+also provides a few special items.
 
 .. py:data:: _combined_research
 
@@ -17,7 +21,6 @@ Result of `rcp._military_research <factoriocalc.rcp._military_research>`.
 .. py:data:: _production_research
 
 Result of `rcp._production_research <factoriocalc.rcp._production_research>`.
-
 
 """
 

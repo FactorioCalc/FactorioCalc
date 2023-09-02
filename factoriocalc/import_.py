@@ -5,7 +5,7 @@ from . import itm,rcp,mch,data,machine
 from .machine import Category
 from .fracs import frac, frac_from_float_round
 from .core import *
-from .data import CraftingHint
+from .data import CraftingHint,GameInfo
 from ._helper import toPythonName,toClassName
 from collections import defaultdict
 
@@ -399,6 +399,80 @@ def importGameInfo(gameInfo, *, includeDisabled = True, researchHacks = False,
                    aliasPass = standardAliasPass, craftingHints = None, byproducts = ('empty-barrel',),
                    rocketRecipeHints = None,
                    logger = None):
+    """Import game info.
+
+    *gameInfo*
+        A JSON string or `pathlib.Path` to a file that contains the
+        game info to import.  Created with the FIXME mod.
+
+    *includeDisabled*
+        If false, skip recipes marked as disabled.  A recipe is normally
+        marked as disabled if it is not yet researched.
+
+    *researchHacks*
+        If true, include some special recipes and items to making working with
+        endgame research easier.  It should only be defined for a vanilla
+        game, or mods that don't define there own research.
+
+    *aliasPass*
+        A function to create alias for machines, items, and recipes.  The
+        alias is the python symbol used for refering to the entity within the
+        `mch`, `itm` or, `rcp`. namespace.  See the source code for
+        `standardAliasPass` for more details on how this function is used.
+
+    *craftingHints*
+        A function to create hints used to guide the selection of machines
+        `produce` selects.  See the source code for `standardCraftingHints`
+        for more details on how this function is used.
+
+    *byproducts*
+        A list used to help determine byproducts in recipes that have more
+        than one output.  Each element of the list is one of: an internal name
+        of an item, a tuple with multiple items, or a nested tuple of the form
+        ``(<item>, (<item>, ...))```.
+
+        If just an item name, than that item is considered a byproduct if a
+        recipe has multiple outputs and at least one other output is not in
+        the list.
+
+        If a tuple, and more than one item within the tuple is in the output
+        of a recipe, the earlier item will be considered a byproduct and the
+        later item the normal output.  For example, the tuple
+        ``('empty-barrel', 'water')`` will mark both the empty barrel and
+        water as a byproduct, but if both are outputs of a recipe (for example
+        when emptying a water barrel) than the empty barrel will be the
+        byproduct.
+
+        A tuple of the form ``(<item>, (<item1>, <item2>, ...))``. Is a
+        shortcut for ``(<item>, <item1>)``, ``(<item>, <item2>)``, 
+        ``(<item>, ...)``.
+
+        Within a tuple, the special string ``*fluid*`` can be used as shortcut
+        for all possible fluids in the game.  Unlike specifying the fluids
+        explicitly the fluid itself is not marked as a byproduct, unless it is
+        also mentioned elsewhere is the list.  For example, ``[('empty-barrel',
+        'water')]`` is equivalent to ``[('empty-barrel', '*fluid*'), 'water']``.
+
+
+    *rocketRecipeHints*
+        A mapping used to guide the creation of special recipes for the
+        results of a rocket launch.  The key is normaly a string of the form
+        ``<rocket-silo>::<product>``, where ``<rocket-silo>`` is the internal
+        name of the rocket silo used to launch the rocket, and ``<product>``
+        is the result of launching the rocket.  The value of the mapping is
+        one of ``''`` (an empty string), ``default``, or ``skip``.  If an
+        empty string than a recipe is created but the name is mangled.  If
+        ``default`` than a recipe is created and given the same name as the
+        product.  If ``skip`` is used than no recipe is created.  As a special
+        case, if ``skip`` is used and the key is a name of a rocket silo
+        without any product, than no recipes are created involving that rocket
+        silo.
+
+    *logger*
+        Function called to log additional info, it is called once per line to
+        be logged.  A suitable function to use, for example, would be `print`.
+
+    """
     from . import config
     if logger is None:
         logger = lambda str: None
@@ -439,6 +513,6 @@ def defaultImport(expensiveMode = False):
                           researchHacks = True,
                           craftingHints = standardCraftingHints,
                           rocketRecipeHints = {'rocket-silo::space-science-pack': 'default'},
-                          logger = lambda str: None)
+                          logger = None)
 
-__all__ = ('standardCraftingHints', 'importGameInfo', 'defaultImport')
+__all__ = ('defaultImport', 'importGameInfo', 'standardCraftingHints', 'standardAliasPass', 'CraftingHint', 'GameInfo', 'toPythonName', 'toClassName')

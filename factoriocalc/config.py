@@ -5,11 +5,6 @@
 
   Defaults to `~factoriocalc.DU_SECONDS`
 
-.. py:data:: mode
-  :type: ContextVar
-
-  Either `Mode.NORMAL <factoriocalc.Mode.NORMAL>` (the default) or `Mode.EXPENSIVE <factoriocalc.Mode.EXPENSIVE>`.
-
 .. py:data:: machinePrefs
   :type: ContextVar
 
@@ -32,16 +27,24 @@
 
   Defaults to `itm.coal`.
 
+.. py:data:: gameInfo
+  :type: ContextVar
+
+  Internal variable to control the contents of the `factoriocalc.mch`,
+  `factoriocalc.itm`, amd `factoriocalc.rcp` modules.
+
+  Do not modify the contents directly, instead use
+  `factoriocalc.defaultImport` or `factoriocalc.importGameInfo`.
+
 """
 
 from contextvars import ContextVar as _ContextVar
 from .units import DU_SECONDS as _DU_SECONDS,UNIT_SECONDS as _UNIT_SECONDS
 from . import itm as _itm
 
-gameInfo = _ContextVar('factoriocalc.gameInfo')
 displayUnit = _ContextVar('factoriocalc.displayUnit', default = _DU_SECONDS)
 #inputUnit = _ContextVar('factoriocalc.inputUnit', default = _UNIT_SECONDS)
 machinePrefs = _ContextVar('factoriocalc.machinePrefs')
 recipePrefs = _ContextVar('factoriocalc.recipePrefs')
 defaultFuel = _ContextVar('factoriocalc.defaultFuel')
-
+gameInfo = _ContextVar('factoriocalc.gameInfo')

@@ -37,10 +37,11 @@ used instead, in the rare case a number is needed the `frac` function can be
 used to create a `Frac`.  For example: ``frac('0.12')``, ``frac('1/3')``,
 ``frac(1,3)``.
 
-Each machine is a class and is the same as the internal name but converted to
-TitleCase.  The first argument of the constructor is the recipe.  For example,
-to create an "assembling-machine-3" that produces electronic circuits you
-could use ``AssemblingMachine3(rcp.electronic_circuit)``.  Additional keyword
+Each machine is a class in the runtime generated `mch` package.  The name of
+the machine is the same as the internal name but converted to TitleCase.  The
+first argument of the constructor is the recipe.  For example, to create an
+"assembling-machine-3" that produces electronic circuits you could use
+``mch.AssemblingMachine3(rcp.electronic_circuit)``.  Additional keyword
 arguments can be provided to specify the fuel used, beacons, or modules when
 applicable.
 
@@ -53,20 +54,20 @@ Within FactorioCalc the items a machine produces or consumes is cosidered a
 for items consumed.
 
 To get the flow of items for a machine use the `flows` method, for example
-``print(AssemblingMachine3(rcp.electronic_circuit).flows())`` will output::
+``print(mch.AssemblingMachine3(rcp.electronic_circuit).flows())`` will output::
 
-  electronic-circuit 2.5/s, iron-plate -2.5/s, copper-cable -7.5/s, electricity -0.3875 MW
+  iron_plate -2.5/s, copper_cable -7.5/s, electronic_circuit 2.5/s, electricity -0.3875 MW
 
 Electricity used is also tracked as a flow.
 
 Multiple machines can be grouped together using the `+` operator which will
 create a `Group`.  For example::
 
-  >>> ec = AssemblingMachine3(rcp.electronic_circuit) + AssemblingMachine3(rcp.electronic_circuit)
+  >>> ec = mch.AssemblingMachine3(rcp.electronic_circuit) + mch.AssemblingMachine3(rcp.copper_cable)
 
 We can then get the flows of the group by using ``print(ec.flows())``::
 
-  electronic-circuit 2.5/s, copper-cable! -2.5/s (5/s - 7.5/s), iron-plate -2.5/s, copper-plate -2.5/s, electricity -0.775 MW
+  electronic_circuit 2.5/s, copper_cable! -2.5/s (5/s - 7.5/s), iron_plate -2.5/s, copper_plate -2.5/s, electricity -0.775 MW
 
 This is showing us the maxium rates for the group, but there is a problem:
 we are creating copper cables at a rate of 5/s but consuming them at -7.5/s.
@@ -78,11 +79,11 @@ To fix the ratios we can use the `*` operator to create multiple identical
 machines.  For example, to combine the two recipes above using the correct
 ratio::
 
-  >>> ec2 = 2*AssemblingMachine3(rcp.electronic_circuit) + 3*AssemblingMachine3(rcp.copper_cable)
+  >>> ec2 = 2*mch.AssemblingMachine3(rcp.electronic_circuit) + 3*mch.AssemblingMachine3(rcp.copper_cable)
 
 If we ask for the flows of the new `Group` we now get::
 
-  electronic-circuit 5/s, copper-cable 0/s (15/s - 15/s), iron-plate -5/s, copper-plate -7.5/s, electricity -1.9375 MW
+  electronic_circuit 5/s, copper_cable 0/s (15/s - 15/s), iron_plate -5/s, copper_plate -7.5/s, electricity -1.9375 MW
 
 To instead slow down the machines we need to adjust the *throttle*.  We can do
 this manually, but it's best to let the solver determine it for us.  To do so,
@@ -98,7 +99,7 @@ and then solve it::
 The result of solve tells us a single unique solution was found.  Now if we
 call ``b.flows()`` we get::
 
-  electronic-circuit 1.66667/s, iron-plate -1.66667/s, copper-plate -2.5/s, electricity -0.65 MW
+  electronic_circuit 1.66667/s, iron_plate -1.66667/s, copper_plate -2.5/s, electricity -0.65 MW
 
 Copper-cable is not in the list beacuase it's net flow is now zero.  Boxes,
 unlike groups, do not include internal flows unless the net flow is non-zero.
@@ -114,11 +115,12 @@ shortcut function is provided to do just that, it usage is the same as the
 To determine what the solver did we can use the `summary` method.  Calling
 it gives us::
 
+  >> b.summary()
   b-electronic-circuit:
-	 1x electronic-circuit: assembling-machine-3  @0.666667
-	 1x copper-cable: assembling-machine-3
-    Outputs: electronic-circuit 1.66667/s
-    Inputs: iron-plate -1.66667/s, copper-plate -2.5/s
+         1x electronic_circuit: AssemblingMachine3  @0.666667
+         1x copper_cable: AssemblingMachine3
+    Outputs: electronic_circuit 1.66667/s
+    Inputs: iron_plate -1.66667/s, copper_plate -2.5/s
 
 The ``@0.66667`` indiactes that the assembling machine for the
 electronic-circuit is throttled and only running at 2/3 it's capacity.
@@ -162,8 +164,8 @@ However, specifying the modules and becons configuration for each machine
 can be tedious so it's best to include them as part of the `machinePrefs`.  If
 all we cared about is assmebling machines we could just use::
 
-  >>> config.machinePrefs.set([AssemblingMachine3(modules=4*itm.productivity_module_3,
-                                                  beacons=8*SPEED_BEACON)])
+  >>> config.machinePrefs.set([mch.AssemblingMachine3(modules=4*itm.productivity_module_3,
+                                                      beacons=8*SPEED_BEACON)])
 
 However we most likely want all machines to have the maxium number of
 productivity-3 modules and at least some speed beacons.  To make this easier
@@ -173,7 +175,7 @@ beacons as the number the beacons often various.  Instead use the
 `withSpeedBeacons` method to modify the preset by adding `SPEED_BEACON`'s for
 specific machines.  For example::
 
-  >>> config.machinePrefs.set(MP_MAX_PROD.withSpeedBeacons({AssemblingMachine3:8}))
+  >>> config.machinePrefs.set(MP_MAX_PROD.withSpeedBeacons({mch.AssemblingMachine3:8}))
 
 will give all machines the maxium number of productivity-3 modules possble
 and assembling machine 3 with 8 `SPEED_BEACON`'s.  With `machinePrefs` set we can get
@@ -187,12 +189,12 @@ the solver do most of the math for use::
   >>> ec3 = box(rcp.electronic_circuit() + rcp.copper_cable())
   >>> ec3.summary(includeMachineFlows=True)
   b-electronic-circuit:
-	 1x electronic-circuit: assembling-machine-3  @0.933333  +340% speed +40% prod. +880% energy +40% pollution:
-	       electronic-circuit~ 14.3733/s, copper-cable~ -30.8/s, iron-plate~ -10.2667/s, electricity -3.4425 MW
-	 1x copper-cable: assembling-machine-3  +340% speed +40% prod. +880% energy +40% pollution:
-	       copper-cable 30.8/s, copper-plate -11/s, electricity -3.6875 MW
-    Outputs: electronic-circuit 14.3733/s
-    Inputs: iron-plate -10.2667/s, copper-plate -11/s
+         1x electronic_circuit: AssemblingMachine3  @0.933333  +340% speed +40% prod. +880% energy +40% pollution:
+               electronic_circuit~ 14.3733/s, iron_plate~ -10.2667/s, copper_cable~ -30.8/s, electricity -3.4425 MW
+         1x copper_cable: AssemblingMachine3  +340% speed +40% prod. +880% energy +40% pollution:
+               copper_cable 30.8/s, copper_plate -11/s, electricity -3.6875 MW
+    Outputs: electronic_circuit 14.3733/s
+    Inputs: iron_plate -10.2667/s, copper_plate -11/s
 
 The `includeMachineFlows` parameter will include the flows of individual
 machine groups in the summary.  The ``~`` after an item in the flows indictates
@@ -206,10 +208,10 @@ we can decrease the number of beacons for the electronic circuits::
   >>> ec3 = box(rcp.electronic_circuit(beacons=7*SPEED_BEACON) + rcp.copper_cable())
   >>> ec3.summary()
   b-electronic-circuit:
-	 1x electronic-circuit: assembling-machine-3  +290% speed +40% prod. +810% energy +40% pollution
-	 1x copper-cable: assembling-machine-3  @0.949675  +340% speed +40% prod. +880% energy +40% pollution
-    Outputs: electronic-circuit 13.65/s
-    Inputs: iron-plate -9.75/s, copper-plate -10.4464/s
+         1x electronic_circuit: AssemblingMachine3  +290% speed +40% prod. +810% energy +40% pollution
+         1x copper_cable: AssemblingMachine3  @0.949675  +340% speed +40% prod. +880% energy +40% pollution
+    Outputs: electronic_circuit 13.65/s
+    Inputs: iron_plate -9.75/s, copper_plate -10.4464/s
 
 That is only sligtly better, but instead of not producing enough copper
 cables we are producing more than enough, which is generally a better thing
@@ -228,12 +230,12 @@ required machines.  For example to produce electronic circuits at 30/s::
   >>> ec4 = produce([itm.electronic_circuit @ 30]).factory
   >>> ec4.summary()
   b-electronic-circuit:
-    1.95x electronic-circuit: assembling-machine-3  +340% speed +40% prod. +880% energy +40% pollution
-    40.8x iron-plate: electric-furnace  -30% speed +20% prod. +160% energy +20% pollution
-    2.09x copper-cable: assembling-machine-3  +340% speed +40% prod. +880% energy +40% pollution
-    43.7x copper-plate: electric-furnace  -30% speed +20% prod. +160% energy +20% pollution
-  Outputs: electronic-circuit 30/s
-  Inputs: copper-ore -19.1327/s, iron-ore -17.8571/s
+      1.95x electronic_circuit: AssemblingMachine3  +340% speed +40% prod. +880% energy +40% pollution
+      40.8x iron_plate: ElectricFurnace  -30% speed +20% prod. +160% energy +20% pollution
+      2.09x copper_cable: AssemblingMachine3  +340% speed +40% prod. +880% energy +40% pollution
+      43.7x copper_plate: ElectricFurnace  -30% speed +20% prod. +160% energy +20% pollution
+    Outputs: electronic_circuit 30/s
+    Inputs: iron_ore -17.8571/s, copper_ore -19.1327/s
 
 The `@` operator pairs an item with a rate and returns a tuple.  The
 ``.factory`` at the end of produce is necessary beacuse `produce` returns a
@@ -245,18 +247,18 @@ previous section.  I personally don't find it worth it to use modules for
 basic smelting even in the late game so instead let's just change
 `machinePrefs` to that effect::
 
-  >>> config.machinePrefs.set([ElectricFurnace(), 
-                              *MP_MAX_PROD.withSpeedBeacons({AssemblingMachine3:8})])
+  >>> config.machinePrefs.set([mch.ElectricFurnace(), 
+                              *MP_MAX_PROD.withSpeedBeacons({mch.AssemblingMachine3:8})])
   >>> ec4 = produce([itm.electronic_circuit @ 30]).factory
   >>> ec4.summary()
   b-electronic-circuit:
-      1.95x electronic-circuit: assembling-machine-3  +340% speed +40% prod. +880% energy +40% pollution
-      34.3x iron-plate: electric-furnace
-      2.09x copper-cable: assembling-machine-3  +340% speed +40% prod. +880% energy +40% pollution
-      36.7x copper-plate: electric-furnace
-    Outputs: electronic-circuit 30/s
-    Inputs: copper-ore -22.9592/s, iron-ore -21.4286/s
-
+      1.95x electronic_circuit: AssemblingMachine3  +340% speed +40% prod. +880% energy +40% pollution
+      34.3x iron_plate: ElectricFurnace
+      2.09x copper_cable: AssemblingMachine3  +340% speed +40% prod. +880% energy +40% pollution
+      36.7x copper_plate: ElectricFurnace
+    Outputs: electronic_circuit 30/s
+    Inputs: iron_ore -21.4286/s, copper_ore -22.9592/s
+  
 Ok, we still need a lot of electronic furnaces, but I normally smelt in a
 separate factory.  So let's instead create electronic circuits from just
 iron and copper plates by using the `using` keyword argument::
@@ -264,10 +266,10 @@ iron and copper plates by using the `using` keyword argument::
   >>> ec5 = produce([itm.electronic_circuit @ 30], using = [itm.iron_plate, itm.copper_plate]).factory
   >>> ec5.summary()
   b-electronic-circuit:
-       1.95x electronic-circuit: assembling-machine-3  +340% speed +40% prod. +880% energy +40% pollution
-       2.09x copper-cable: assembling-machine-3  +340% speed +40% prod. +880% energy +40% pollution
-     Outputs: electronic-circuit 30/s
-     Inputs: iron-plate -21.4286/s, copper-plate -22.9592/s
+      1.95x electronic_circuit: AssemblingMachine3  +340% speed +40% prod. +880% energy +40% pollution
+      2.09x copper_cable: AssemblingMachine3  +340% speed +40% prod. +880% energy +40% pollution
+    Outputs: electronic_circuit 30/s
+    Inputs: iron_plate -21.4286/s, copper_plate -22.9592/s
 
 The `using` keyword argument is a list that guides the machine selection
 process: if the element is an item `produce` will attemt to use that item and
@@ -284,11 +286,11 @@ fast belt (30/s) of iron and copper plates::
   >>> ec6 = produce([itm.electronic_circuit], using = [itm.iron_plate @ 30, itm.copper_plate @ 30]).factory
   >>> ec6.summary()
   b-electronic-circuit:
-      2.55x electronic-circuit: assembling-machine-3  +340% speed +40% prod. +880% energy +40% pollution
-      2.73x copper-cable: assembling-machine-3  +340% speed +40% prod. +880% energy +40% pollution
-    Outputs: electronic-circuit 39.2/s
-    Inputs: iron-plate -28/s, copper-plate -30/s
-    Constraints: iron-plate >= -30, copper-plate >= -30
+      2.55x electronic_circuit: AssemblingMachine3  +340% speed +40% prod. +880% energy +40% pollution
+      2.73x copper_cable: AssemblingMachine3  +340% speed +40% prod. +880% energy +40% pollution
+    Outputs: electronic_circuit 39.2/s
+    Inputs: iron_plate -28/s, copper_plate -30/s
+    Constraints: iron_plate >= -30, copper_plate >= -30
 
 Which tells use we can produce electronic-circuit at 39.2/s.
 
@@ -296,14 +298,14 @@ By default `produce` will create a box with fractional number of machines.  If
 you prefer that it just rounds up, set the `roundUp` argument to `True`, for
 example::
 
-   >>> ec7 = produce([itm.electronic_circuit], using = [itm.iron_plate @ 30, itm.copper_plate @ 30], roundUp=True).factory
-   >>> ec7.summary()
-   b-electronic-circuit:
-	  3x electronic-circuit: assembling-machine-3  @0.848485  +340% speed +40% prod. +880% energy +40% pollution
-	  3x copper-cable: assembling-machine-3  @0.909091  +340% speed +40% prod. +880% energy +40% pollution
-     Outputs: electronic-circuit 39.2/s
-     Inputs: iron-plate -28/s, copper-plate -30/s
-     Constraints: iron-plate >= -30, copper-plate >= -30
+  >>> ec7 = produce([itm.electronic_circuit], using = [itm.iron_plate @ 30, itm.copper_plate @ 30], roundUp=True).factory
+  >>> ec7.summary()
+  b-electronic-circuit:
+      2.55x electronic_circuit: AssemblingMachine3  +340% speed +40% prod. +880% energy +40% pollution
+      2.73x copper_cable: AssemblingMachine3  +340% speed +40% prod. +880% energy +40% pollution
+    Outputs: electronic_circuit 39.2/s
+    Inputs: iron_plate -28/s, copper_plate -30/s
+    Constraints: iron_plate >= -30, copper_plate >= -30
 
 .. _oil processing:
 
@@ -316,29 +318,31 @@ liquefaction.  Since oil produced can be produced from either process you have
 to specify which one to use with the `using` paramater.  For example, to make
 plastic from cruid oil::
 
-  >> config.machinePrefs.set(MP_MAX_PROD.withSpeedBeacons({AssemblingMachine3:8, ChemicalPlant:8, OilRefinery:12}))
+  >> config.machinePrefs.set(MP_MAX_PROD.withSpeedBeacons({mch.AssemblingMachine3:8, mch.ChemicalPlant:8, mch.OilRefinery:12}))
   >> plastic1 = produce([itm.plastic_bar@90], using=[rcp.advanced_oil_processing]).factory
   >> plastic1.summary()
-      7.61x plastic-bar: chemical-plant  +355% speed +30% prod. +800% energy +30% pollution
-      3.53x advanced-oil-processing: oil-refinery  +555% speed +30% prod. +1080% energy +30% pollution
-      6.11x light-oil-cracking: chemical-plant  +355% speed +30% prod. +800% energy +30% pollution
-      1.65x heavy-oil-cracking: chemical-plant  +355% speed +30% prod. +800% energy +30% pollution
-    Outputs: plastic-bar 90/s
-    Inputs: coal -34.6154/s, crude-oil -462.579/s, water -761.232/s
+  Box:
+      7.61x plastic_bar: ChemicalPlant  +355% speed +30% prod. +800% energy +30% pollution
+      3.53x advanced_oil_processing: OilRefinery  +555% speed +30% prod. +1080% energy +30% pollution
+      6.11x light_oil_cracking: ChemicalPlant  +355% speed +30% prod. +800% energy +30% pollution
+      1.65x heavy_oil_cracking: ChemicalPlant  +355% speed +30% prod. +800% energy +30% pollution
+    Outputs: plastic_bar 90/s
+    Inputs: coal -34.6154/s, water -761.232/s, crude_oil -462.579/s
 
 And it will tell how many chemical plants you need for light and heavy oil
 cracking.  If you rather use coal liquefaction::
 
   >> plastic2 = produce([itm.plastic_bar@90], using=[rcp.coal_liquefaction], fuel=itm.solid_fuel).factory
   >> plastic2.summary()
-    7.61x plastic-bar: chemical-plant  +355% speed +30% prod. +800% energy +30% pollution
-    4.98x coal-liquefaction: oil-refinery  +555% speed +30% prod. +1080% energy +30% pollution
-    10.3x light-oil-cracking: chemical-plant  +355% speed +30% prod. +800% energy +30% pollution
-    6.06x heavy-oil-cracking: chemical-plant  +355% speed +30% prod. +800% energy +30% pollution
-    5.44x steam: boiler
-    0.276x solid-fuel-from-light-oil: chemical-plant  +355% speed +30% prod. +800% energy +30% pollution
-  Outputs: plastic-bar 90/s
-  Inputs: coal -99.8643/s, water -1,440.70/s
+  Box:
+      7.61x plastic_bar: ChemicalPlant  +355% speed +30% prod. +800% energy +30% pollution
+      4.98x coal_liquefaction: OilRefinery  +555% speed +30% prod. +1080% energy +30% pollution
+      10.3x light_oil_cracking: ChemicalPlant  +355% speed +30% prod. +800% energy +30% pollution
+      6.06x heavy_oil_cracking: ChemicalPlant  +355% speed +30% prod. +800% energy +30% pollution
+      5.44x steam: Boiler
+      0.276x solid_fuel_from_light_oil: ChemicalPlant  +355% speed +30% prod. +800% energy +30% pollution
+    Outputs: plastic_bar 90/s
+    Inputs: coal -99.8643/s, water -1,440.70/s
 
 The `fuel` parameter specifies the fuel to use.  It defaults to the value of
 `config.defaultFuel` which defaults to `itm.coal`.
@@ -348,25 +352,25 @@ It is just as easy to create rocket fuel::
   >>> rocketFuel = produce([itm.rocket_fuel@6], using=[rcp.advanced_oil_processing]).factory
   >>> rocketFuel.summary()
   Box:
-      23.4x rocket-fuel: assembling-machine-3  +340% speed +40% prod. +880% energy +40% pollution
-      9.84x solid-fuel-from-light-oil: chemical-plant  +355% speed +30% prod. +800% energy +30% pollution
-      4.65x solid-fuel-from-petroleum-gas: chemical-plant  +355% speed +30% prod. +800% energy +30% pollution
-      2.26x advanced-oil-processing: oil-refinery  +555% speed +30% prod. +1080% energy +30% pollution
-      1.06x heavy-oil-cracking: chemical-plant  +355% speed +30% prod. +800% energy +30% pollution
-    Outputs: rocket-fuel 6/s
-    Inputs: crude-oil -295.803/s, water -220.004/s
+      23.4x rocket_fuel: AssemblingMachine3  +340% speed +40% prod. +880% energy +40% pollution
+      9.84x solid_fuel_from_light_oil: ChemicalPlant  +355% speed +30% prod. +800% energy +30% pollution
+      4.65x solid_fuel_from_petroleum_gas: ChemicalPlant  +355% speed +30% prod. +800% energy +30% pollution
+      2.26x advanced_oil_processing: OilRefinery  +555% speed +30% prod. +1080% energy +30% pollution
+      1.06x heavy_oil_cracking: ChemicalPlant  +355% speed +30% prod. +800% energy +30% pollution
+    Outputs: rocket_fuel 6/s
+    Inputs: water -220.004/s, crude_oil -295.803/s
 
 In this case there is no light oil cracking but some heavy oil cracking
 as it more efficient to first convert heavy oil to light oil when creating
 soild fuel.  The conversion of petroleum gas to light oil is unavoidable as
 there is nothing else to do with the gas.
 
-We can just as easily plastic and rocket fuel at the same time, which will
-avoid the need to convert petroleum gas to soild fuel, but the entire
+We can just as easily produce plastic and rocket fuel at the same time, which
+will avoid the need to convert petroleum gas to soild fuel, but the entire
 factory will grind to a halt if both products are not being created at the
-same time.  FactoriCalc can fairly easy let you know what you need to
-produce either plastic or rocket fuel, or both at the same time.  This will
-be covered in a later section.
+same time.  FactoriCalc can fairly easy let you know what you need to produce
+either plastic or rocket fuel, or both at the same time.  This will be covered
+in a later section.
 
 Using Boxes
 ===========
@@ -385,16 +389,16 @@ arguments to let you fine tune the inputs and outputs.  For example to create
 both electric circuits and advanced circuits we need to explicitly list the
 outputs::
 
-  >>> config.machinePrefs.set(MP_MAX_PROD.withSpeedBeacons({AssemblingMachine3:8, ChemicalPlant:8, OilRefinery:12}))
+  >>> config.machinePrefs.set(MP_MAX_PROD.withSpeedBeacons({mch.AssemblingMachine3:8, mch.ChemicalPlant:8, mch.OilRefinery:12}))
   >>> circuits1 = box(rcp.electronic_circuit() + 2*rcp.copper_cable() + 2*rcp.advanced_circuit(),
 		      outputs = [itm.electronic_circuit, itm.advanced_circuit])
   >>> circuits1.summary()	    
   Box:
-	 1x electronic-circuit: assembling-machine-3  +340% speed +40% prod. +880% energy +40% pollution
-	 2x copper-cable: assembling-machine-3  @0.654762  +340% speed +40% prod. +880% energy +40% pollution
-	 2x advanced-circuit: assembling-machine-3  +340% speed +40% prod. +880% energy +40% pollution
-    Outputs: electronic-circuit 11.7333/s (15.4/s - 3.66667/s), advanced-circuit 2.56667/s
-    Inputs: plastic-bar -3.66667/s, iron-plate -11/s, copper-plate -14.4048/s
+         1x electronic_circuit: AssemblingMachine3  +340% speed +40% prod. +880% energy +40% pollution
+         2x copper_cable: AssemblingMachine3  @0.654762  +340% speed +40% prod. +880% energy +40% pollution
+         2x advanced_circuit: AssemblingMachine3  +340% speed +40% prod. +880% energy +40% pollution
+    Outputs: electronic_circuit 11.7333/s (15.4/s - 3.66667/s), advanced_circuit 2.56667/s
+    Inputs: iron_plate -11/s, copper_plate -14.4048/s, plastic_bar -3.66667/s
 
 If there are not quite enough machines `box` can fail with `SolveRes.OK`.
 This result means that a solution was found but it is not considered optimal.
@@ -410,12 +414,12 @@ that a particular output should get priorty over another.  For example::
 		      priorities = {itm.advanced_circuit:1})
   >>> circuits2.summary()
   Box:
-	 1x electronic-circuit: assembling-machine-3  @0.711111  +340% speed +40% prod. +880% energy +40% pollution
-	 1x copper-cable: assembling-machine-3  +340% speed +40% prod. +880% energy +40% pollution
-	 2x advanced-circuit: assembling-machine-3  +340% speed +40% prod. +880% energy +40% pollution
-    Outputs: electronic-circuit 7.28444/s (10.9511/s - 3.66667/s), advanced-circuit 2.56667/s
-    Inputs: plastic-bar -3.66667/s, iron-plate -7.82222/s, copper-plate -11/s
-    Priorities: advanced-circuit: 1
+         1x electronic_circuit: AssemblingMachine3  @0.711111  +340% speed +40% prod. +880% energy +40% pollution
+         1x copper_cable: AssemblingMachine3  +340% speed +40% prod. +880% energy +40% pollution
+         2x advanced_circuit: AssemblingMachine3  +340% speed +40% prod. +880% energy +40% pollution
+    Outputs: electronic_circuit 7.28444/s (10.9511/s - 3.66667/s), advanced_circuit 2.56667/s
+    Inputs: iron_plate -7.82222/s, copper_plate -11/s, plastic_bar -3.66667/s
+    Priorities: itm.advanced_circuit: 1
 
 will give priory to the advanced circuits and output whatever it can of the
 electronic circuits.  The values for the `priorities` argument mapping
@@ -428,11 +432,11 @@ outputs, for example if we wanted electronic circuits at 8/s::
                       outputs = [itm.electronic_circuit @ 8, itm.advanced_circuit])
   >>> circuits3.summary()
   Box:
-	 1x electronic-circuit: assembling-machine-3  @0.733542  +340% speed +40% prod. +880% energy +40% pollution
-	 1x copper-cable: assembling-machine-3  +340% speed +40% prod. +880% energy +40% pollution
-	 2x advanced-circuit: assembling-machine-3  @0.899060  +340% speed +40% prod. +880% energy +40% pollution
-    Outputs: electronic-circuit 8/s (11.2966/s - 3.29655/s), advanced-circuit 2.30759/s
-    Inputs: plastic-bar -3.29655/s, iron-plate -8.06897/s, copper-plate -11/s
+         1x electronic_circuit: AssemblingMachine3  @0.733542  +340% speed +40% prod. +880% energy +40% pollution
+         1x copper_cable: AssemblingMachine3  +340% speed +40% prod. +880% energy +40% pollution
+         2x advanced_circuit: AssemblingMachine3  @0.899060  +340% speed +40% prod. +880% energy +40% pollution
+    Outputs: electronic_circuit 8/s (11.2966/s - 3.29655/s), advanced_circuit 2.30759/s
+    Inputs: iron_plate -8.06897/s, copper_plate -11/s, plastic_bar -3.29655/s
 
 Boxes can also have a set of constraints associated with it.  Constraints are
 specified via the `constraints` parameters and is a mapping of items to
@@ -447,12 +451,12 @@ to just 8/s::
                       constraints = {itm.iron_plate: -8})
   >>> circuits4.summary()
   Box:
-         1x electronic-circuit: assembling-machine-3  @0.727273  +340% speed +40% prod. +880% energy +40% pollution
-         1x copper-cable: assembling-machine-3  @0.987013  +340% speed +40% prod. +880% energy +40% pollution
-         2x advanced-circuit: assembling-machine-3  @0.872727  +340% speed +40% prod. +880% energy +40% pollution
-    Outputs: electronic-circuit 8/s (11.2/s - 3.2/s), advanced-circuit 2.24/s
-    Inputs: iron-plate -8/s, plastic-bar -3.2/s, copper-plate -10.8571/s
-    Constraints: iron-plate >= -8
+         1x electronic_circuit: AssemblingMachine3  @0.727273  +340% speed +40% prod. +880% energy +40% pollution
+         1x copper_cable: AssemblingMachine3  @0.987013  +340% speed +40% prod. +880% energy +40% pollution
+         2x advanced_circuit: AssemblingMachine3  @0.872727  +340% speed +40% prod. +880% energy +40% pollution
+    Outputs: electronic_circuit 8/s (11.2/s - 3.2/s), advanced_circuit 2.24/s
+    Inputs: iron_plate -8/s, copper_plate -10.8571/s, plastic_bar -3.2/s
+    Constraints: iron_plate >= -8
 
 By default input values of boxes are converted to constraints, so instead of
 ``constraints = {itm.iron_plate: -8}`` we could of just used ``inputs =
@@ -463,83 +467,49 @@ is the case with `produce`.  In fact, constraints were first used
 :ref:`when setting the input rate <constraints first used>`, in the section on
 `produce`, but not explicitly mentioned.
 
-UnboundedBox's
---------------
+Unbounded Throttles
+-------------------
 
-An `UnboundedBox` is a special type of box in which the solver adjusts the
-number of machines rather than the machines throttle.  It is used internally
-by `produce`.  For example, if we wanted to produce electronic circuits at
-28/s from copper and iron plates we could do::
+An unbounded throttle is a throttle that can be larger than 1.  It is useful
+if you don't know the number of machines you need and want to let the solver
+figure it out for you.  It is used internally by `produce`.
+
+A throttle is marked as unbounded via the ``~`` operator; for example:
+``~rcp.electronic_circuit()``.
+
+If, for example, we wanted to produce electronic circuits at 28/s from copper
+and iron plates we could use produce, but let's assume we would rather specify
+the machines used.  We don't know the number of machines we need however, so
+we use ubbounded throttles to let the solver figure it out for use::
   
-  >> config.machinePrefs.set(MP_MAX_PROD.withSpeedBeacons({AssemblingMachine3:8}))
-  >> circuits0 = unboundedBox(1*rcp.electronic_circuit()+1*rcp.copper_cable(),
-                             outputs={itm.electronic_circuit@28})
+  >> config.machinePrefs.set(MP_MAX_PROD.withSpeedBeacons({mch.AssemblingMachine3:8}))
+  >> circuits0 = box(~rcp.electronic_circuit() + ~rcp.copper_cable(),
+                     outputs={itm.electronic_circuit@28})
   >> circuits0.summary()
   b-electronic-circuit:
-      1.82x electronic-circuit: assembling-machine-3  +340% speed +40% prod. +880% energy +40% pollution
-      1.95x copper-cable: assembling-machine-3  +340% speed +40% prod. +880% energy +40% pollution
-    Outputs: electronic-circuit 28/s
-    Inputs: iron-plate -20/s, copper-plate -21.4286/s
+      (1.82x)electronic_circuit: AssemblingMachine3  +340% speed +40% prod. +880% energy +40% pollution
+      (1.95x)copper_cable: AssemblingMachine3  +340% speed +40% prod. +880% energy +40% pollution
+    Outputs: electronic_circuit 28/s
+    Inputs: iron_plate -20/s, copper_plate -21.4286/s
 
-Like `box`, `unboundedBox` is a helper function for `UnboundedBox` which will
-create a unbounded box and then solve it.  The ``1*`` is needed because an
-`UnboundedBox` must be a `Group` of `Mul` so that the solver has something to
-adjust.
+The number in parentheses indicates that instead of 1.82 assembling machines
+producing electronic circuits, there is a single machine with an unbounded
+throttle of 1.82.
 
-An `UnboundedBox` can be converted into a regular box by using the `finalize`
-method.  For example::
+Unbounded throttles can be removed by using the `finalize` method of a box.
+For example::
 
   >> circuits = circuits0.finalize().factory
   >> circuits.summary()
   b-electronic-circuit:
-         2x electronic-circuit: assembling-machine-3  @0.909091  +340% speed +40% prod. +880% energy +40% pollution
-         2x copper-cable: assembling-machine-3  @0.974026  +340% speed +40% prod. +880% energy +40% pollution
-    Outputs: electronic-circuit 28/s
-    Inputs: iron-plate -20/s, copper-plate -21.4286/s
+      1.82x electronic_circuit: AssemblingMachine3  +340% speed +40% prod. +880% energy +40% pollution
+      1.95x copper_cable: AssemblingMachine3  +340% speed +40% prod. +880% energy +40% pollution
+    Outputs: electronic_circuit 28/s
+    Inputs: iron_plate -20/s, copper_plate -21.4286/s
 
 The result of `finalize` is similar to `produce`.  As we are only interested
-in the main results, so we just extract the `factory` field.  Unlike,
-`produce`, finalize defaults to rounding up, to not round up use
-`roundUp=False`.  To see that this is now a normal box, we can remove the
-output constraints and solve again::
-
-  >> circuits.outputs[itm.electronic_circuit] = None
-  >> circuits.solve()
-  >> circuits.summary()
-  b-electronic-circuit:
-         2x electronic-circuit: assembling-machine-3  @0.933333  +340% speed +40% prod. +880% energy +40% pollution
-         2x copper-cable: assembling-machine-3  +340% speed +40% prod. +880% energy +40% pollution
-    Outputs: electronic-circuit 28.7467/s
-    Inputs: iron-plate -20.5333/s, copper-plate -22/s
- 
-and the solver adjusted the throttles to give us just a little more electronic
-circuits.
-
-`UnboundedBox`'s are most useful when they are nested instead other boxes.
-For example::
-
-  >> config.machinePrefs.set([AssemblingMachine3(modules=1*itm.speed_module_3 + 3*itm.productivity_module_3)])
-  >> modules = box(rcp.speed_module_3() + UnboundedBox(rcp.speed_module_2()) + UnboundedBox(rcp.speed_module()))
-  >> modules.summary()
-  b-speed-module-3:
-         1x speed-module-3: assembling-machine-3  +50% speed +70% energy
-      b-speed-module-2:
-           2.5x speed-module-2: assembling-machine-3  +50% speed +70% energy
-        Outputs: speed-module-2 0.15625/s
-        Inputs: advanced-circuit -0.78125/s, processing-unit -0.78125/s, speed-module -0.625/s
-      b-speed-module:
-             5x speed-module: assembling-machine-3  +50% speed +70% energy
-        Outputs: speed-module 0.625/s
-        Inputs: electronic-circuit -3.125/s, advanced-circuit -3.125/s
-    Outputs: speed-module-3 0.03125/s
-    Inputs: electronic-circuit -3.125/s, processing-unit -0.9375/s, advanced-circuit -4.0625/s
-
-The results are a bit messy, but it is telling us we need 2.5x machines
-producing speed-2 modules and 5x machines producing speed-1 modules to support
-one machine producing speed-3 modules.
-
-As shown above and as a convenience, the `UnboundedBox` constructor will
-accept a single machine and convert it into the proper form for you.
+in the main results, we just extract the `factory` field.  Finalize, like
+produce, can also round up if `roundUp=True` is used.  
 
 Using union
 -----------
@@ -560,7 +530,7 @@ enough machines to do so we need to take the union of three factories: one
 that produces both optimally, one that produces just plastic, and one that
 produces just rocket fuel.  We can do so with using the `union` function::
 
-  >>> config.machinePrefs.set(MP_MAX_PROD.withSpeedBeacons({AssemblingMachine3:8, ChemicalPlant:8, OilRefinery:12}))
+  >>> config.machinePrefs.set(MP_MAX_PROD.withSpeedBeacons({mch.AssemblingMachine3:8, mch.ChemicalPlant:8, mch.OilRefinery:12}))
   >>> both = produce([itm.plastic_bar@90, itm.rocket_fuel@6], using=[rcp.advanced_oil_processing]).factory
   >>> plastic = produce([itm.plastic_bar@90], using=[rcp.advanced_oil_processing]).factory
   >>> rocketFuel = produce([itm.rocket_fuel@6], using=[rcp.advanced_oil_processing]).factory
@@ -569,15 +539,15 @@ produces just rocket fuel.  We can do so with using the `union` function::
   >>> combined.solve()
   >>> combined.summary()
   Box:
-      7.61x plastic-bar: chemical-plant  +355% speed +30% prod. +800% energy +30% pollution
-      23.4x rocket-fuel: assembling-machine-3  +340% speed +40% prod. +880% energy +40% pollution
-      5.18x advanced-oil-processing: oil-refinery  +555% speed +30% prod. +1080% energy +30% pollution
-      6.11x light-oil-cracking: chemical-plant  @0.573402  +355% speed +30% prod. +800% energy +30% pollution
-      2.42x heavy-oil-cracking: chemical-plant  +355% speed +30% prod. +800% energy +30% pollution
-      14.5x solid-fuel-from-light-oil: chemical-plant  +355% speed +30% prod. +800% energy +30% pollution
-      4.65x solid-fuel-from-petroleum-gas: chemical-plant  @0  +355% speed +30% prod. +800% energy +30% pollution
-    Outputs: plastic-bar 90/s, rocket-fuel 6/s
-    Inputs: water -743.704/s, crude-oil -678.303/s, coal -34.6154/s
+      7.61x plastic_bar: ChemicalPlant  +355% speed +30% prod. +800% energy +30% pollution
+      23.4x rocket_fuel: AssemblingMachine3  +340% speed +40% prod. +880% energy +40% pollution
+      5.18x advanced_oil_processing: OilRefinery  +555% speed +30% prod. +1080% energy +30% pollution
+      6.11x light_oil_cracking: ChemicalPlant  @0.573402  +355% speed +30% prod. +800% energy +30% pollution
+      2.42x heavy_oil_cracking: ChemicalPlant  +355% speed +30% prod. +800% energy +30% pollution
+      14.5x solid_fuel_from_light_oil: ChemicalPlant  +355% speed +30% prod. +800% energy +30% pollution
+      4.65x solid_fuel_from_petroleum_gas: ChemicalPlant  @0  +355% speed +30% prod. +800% energy +30% pollution
+    Outputs: plastic_bar 90/s, rocket_fuel 6/s
+    Inputs: coal -34.6154/s, water -743.704/s, crude_oil -678.303/s
 
 As you can see from the summary, when producing both items, the
 light-oil-cracking chemical plant is not being fully utilized and the
@@ -586,25 +556,25 @@ However, when just plastic or just rocket fuel are consumed they will be used.
 To see how the machines are utilized when just one of the outputs are consumed
 we can use the other values returned by `union`.
 
-`union` returns a tuple with several factories: the first one is the result;
-the others are views of the first one, which once solved, will change the
-first result to have the same flows as the arguments, respectively.  For
-example::
+`union` returns a tuple with several factories.  The first one is the result.
+The others are views of the first one.  If solve is called on a view it will
+will change the first result to have the same flows as the solved view.
+For example::
 
   >>> plastic = res[2]
   >>> plastic.solve()
   >>> combined.summary()
   Box:
-      7.61x plastic-bar: chemical-plant  +355% speed +30% prod. +800% energy +30% pollution
-      23.4x rocket-fuel: assembling-machine-3  @0  +340% speed +40% prod. +880% energy +40% pollution
-      5.18x advanced-oil-processing: oil-refinery  @0.681966  +555% speed +30% prod. +1080% energy +30% pollution
-      6.11x light-oil-cracking: chemical-plant  +355% speed +30% prod. +800% energy +30% pollution
-      2.42x heavy-oil-cracking: chemical-plant  @0.681966  +355% speed +30% prod. +800% energy +30% pollution
-      14.5x solid-fuel-from-light-oil: chemical-plant  @0  +355% speed +30% prod. +800% energy +30% pollution
-      4.65x solid-fuel-from-petroleum-gas: chemical-plant  @0  +355% speed +30% prod. +800% energy +30% pollution
-    Outputs: plastic-bar 90/s, rocket-fuel 0/s
-    Inputs: water -761.232/s, crude-oil -462.579/s, coal -34.6154/s
- 
+      7.61x plastic_bar: ChemicalPlant  +355% speed +30% prod. +800% energy +30% pollution
+      23.4x rocket_fuel: AssemblingMachine3  @0  +340% speed +40% prod. +880% energy +40% pollution
+      5.18x advanced_oil_processing: OilRefinery  @0.681966  +555% speed +30% prod. +1080% energy +30% pollution
+      6.11x light_oil_cracking: ChemicalPlant  +355% speed +30% prod. +800% energy +30% pollution
+      2.42x heavy_oil_cracking: ChemicalPlant  @0.681966  +355% speed +30% prod. +800% energy +30% pollution
+      14.5x solid_fuel_from_light_oil: ChemicalPlant  @0  +355% speed +30% prod. +800% energy +30% pollution
+      4.65x solid_fuel_from_petroleum_gas: ChemicalPlant  @0  +355% speed +30% prod. +800% energy +30% pollution
+    Outputs: plastic_bar 90/s, rocket_fuel 0/s
+    Inputs: coal -34.6154/s, water -761.232/s, crude_oil -462.579/s
+
 And as shown in the summary, when producing plastic the the light-oil-cracking
 chemical plants are fully utilized.
 
@@ -617,41 +587,48 @@ light oil we can up the priority for that chemical plant::
 
   >>> combined.priorities[rcp.solid_fuel_from_petroleum_gas] = 2
   >>> combined.solve()
+  warning: non optimal: 0_max: plastic_bar_t
   <SolveRes.OK: 4>
+  >>> combined.summary()
   Box:
-      7.61x plastic-bar: chemical-plant  @0.826884  +355% speed +30% prod. +800% energy +30% pollution
-      23.4x rocket-fuel: assembling-machine-3  +340% speed +40% prod. +880% energy +40% pollution
-      5.18x advanced-oil-processing: oil-refinery  +555% speed +30% prod. +1080% energy +30% pollution
-      6.11x light-oil-cracking: chemical-plant  @0.826884  +355% speed +30% prod. +800% energy +30% pollution
-      2.42x heavy-oil-cracking: chemical-plant  +355% speed +30% prod. +800% energy +30% pollution
-      14.5x solid-fuel-from-light-oil: chemical-plant  @0.679226  +355% speed +30% prod. +800% energy +30% pollution
-      4.65x solid-fuel-from-petroleum-gas: chemical-plant  +355% speed +30% prod. +800% energy +30% pollution
-    Outputs: plastic-bar 74.4195/s, rocket-fuel 6/s
-    Inputs: water -849.454/s, crude-oil -678.303/s, coal -28.6229/s
-    Priorities: recipe solid-fuel-from-petroleum-gas: 2
+      7.61x plastic_bar: ChemicalPlant  @0.826884  +355% speed +30% prod. +800% energy +30% pollution
+      23.4x rocket_fuel: AssemblingMachine3  +340% speed +40% prod. +880% energy +40% pollution
+      5.18x advanced_oil_processing: OilRefinery  +555% speed +30% prod. +1080% energy +30% pollution
+      6.11x light_oil_cracking: ChemicalPlant  @0.826884  +355% speed +30% prod. +800% energy +30% pollution
+      2.42x heavy_oil_cracking: ChemicalPlant  +355% speed +30% prod. +800% energy +30% pollution
+      14.5x solid_fuel_from_light_oil: ChemicalPlant  @0.679226  +355% speed +30% prod. +800% energy +30% pollution
+      4.65x solid_fuel_from_petroleum_gas: ChemicalPlant  +355% speed +30% prod. +800% energy +30% pollution
+    Outputs: plastic_bar 74.4195/s, rocket_fuel 6/s
+    Inputs: coal -28.6229/s, water -849.454/s, crude_oil -678.303/s
+    Priorities: rcp.solid_fuel_from_petroleum_gas: 2
     
 And as a result the plastic output suffers as there is not enough petroleum
 gas.  When solving we only got `SolveRes.OK`, which means that other solutions
-are possible.  For example we can try and get more plastic by uping it's priority::
+are possible.  The slightly cryptic warning is telling us that the plastic
+bars output could be higher in a different solution.  We can solidify this
+result by adjusting the priority of `rcp.plastic_bar` to be larger than 0 but
+smaller than the priority of `rcp.solid_fuel_from_petroleum_gas`::
 
-  >> combined.priorities[rcp.plastic_bar] = 1
-  >> combined.solve()
+  >>> combined.priorities[rcp.plastic_bar] = 1
+  >>> combined.solve()
+  >>> combined.summary()
   <SolveRes.UNIQUE: 2>
   Box:
-      7.61x plastic-bar: chemical-plant  @0.917295  +355% speed +30% prod. +800% energy +30% pollution
-      23.4x rocket-fuel: assembling-machine-3  @0.806129  +340% speed +40% prod. +880% energy +40% pollution
-      5.18x advanced-oil-processing: oil-refinery  +555% speed +30% prod. +1080% energy +30% pollution
-      6.11x light-oil-cracking: chemical-plant  +355% speed +30% prod. +800% energy +30% pollution
-      2.42x heavy-oil-cracking: chemical-plant  +355% speed +30% prod. +800% energy +30% pollution
-      14.5x solid-fuel-from-light-oil: chemical-plant  @0.485355  +355% speed +30% prod. +800% energy +30% pollution
-      4.65x solid-fuel-from-petroleum-gas: chemical-plant  +355% speed +30% prod. +800% energy +30% pollution
-    Outputs: plastic-bar 82.5566/s, rocket-fuel 4.83678/s
-    Inputs: water -921.676/s, crude-oil -678.303/s, coal -31.7525/s
-    Priorities: recipe solid-fuel-from-petroleum-gas: 2, recipe plastic-bar: 1
+      7.61x plastic_bar: ChemicalPlant  @0.917295  +355% speed +30% prod. +800% energy +30% pollution
+      23.4x rocket_fuel: AssemblingMachine3  @0.806129  +340% speed +40% prod. +880% energy +40% pollution
+      5.18x advanced_oil_processing: OilRefinery  +555% speed +30% prod. +1080% energy +30% pollution
+      6.11x light_oil_cracking: ChemicalPlant  +355% speed +30% prod. +800% energy +30% pollution
+      2.42x heavy_oil_cracking: ChemicalPlant  +355% speed +30% prod. +800% energy +30% pollution
+      14.5x solid_fuel_from_light_oil: ChemicalPlant  @0.485355  +355% speed +30% prod. +800% energy +30% pollution
+      4.65x solid_fuel_from_petroleum_gas: ChemicalPlant  +355% speed +30% prod. +800% energy +30% pollution
+    Outputs: plastic_bar 82.5566/s, rocket_fuel 4.83678/s
+    Inputs: coal -31.7525/s, water -921.676/s, crude_oil -678.303/s
+    Priorities: rcp.solid_fuel_from_petroleum_gas: 2, rcp.plastic_bar: 1
 
 And we increased the plastic output but rocket fuel output then suffers.
-Hence, we need some circuits to prevent any conversion of petroleum gas to
-solid fuel unless we have an overflow.
+
+This experment shows us that we need some circuits to prevent any conversion
+of petroleum gas to solid fuel unless we have an overflow.
 
 Nuclear Processing
 ------------------
@@ -665,7 +642,7 @@ the task.  For example, here is a factory that provides the needs of nuclear
 related produces for a fairly large overall factory::
 
   nuclearStuff = withSettings(
-      {config.machinePrefs: ((Centrifuge(modules=2*itm.productivity_module_3,beacons=4*SPEED_BEACON),) + MP_LATE_GAME)},
+      {config.machinePrefs: ((mch.Centrifuge(modules=2*itm.productivity_module_3,beacons=4*SPEED_BEACON),) + MP_LATE_GAME)},
       lambda: box(1*rcp.uranium_processing(beacons=5*SPEED_BEACON)
                   + 3*rcp.uranium_processing(beacons=5*SPEED_BEACON)
                   + 2*rcp.kovarex_enrichment_process(beacons=5*SPEED_BEACON)
@@ -675,7 +652,7 @@ related produces for a fairly large overall factory::
                   + 3*rcp.nuclear_fuel()
                   + 4*rcp.uranium_rounds_magazine(modules=[],beacons=[]),
                   priorities={rcp.nuclear_fuel_reprocessing:2,itm.nuclear_fuel:1},
-                  constraints={itm.uranium_fuel_cell: (-1, itm.used_up_uranium_fuel_cell)}))
+                  constraints=[Equal(itm.uranium_fuel_cell, (-1, itm.used_up_uranium_fuel_cell))]))
 
 In this factory, `withSettings` is a helper functional to set a context
 variables to a different value locally.  An advanced feature of the
@@ -687,16 +664,16 @@ is a summary of the solved factory::
 
   >>> nuclearStuff.summary()
   Box:
-         4x uranium-processing: centrifuge  +220% speed +20% prod. +510% energy +20% pollution
-         3x kovarex-enrichment-process: centrifuge  @0.886797  +203% speed +20% prod. +487% energy +20% pollution
-         5x nuclear-fuel-reprocessing: centrifuge  +170% speed +20% prod. +440% energy +20% pollution
-         1x uranium-fuel-cell: assembling-machine-3  @0.714286  -10% speed +40% prod. +390% energy +40% pollution
-         3x nuclear-fuel: centrifuge  +170% speed +20% prod. +440% energy +20% pollution
-         4x uranium-rounds-magazine: assembling-machine-3  @0.301523
-    Outputs: uranium-rounds-magazine 0.150761/s, uranium-fuel-cell 1.125/s, nuclear-fuel 0.108/s
-    Inputs: uranium-ore -10.6667/s, piercing-rounds-magazine -0.150761/s, rocket-fuel -0.09/s, used-up-uranium-fuel-cell -1.125/s, iron-plate -0.803571/s
-    Constraints: uranium-fuel-cell = -used-up-uranium-fuel-cell
-    Priorities: recipe nuclear-fuel-reprocessing: 2, nuclear-fuel: 1
+         4x uranium_processing: Centrifuge  +220% speed +20% prod. +510% energy +20% pollution
+         3x kovarex_enrichment_process: Centrifuge  @0.886797  +203% speed +20% prod. +487% energy +20% pollution
+         5x nuclear_fuel_reprocessing: Centrifuge  +170% speed +20% prod. +440% energy +20% pollution
+         1x uranium_fuel_cell: AssemblingMachine3  @0.714286  -10% speed +40% prod. +390% energy +40% pollution
+         3x nuclear_fuel: Centrifuge  +170% speed +20% prod. +440% energy +20% pollution
+         4x uranium_rounds_magazine: AssemblingMachine3  @0.301523
+    Outputs: nuclear_fuel 0.108/s, uranium_fuel_cell 1.125/s, uranium_rounds_magazine 0.150761/s
+    Inputs: uranium_ore -10.6667/s, iron_plate -0.803571/s, rocket_fuel -0.09/s, used_up_uranium_fuel_cell -1.125/s, piercing_rounds_magazine -0.150761/s
+    Constraints: (uranium_fuel_cell = -used_up_uranium_fuel_cell)
+    Priorities: rcp.nuclear_fuel_reprocessing: 2, itm.nuclear_fuel: 1
 
 Working with Blueprints
 =======================
