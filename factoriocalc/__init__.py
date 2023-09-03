@@ -18,7 +18,7 @@ __all__ += data.__all__
 from . import import_
 from .import_ import *
 __all__ += import_.__all__
-defaultImport()
+importGameInfoVanilla()
 
 from . import presets
 from .presets import *

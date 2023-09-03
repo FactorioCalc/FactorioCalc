@@ -503,16 +503,23 @@ def importGameInfo(gameInfo, *, includeDisabled = True, researchHacks = False,
 
     return token
 
-def defaultImport(expensiveMode = False):
-    if expensiveMode:
-        path = _dir / 'game-info-expensive.json'
-    else:
-        path = _dir / 'game-info-normal.json'
-    
-    return importGameInfo(path,
+def _defaultImport(gameInfo):
+    return importGameInfo(gameInfo,
                           researchHacks = True,
                           craftingHints = standardCraftingHints,
                           rocketRecipeHints = {'rocket-silo::space-science-pack': 'default'},
                           logger = None)
 
-__all__ = ('defaultImport', 'importGameInfo', 'standardCraftingHints', 'standardAliasPass', 'CraftingHint', 'GameInfo', 'toPythonName', 'toClassName')
+def importGameInfoVanilla(gameInfo = None):
+    if gameInfo is None:
+        gameInfo = _dir / 'game-info-normal.json'
+    return _defaultImport(gameInfo)
+
+def importGameInfoExpensive(gameInfo = None):
+    if gameInfo is None:
+        gameInfo = _dir / 'game-info-expensive.json'
+    return _defaultImport(gameInfo)
+
+
+__all__ = ('importGameInfo', 'importGameInfoVanilla', 'importGameInfoExpensive',
+           'standardCraftingHints', 'standardAliasPass', 'CraftingHint', 'GameInfo', 'toPythonName', 'toClassName')
