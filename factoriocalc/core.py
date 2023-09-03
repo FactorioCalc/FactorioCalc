@@ -1300,7 +1300,7 @@ class Recipe(_SortByOrderKey,Uniq,Immutable):
                 elif len(machines) == 0:
                     raise ValueError(f'No matching machine for "{self.alias}".')
                 else:
-                    candidatesStr = ' '.join(c.name for c in machines)
+                    candidatesStr = ' '.join(c.alias for c in machines)
                     raise ValueError(f'Multiple matching machines for "{self.alias}": {candidatesStr}')
             else:
                  candidates.append(machine())
