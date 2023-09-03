@@ -57,6 +57,15 @@ class _ElectricMixin:
         flows.addFlow(itm.electricity, rateIn = div(self.energyUsage(throttle), 1_000_000))
         return flows
 
+def _repr_modules_part(modules, lst):
+    if len(modules) > 0:
+        s = 'modules='
+        tally = {}
+        for m in modules:
+            tally[m] = tally.get(m, 0) + 1
+        lst.append('modules=' + '+'.join(f'{tally[m]}*{m!r}' for m in sorted(tally.keys())))
+
+
 @dataclass(init=False,repr=False)
 class _ModulesMixin:
     modules: tuple[Module, ...]
@@ -75,8 +84,7 @@ class _ModulesMixin:
             raise ValueError("both 'beacon' and 'beacons' can not be provided at the same time")
 
     def _repr_parts(self, lst):
-        if len(self.modules) > 0:
-            lst.append(f'modules={self.modules!r}')
+        _repr_modules_part(self.modules, lst)
         if len(self.beacons) > 0:
             lst.append(f'beacons={self.beacons!r}')
 
@@ -181,7 +189,7 @@ class Beacon(Machine):
     supplyAreaDistance = 3
 
     id: str
-    modules: list[Module]
+    modules: tuple[Module, ...]
 
     def __hash__(self):
         return hash((self.__class__, *self.modules))
@@ -213,8 +221,7 @@ class Beacon(Machine):
         return super().__setattr__(prop, val)
 
     def _repr_parts(self, lst):
-        if len(self.modules) > 0:
-            lst.append(f'{self.modules!r}')
+        _repr_modules_part(self.modules, lst)
     
     def effect(self):
         return sum([m.effect for m in self.modules],Effect()) * self.distributionEffectivity
