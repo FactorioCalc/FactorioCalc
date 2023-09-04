@@ -393,7 +393,6 @@ def standardAliasPass(gi):
 
     for name,obj in gi.mchByName.items():
         setattr(gi.mch, toClassName(name), obj)
-        gi.aliases[name] = toClassName(name)
 
 def importGameInfo(gameInfo, *, includeDisabled = True, researchHacks = False,
                    aliasPass = standardAliasPass, craftingHints = None, byproducts = ('empty-barrel',),
