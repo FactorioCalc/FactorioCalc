@@ -8,6 +8,17 @@ class CraftingHint:
     boxPriority: int = 0
 
 class Objs:
+    def _find(self, toFind):
+        """
+        Perform a case insensitive search of any occurrence of the substring
+        `toFind` in the `descr` field of members.
+        """
+        toFind = toFind.lower()
+        res = []
+        for obj in self.__dict__.values():
+            if obj.descr.lower().find(toFind) >= 0:
+                res.append(obj)
+        return res
     pass
 
 @_dc.dataclass
@@ -18,6 +29,7 @@ class GameInfo:
     itmByName: dict = None
     mch: Objs = _dc.field(default_factory = Objs)
     mchByName: dict = None
+    presets: dict = None
     recipesThatMake: dict = None
     recipesThatUse: dict = None
     craftingHints: dict = None

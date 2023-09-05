@@ -1,18 +1,20 @@
 from dataclasses import dataclass
+from contextvars import copy_context
 
 from .core import CraftingMachine, Recipe, RecipeComponent
 from . import itm
 
+__all__ = ('withSettings','FakeLab')
 
-__all__ = ('sciencePacks','FakeLab')
+def withSettings(settings, fun, *args, **kwargs):
+    "helper function to locally set a ContextVar"
+    ctx = copy_context()
+    return ctx.run(_withSettings, settings, fun, *args, **kwargs)
 
-sciencePacks = {itm.automation_science_pack,
-                itm.logistic_science_pack,
-                itm.chemical_science_pack,
-                itm.production_science_pack,
-                itm.utility_science_pack,
-                itm.space_science_pack,
-                itm.military_science_pack}
+def _withSettings(settings, fun, *args, **kwargs):
+    for var, val in settings.items():
+        var.set(val)
+    return fun(*args, **kwargs)
 
 @dataclass(init=False)
 class FakeLab(CraftingMachine):

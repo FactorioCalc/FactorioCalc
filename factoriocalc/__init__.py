@@ -1,4 +1,5 @@
-__all__ = ['itm', 'rcp', 'mch', 'config']
+from . import itm, rcp, mch, config, preset
+__all__ = ['itm', 'rcp', 'mch', 'config', 'preset']
 
 from .fracs import frac, div, Frac
 __all__ += ['frac', 'div', 'Frac']
@@ -14,15 +15,6 @@ __all__ += units.__all__
 from . import data
 from .data import *
 __all__ += data.__all__
-
-from . import import_
-from .import_ import *
-__all__ += import_.__all__
-importGameInfoVanilla()
-
-from . import presets
-from .presets import *
-__all__ += presets.__all__
 
 from . import box as _box
 from .box import *
@@ -54,3 +46,10 @@ from .core import Uniq, Immutable
 _extraSymbols = ['Uniq', 'Immutable', 'OrdEnum']
 from .box import Constraint, Term
 _extraSymbols = ['Constraint', 'Term']
+
+## symbols from import_ are not expored by defauly and documented
+## separately
+from . import import_
+from .import_ import *
+importGameInfoVanilla()
+

@@ -6,31 +6,23 @@ converted to ``_``.  For example, to refer to an "electronic-circuit" use
 
 The contents of this module are dynamic and controlled via the `config.gameInfo`
 context variable.
-
-When the gameInfo context variable is configured for the base game this module
-also provides a few special items.
-
-.. py:data:: _combined_research
-
-Result of `rcp._combined_research <factoriocalc.rcp._combined_research>`.
-
-.. py:data:: _military_research
-
-Result of `rcp._military_research <factoriocalc.rcp._military_research>`.
-
-.. py:data:: _production_research
-
-Result of `rcp._production_research <factoriocalc.rcp._production_research>`.
-
 """
+
+from . import data as _data
+
+def _find(toFind):
+    from .config import gameInfo
+    return gameInfo.get().itm._find(toFind)
+_find.__doc__ = _data.Objs._find.__doc__
 
 def __getattr__(name):
     from .config import gameInfo
     try:
-        return getattr(gameInfo.get().itm, name)
-    except AttributeError:
+        return gameInfo.get().itm.__dict__[name]
+    except KeyError:
         raise AttributeError(f"current 'itm' object has no attribute '{name}'") from None
 
 def __dir__():
     from .config import gameInfo
-    return gameInfo.get().itm.__dir__()
+    return ['_find', *gameInfo.get().itm.__dict__.keys()]
+    

@@ -1,7 +1,7 @@
 from __future__ import annotations
 import json
 from pathlib import Path
-from . import itm,rcp,mch,data,machine
+from . import data,machine
 from .machine import Category
 from .fracs import frac, frac_from_float_round
 from .core import *
@@ -12,6 +12,8 @@ from collections import defaultdict
 _dir = Path(__file__).parent.resolve()
 
 def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHints, logger):
+    from . import mch
+
     rcpByName, itmByName, mchByName = {}, {}, {}
     rocketSilos = []
     fixedRecipes = []
@@ -325,7 +327,30 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
 
     return res
 
-def _addResearchHacks(gi):
+def vanillaPresets():
+    from . import mch, itm
+    return {
+        'MP_EARLY_GAME': MachinePrefs(mch.AssemblingMachine1(), mch.StoneFurnace()),
+        'MP_LATE_GAME': MachinePrefs(mch.AssemblingMachine3(), mch.ElectricFurnace()),
+        'MP_MAX_PROD' : MachinePrefs(
+            mch.AssemblingMachine3(modules=4*[itm.productivity_module_3]),
+            mch.ElectricFurnace(modules=2*[itm.productivity_module_3]),
+            mch.ChemicalPlant(modules=3*[itm.productivity_module_3]),
+            mch.OilRefinery(modules=3*[itm.productivity_module_3]),
+            mch.RocketSilo(modules=4*[itm.productivity_module_3]),
+            mch.Centrifuge(modules=2*[itm.productivity_module_3]),
+        ),
+        'SPEED_BEACON': mch.Beacon(modules=[itm.speed_module_3, itm.speed_module_3]),
+        'sciencePacks': {itm.automation_science_pack,
+                         itm.logistic_science_pack,
+                         itm.chemical_science_pack,
+                         itm.production_science_pack,
+                         itm.utility_science_pack,
+                         itm.space_science_pack,
+                         itm.military_science_pack}
+    }
+
+def vanillaResearchHacks(gi):
     def addItem(cls, name, order):
         item = cls(name, order)
         setattr(gi.itm, name, item)
@@ -338,7 +363,7 @@ def _addResearchHacks(gi):
         setattr(gi.rcp, pythonName, recipe)
         gi.rcpByName[name] = recipe
 
-    from .helper import FakeLab, sciencePacks
+    from .helper import FakeLab
     
     def addResearch(name, order, inputs):
         order = ('z', 'z', order)
@@ -353,15 +378,16 @@ def _addResearchHacks(gi):
                         order = order)
         addRecipe(recipe)
 
-    addResearch('_production_research', 'zz0', sciencePacks - {itm.military_science_pack})
-    addResearch('_military_research', 'zz1', sciencePacks - {itm.production_science_pack})
-    addResearch('_combined_research', 'zz2', sciencePacks)
+    addResearch('_production_research', 'zz0', gi.presets['sciencePacks'] - {gi.itm.military_science_pack})
+    addResearch('_military_research', 'zz1', gi.presets['sciencePacks'] - {gi.itm.production_science_pack})
+    addResearch('_combined_research', 'zz2', gi.presets['sciencePacks'])
 
-def standardCraftingHints(gi):
+def vanillaCraftingHints():
+    from . import rcpByName, itm
     craftingHints = {}
     
-    for r in gi.rcpByName.values():       
-        if any(item == gi.itm.empty_barrel for _, _, item in r.outputs) and len(r.outputs) > 1:
+    for r in rcpByName.values():       
+        if any(item == itm.empty_barrel for _, _, item in r.outputs) and len(r.outputs) > 1:
             craftingHints[r.name] = CraftingHint(priority = IGNORE)
 
     craftingHints['advanced-oil-processing'] = CraftingHint(also=['light-oil-cracking','heavy-oil-cracking'])
@@ -382,7 +408,7 @@ def standardCraftingHints(gi):
 
     return craftingHints
 
-def standardAliasPass(gi):
+def basicAliasPass(gi):
     for name,obj in gi.itmByName.items():
         setattr(gi.itm, toPythonName(name), obj)
         gi.aliases[name] = toPythonName(name)
@@ -394,8 +420,13 @@ def standardAliasPass(gi):
     for name,obj in gi.mchByName.items():
         setattr(gi.mch, toClassName(name), obj)
 
-def importGameInfo(gameInfo, *, includeDisabled = True, researchHacks = False,
-                   aliasPass = standardAliasPass, craftingHints = None, byproducts = ('empty-barrel',),
+def importGameInfo(gameInfo, *,
+                   includeDisabled = True,
+                   aliasPass = basicAliasPass,
+                   presets = None,
+                   extraPasses = (),
+                   craftingHints = None,
+                   byproducts = ('empty-barrel',),
                    rocketRecipeHints = None,
                    logger = None):
     """Import game info.
@@ -417,7 +448,7 @@ def importGameInfo(gameInfo, *, includeDisabled = True, researchHacks = False,
         A function to create alias for machines, items, and recipes.  The
         alias is the python symbol used for refering to the entity within the
         `mch`, `itm` or, `rcp`. namespace.  See the source code for
-        `standardAliasPass` for more details on how this function is used.
+        `basicAliasPass` for more details on how this function is used.
 
     *craftingHints*
         A function to create hints used to guide the selection of machines
@@ -490,35 +521,40 @@ def importGameInfo(gameInfo, *, includeDisabled = True, researchHacks = False,
 
     token = config.gameInfo.set(res)
 
-    if researchHacks:
-        _addResearchHacks(res)
+    if presets:
+        res.presets = presets()
+    else:
+        res.presets = {}
+
+    for p in extraPasses:
+        p(res)
 
     res.finalize()
     
     if craftingHints:
-        res.craftingHints = craftingHints(res)
+        res.craftingHints = craftingHints()
     else:
         res.craftingHints = {}
 
     return token
 
-def _defaultImport(gameInfo):
+def _defaultImport(gameInfo, includeDisabled = True):
     return importGameInfo(gameInfo,
-                          researchHacks = True,
-                          craftingHints = standardCraftingHints,
+                          includeDisabled = includeDisabled,
+                          presets = vanillaPresets,
+                          extraPasses = [vanillaResearchHacks],
+                          craftingHints = vanillaCraftingHints,
                           rocketRecipeHints = {'rocket-silo::space-science-pack': 'default'},
                           logger = None)
 
-def importGameInfoVanilla(gameInfo = None):
+def importGameInfoVanilla(gameInfo = None, includeDisabled = True):
     if gameInfo is None:
         gameInfo = _dir / 'game-info-normal.json'
-    return _defaultImport(gameInfo)
+    return _defaultImport(gameInfo, includeDisabled)
 
-def importGameInfoExpensive(gameInfo = None):
-    if gameInfo is None:
-        gameInfo = _dir / 'game-info-expensive.json'
-    return _defaultImport(gameInfo)
+def importGameInfoExpensive():
+    return _defaultImport(_dir / 'game-info-expensive.json')
 
 
 __all__ = ('importGameInfo', 'importGameInfoVanilla', 'importGameInfoExpensive',
-           'standardCraftingHints', 'standardAliasPass', 'CraftingHint', 'GameInfo', 'toPythonName', 'toClassName')
+           'vanillaResearchHacks', 'vanillaCraftingHints', 'basicAliasPass', 'CraftingHint', 'GameInfo', 'toPythonName', 'toClassName')

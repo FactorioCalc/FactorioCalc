@@ -133,9 +133,10 @@ very fast so FactorioCalc provides a shortcut.  However, before you can use
 the shortcut, you need to specify what type of assembling machine you want to
 use.  This is done by setting `config.machinePrefs`, which is a python
 `ContextVar <https://docs.python.org/3/library/contextvars.html>`_.  For now
-we will set it to `MP_LATE_GAME` which will use the most advanced machines
-possible for a recipe::
+we will set it to `~preset.MP_LATE_GAME` in the `preset` module which will use
+the most advanced machines possible for a recipe::
 
+  >>> from preset import *
   >>> config.machinePrefs.set(MP_LATE_GAME)
 
 With that we can simply call a recipe to produce a machine that will use the
@@ -155,7 +156,7 @@ and 8 beacons with speed-3 modules you would use::
                          beacons=8*Beacon(modules=2*itm.speed_module_3))
 
 As a beacons with 2 speed-3 modules is a very common thing the shortcut
-`SPEED_BEACON` is provied so the above can become::
+`~preset.SPEED_BEACON` in the `preset` module is provied so the above can become::
 
   rcp.electronic_circuit(modules=4*itm.productivity_module_3,
                          beacons=8*SPEED_BEACON)
@@ -169,18 +170,19 @@ all we cared about is assmebling machines we could just use::
 
 However we most likely want all machines to have the maxium number of
 productivity-3 modules and at least some speed beacons.  To make this easier
-the `MP_MAX_PROD` preset can used to indicate that we want all machines to
+the `~preset.MP_MAX_PROD` preset can used to indicate that we want all machines to
 have to maxium number of productivity-3 modules.  There is no preset for
 beacons as the number the beacons often various.  Instead use the
-`withSpeedBeacons` method to modify the preset by adding `SPEED_BEACON`'s for
+`withSpeedBeacons` method to modify the preset by adding `~preset.SPEED_BEACON`'s for
 specific machines.  For example::
 
   >>> config.machinePrefs.set(MP_MAX_PROD.withSpeedBeacons({mch.AssemblingMachine3:8}))
 
-will give all machines the maxium number of productivity-3 modules possble
-and assembling machine 3 with 8 `SPEED_BEACON`'s.  With `machinePrefs` set we can get
-an assembling machine 3, with 4 productivity-3 modules, and 8 speed beacons
-that creates electronic circuits by just using ``rcp.electronic_circuit()``.
+will give all machines the maxium number of productivity-3 modules possble and
+assembling machine 3 with 8 `~preset.SPEED_BEACON`'s.  With `machinePrefs` set
+we can get an assembling machine 3, with 4 productivity-3 modules, and 8 speed
+beacons that creates electronic circuits by just using
+``rcp.electronic_circuit()``.
 
 Now lets try and combine electronic circuits with copper cables with maxium
 productivity.  We could calculate the exact ratios or just guess and let

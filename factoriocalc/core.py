@@ -17,7 +17,7 @@ __all__ = ('Default',
            'MachineBase', 'Machine', 'CraftingMachine', 'Mul', 'Group',
            'Flow', 'OneWayFlow', 'FlowsState', 'Flows', 'SimpleFlows', 'NetFlows', 'EffectBase', 'Effect', 'Bonus',
            'Recipe', 'RecipeComponent', 'IGNORE', 'InvalidModulesError',
-           'maxInputs'
+           'maxInputs', 'MachinePrefs',
            )
 
 class Uniq:
@@ -1351,3 +1351,34 @@ class InvalidRecipe(ValueError):
     pass
 
 IGNORE = -100
+
+class MachinePrefs(tuple):
+    def __repr__(self):
+        return 'MachinePrefs' + super().__repr__()
+    def __new__(cls, *args):
+        return tuple.__new__(cls, args)
+    def __add__(self, other):
+        return tuple.__new__(MachinePrefs, tuple.__add__(self, other))
+    def __radd__(self, other):
+        if isinstance(other, tuple):
+            return tuple.__new__(MachinePrefs, tuple.__add__(other, self))
+        else:
+            return NotImplemented
+    def __mul__(self, num):
+        raise NotImplementedError
+    __rmul__ = __mul__
+    def withSpeedBeacons(self, mapping):
+        from .preset import SPEED_BEACON
+        lst = list(self)
+        for i, m in enumerate(lst):
+            cls = type(m)
+            try:
+                numBeacons = mapping[cls]
+            except KeyError:
+                pass
+            else:
+                m = copy(m)
+                m.beacons = numBeacons * SPEED_BEACON
+                lst[i] = m
+        return MachinePrefs(*lst)
+

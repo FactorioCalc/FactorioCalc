@@ -93,11 +93,30 @@ Core
 .. automodule:: factoriocalc.mch
    :no-members:
 
+   .. autofunction:: _find
+
 `itm` module
 ------------
 
 .. automodule:: factoriocalc.itm
-   :no-members:
+   :no-members: 
+
+   .. autofunction:: _find
+
+   When the gameInfo context variable is configured for the base game this module
+   also provides a few special items:
+
+   .. py:data:: _combined_research
+
+      Result of `rcp._combined_research <factoriocalc.rcp._combined_research>`.
+
+   .. py:data:: _military_research
+
+      Result of `rcp._military_research <factoriocalc.rcp._military_research>`.
+
+   .. py:data:: _production_research
+
+      Result of `rcp._production_research <factoriocalc.rcp._production_research>`.
 
 `rcp` module
 ------------
@@ -105,19 +124,58 @@ Core
 .. automodule:: factoriocalc.rcp
    :no-members:
 
+   .. autofunction:: _find
+
+   When the gameInfo context variable is configured for the base game this module
+   also provides some special recipes:
+
+   .. py:data:: space_science_pack
+
+      Recipe to produce 1000 `itm.space_science_pack` in a `RocketSilo <factoriocalc.RocketSilo>`.
+
+   .. py:data:: _combined_research
+
+      Recipe to consume all 7 science packs at a rate of 1/s in a `FakeLab <factoriocalc.FakeLab>`.
+
+   .. py:data:: _military_research
+
+      Recipe to consume all but the production science pack at a rate of 1/s in a
+      `FakeLab <factoriocalc.FakeLab>`.
+
+   .. py:data:: _production_research
+
+      Recipe to consume all but the military science pack at a rate of 1/s in a
+      `FakeLab <factoriocalc.FakeLab>`.
+
 `config` module
 ---------------
 
 .. automodule:: factoriocalc.config
 
-.. py:currentmodule:: factoriocalc
+`preset` module
+---------------
 
-Presets
--------
+.. automodule:: factoriocalc.preset
+   :no-members:
 
-.. py:currentmodule:: factoriocalc
+   When the gameInfo context variable is configured for the base game this module
+   provides:
 
-{documentSymbols('presets')}
+   .. py:data:: MP_EARLY_GAME
+      :value: {fc.preset.MP_EARLY_GAME!r}
+
+   .. py:data:: MP_LATE_GAME
+      :value: {fc.preset.MP_LATE_GAME!r}
+
+   .. py:data:: MP_MAX_PROD
+      :value: {fc.preset.MP_MAX_PROD!r}
+
+   .. py:data:: SPEED_BEACON
+      :value: {fc.preset.SPEED_BEACON!r}
+
+   .. py:data:: sciencePacks
+      :type: set
+      :value: {fc.preset.sciencePacks!r}
 
 Units
 -----
@@ -160,6 +218,8 @@ Helpers
 
 Mod Support
 -----------
+
+These symbols are not imported by ``from factorocalc import *``.
 
 .. :currentmodule:: factoriocalc
 
