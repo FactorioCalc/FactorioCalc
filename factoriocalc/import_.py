@@ -281,8 +281,7 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
                 useHint = ''
             if useHint == 'skip':
                 continue
-            recipe = getattr(rocketSilo, 'fixedRecipe', rcpByName['rocket-part'])
-            # ^^FIXME: getattr default value a hack until JSON files are updated
+            recipe = getattr(rocketSilo, 'fixedRecipe')
             num = rocketSilo.rocketPartsRequired
             rocket_parts_inputs = tuple(RecipeComponent(rc.num*num, 0, rc.item) for rc in recipe.inputs)
             rocket_parts_time = recipe.time*num
