@@ -428,7 +428,7 @@ def importGameInfo(gameInfo, *,
                    byproducts = ('empty-barrel',),
                    rocketRecipeHints = None,
                    logger = None):
-    """Import game info.
+    """Import game info by populating the `config.gameInfo` context variable.
 
     *gameInfo*
         A JSON string or `pathlib.Path` to a file that contains the
@@ -438,21 +438,29 @@ def importGameInfo(gameInfo, *,
         If false, skip recipes marked as disabled.  A recipe is normally
         marked as disabled if it is not yet researched.
 
-    *researchHacks*
-        If true, include some special recipes and items to making working with
-        endgame research easier.  It should only be defined for a vanilla
-        game, or mods that don't define there own research.
-
     *aliasPass*
         A function to create alias for machines, items, and recipes.  The
         alias is the python symbol used for refering to the entity within the
         `mch`, `itm` or, `rcp`. namespace.  See the source code for
         `basicAliasPass` for more details on how this function is used.
 
+    *presets* 
+        A function to create useful presets that live in the preset module.
+        The function takes no paramaters and is expected to return a `dict`.
+        The `config.gameInfo` context variable is set so the `mch`, `itm`,
+        `rcp` are now populated.
+        
+    *extraPasses* 
+        Sequence of extra passes to run.  Each function takes in
+        `config.gameInfo` as a paramater and is expected to modify it in
+        place.
+
     *craftingHints*
         A function to create hints used to guide the selection of machines
-        `produce` selects.  See the source code for `standardCraftingHints`
-        for more details on how this function is used.
+        `produce` selects.  Like the `presets` function, it takes no
+        paramaters and is expected to return a `dict`.  See the source code
+        for `vanillaCraftingHints` for more details on how this function is
+        used.
 
     *byproducts*
         A list used to help determine byproducts in recipes that have more
@@ -481,7 +489,6 @@ def importGameInfo(gameInfo, *,
         explicitly the fluid itself is not marked as a byproduct, unless it is
         also mentioned elsewhere is the list.  For example, ``[('empty-barrel',
         'water')]`` is equivalent to ``[('empty-barrel', '*fluid*'), 'water']``.
-
 
     *rocketRecipeHints*
         A mapping used to guide the creation of special recipes for the
