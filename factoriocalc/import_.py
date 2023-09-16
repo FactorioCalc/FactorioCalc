@@ -178,14 +178,12 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
             limitation = None
         if limitation is not None:
             limitation = set(limitation)
-            if 'rocket-part' in limitation:
-                limitation.add('space-science-pack')
         item = Module(k, getOrderKey(v), v['stack_size'], e, limitation)
         addItem(item, v.get('translated_name',''))
 
     # import recipes
     for (k,v) in gameInfo['recipes'].items():
-        if not includeDisabled and not v.get('enabled', False):
+        if not (includeDisabled or v.get('enabled', False)):
             continue
         def toRecipeComponent(d, isProduct):
             try:
@@ -260,7 +258,10 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
             disabledRecipes.add(v['name'])
 
     for cls, recipeName in fixedRecipes:
-        cls.fixedRecipe = rcpByName[recipeName]
+        try:
+            cls.fixedRecipe = rcpByName[recipeName]
+        except KeyError:
+            pass
 
     # create recipes for rocket launch products
     for k,v in gameInfo['items'].items():
@@ -281,7 +282,10 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
                 useHint = ''
             if useHint == 'skip':
                 continue
-            recipe = getattr(rocketSilo, 'fixedRecipe')
+            try:
+                recipe = getattr(rocketSilo, 'fixedRecipe')
+            except AttributeError:
+                pass
             num = rocketSilo.rocketPartsRequired
             rocket_parts_inputs = tuple(RecipeComponent(rc.num*num, 0, rc.item) for rc in recipe.inputs)
             rocket_parts_time = recipe.time*num
@@ -421,6 +425,7 @@ def basicAliasPass(gi):
 
 def importGameInfo(gameInfo, *,
                    includeDisabled = True,
+                   preAliasPasses = (),
                    aliasPass = basicAliasPass,
                    presets = None,
                    extraPasses = (),
@@ -522,6 +527,9 @@ def importGameInfo(gameInfo, *,
         d = gameInfo
 
     res = _importGameInfo(d, includeDisabled, set(byproducts), rocketRecipeHints, logger)
+
+    for p in preAliasPasses:
+        p(res)
 
     aliasPass(res)
 

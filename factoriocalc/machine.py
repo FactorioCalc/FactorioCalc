@@ -101,8 +101,13 @@ class _ModulesMixin:
     def _checkModules(self, recipe, modules):
         invalid = set()
         for m in modules:
-            if m.limitation is not None and recipe.name not in m.limitation:
-                invalid.add(m)
+            if m.limitation is None: continue
+            if recipe.name in m.limitation: continue
+            try:
+                if recipe.origRecipe.name in m.limitation: continue
+            except AttributeError:
+                pass
+            invalid.add(m)
         if invalid:
             raise InvalidModulesError(invalid)
 
