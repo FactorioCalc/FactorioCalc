@@ -121,7 +121,7 @@ class AtLeast(Inequality):
 #    symbol = '<='
 
 class Box(BoxBase):
-    """Wrap a group to restrict inputs or outputs."""
+    """Wraps a group to restrict inputs or outputs."""
     MIN_PRIORITY =  IGNORE # (-100)
     MAX_PRIORITY = -IGNORE #  (100)
 
