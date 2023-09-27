@@ -188,6 +188,16 @@ class MachineBase:
     def __add__(self, other):
         return Group(self,other)
 
+    def print(self, out = None, prefix = '', suffix = '\n'):
+        if out is None:
+            out = sys.stdout
+        out.write(str(self))
+
+    def pprint(self, out = None, prefix = '', suffix = '\n'):
+        if out is None:
+            out = sys.stdout
+        out.write(repr(self))
+
     def __new__(cls, *args, **kwargs):
         if getattr(cls, 'abstract', None) == cls:
             raise TypeError(f"can't create {cls.__name__}")
@@ -269,8 +279,10 @@ class Machine(MachineBase, metaclass=MachineMeta):
             parts.append(repr(self.recipe))
         if self.throttle != 1:
             parts.append(f'throttle={self.throttle!r}')
-        prefix = '~' if self.unbounded else ''
         self._repr_parts(parts)
+        if self.blueprintInfo is not None:
+            parts.append(f'blueprintInfo=...')
+        prefix = '~' if self.unbounded else ''
         return '{}mch.{}({})'.format(prefix, name, ', '.join(parts))
 
     def _repr_parts(self, lst):
@@ -446,9 +458,6 @@ class Mul(MachineBase):
         obj['machine'] = self.machine._jsonObj(objs = objs, **kwargs)
         return obj
 
-    def __repr__(self):
-        return repr(self.num) + '*' + repr(self.machine)
-
     @property
     def inputs(self):
         return self.machine.inputs
@@ -575,6 +584,35 @@ class Group(Sequence,MachineBase):
 
     def __add__(self, other):
         return Group(*self,other)
+
+    def print(self, out = None, prefix = '', suffix = '\n'):
+        if out is None:
+            out = sys.stdout
+        out.write('(')
+        prefix += '  '
+        if len(self.machines) > 0:
+            self.machines[0].print(out, prefix, '')
+        for m in self.machines[1:]:
+            out.write(f'\n')
+            out.write(prefix)
+            out.write('+ ')
+            m.print(out, prefix, '')
+        out.write(')')
+        out.write(suffix)
+
+    def pprint(self, out = None, prefix = '', suffix = '\n'):
+        if out is None:
+            out = sys.stdout
+        prefix += '      '
+        out.write('Group(')
+        if len(self.machines) > 0:
+            self.machines[0].pprint(out, prefix, '')
+        for m in self.machines[1:]:
+            out.write(f',\n')
+            out.write(prefix)
+            m.pprint(out, prefix, '')
+        out.write(')')
+        out.write(suffix)
 
     def summary(self, out = sys.stdout, *, prefix = '',
                 includeSolvedBoxFlows = True, includeMachineFlows = True, includeBoxDetails = True,
