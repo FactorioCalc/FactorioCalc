@@ -57,14 +57,12 @@ class _ElectricMixin:
         flows.addFlow(itm.electricity, rateIn = div(self.energyUsage(throttle), 1_000_000))
         return flows
 
-def _repr_modules_part(modules, lst):
+def _repr_modules_part(prefix, modules, lst):
     if len(modules) > 0:
-        s = 'modules='
         tally = {}
         for m in modules:
             tally[m] = tally.get(m, 0) + 1
-        lst.append('modules=' + '+'.join(f'{tally[m]}*{m!r}' for m in sorted(tally.keys())))
-
+        lst.append(prefix + '+'.join(f'{tally[m]}*{m!r}' for m in sorted(tally.keys())))
 
 @dataclass(init=False,repr=False)
 class _ModulesMixin:
@@ -84,9 +82,9 @@ class _ModulesMixin:
             raise ValueError("both 'beacon' and 'beacons' can not be provided at the same time")
 
     def _repr_parts(self, lst):
-        _repr_modules_part(self.modules, lst)
+        _repr_modules_part('modules=', self.modules, lst)
         if len(self.beacons) > 0:
-            lst.append(f'beacons={self.beacons!r}')
+            lst.append('beacons=' + '+'.join(repr(b) for b in self.beacons))
 
     def _jsonObj(self, **kwargs):
         obj = super()._jsonObj(**kwargs)
@@ -95,7 +93,7 @@ class _ModulesMixin:
         if self.modules:
             obj['modules'] = [m._jsonObj() for m in self.modules]
         if self.beacons:
-            obj['beacons'] = [b._jsonObj(**kwargs) for b in self.beacons]
+            obj['beacons'] = [(b.num, b.machine._jsonObj(**kwargs)) for b in self.beacons]
         return obj
 
     def _checkModules(self, recipe, modules):
@@ -138,8 +136,8 @@ class _ModulesMixin:
             raise AttributeError
         elif prop == 'beacons':
             if isinstance(val, Mul):
-                val = val.num*[val.machine]
-            beacons = []
+                val = [val]
+            beacons = defaultdict(lambda: 0)
             def asBeacon(b):
                 if isinstance(b, Beacon):
                     return b
@@ -149,10 +147,13 @@ class _ModulesMixin:
                     raise TypeError('expected Beacon type')
             for v in val:
                 if isinstance(v, Mul):
-                    beacons += v.num*[asBeacon(v.machine)]
+                    num = v.num
+                    beacon = asBeacon(v.machine)
                 else:
-                    beacons.append(asBeacon(v))
-            val = beacons
+                    num = 1
+                    beacon = asBeacon(v)
+                beacons[beacon] += num
+            val = [Mul(num, beacon) for beacon, num in beacons.items()]
         return super().__setattr__(prop, val)
 
     def _modulesStr(self):
@@ -165,10 +166,7 @@ class _ModulesMixin:
         for m in self.modules:
             modules[m] += 1
         modulesStr = ', '.join(fmt_w_num(num, m) for m, num in modules.items())
-        beacons = defaultdict(lambda: 0)
-        for b in self.beacons:
-            beacons[b] += 1
-        beaconsStr = ', '.join(fmt_w_num(num, b) for b, num in beacons.items())
+        beaconsStr = ', '.join(str(b) for b in self.beacons)
         if modulesStr and beaconsStr:
             return f'{modulesStr}; {beaconsStr}'
         elif modulesStr:
@@ -182,7 +180,7 @@ class _ModulesMixin:
         if len(self.modules) == 1 and len(self.beacons) == 0:
             # special case in case we have a FakeModule
             return Bonus(self.modules[0].effect)
-        return Bonus(sum([m.effect for m in self.modules],Effect()) + sum([b.effect() for b in self.beacons],Effect()))
+        return Bonus(sum([m.effect for m in self.modules],Effect()) + sum([b.num*b.machine.effect() for b in self.beacons],Effect()))
 
 @dataclass(init=False,repr=False)
 class Beacon(Machine):
@@ -197,7 +195,7 @@ class Beacon(Machine):
     modules: tuple[Module, ...]
 
     def __hash__(self):
-        return hash((self.__class__, *self.modules))
+        return hash((self.__class__, id(self.blueprintInfo), *self.modules))
 
     def _jsonObj(self, **kwargs):
         obj = super()._jsonObj(**kwargs)
@@ -208,7 +206,9 @@ class Beacon(Machine):
 
     def __init__(self, id = None, *, modules = None, **kws):
         super().__init__(**kws)
-        if not isinstance(id, (type(None), str)):
+        if isinstance(id, (type(None), str)):
+            pass
+        else:
             modules = id
             id = None
         self.id = id
@@ -226,7 +226,7 @@ class Beacon(Machine):
         return super().__setattr__(prop, val)
 
     def _repr_parts(self, lst):
-        _repr_modules_part(self.modules, lst)
+        _repr_modules_part('', self.modules, lst)
     
     def effect(self):
         return sum([m.effect for m in self.modules],Effect()) * self.distributionEffectivity

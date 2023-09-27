@@ -83,9 +83,9 @@ def _fromJsonObj(gi, jsonObj, objs, customRecipes):
         if 'recipe' in jsonObj:
             obj.recipe = _decodeRecipe(gi, jsonObj['recipe'], customRecipes)
         if 'modules' in jsonObj:
-            obj.modules = [ _decodeModule(gi, m) for m in jsonObj['modules']]
+            obj.modules = [_decodeModule(gi, m) for m in jsonObj['modules']]
         if 'beacons' in jsonObj:
-            obj.beacons = [ _fromJsonObj(gi, m, objs, customRecipes) for m in jsonObj['beacons']]
+            obj.beacons = [Mul(num, _fromJsonObj(gi, b, objs, customRecipes)) for (num, b) in jsonObj['beacons']]
         if 'fuel' in jsonObj:
             obj.fuel = gi.itmByName[jsonObj['fuel']]
     if 'id' in jsonObj:

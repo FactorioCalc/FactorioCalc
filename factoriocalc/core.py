@@ -515,18 +515,18 @@ class Group(Sequence,MachineBase):
                 beacons = m.machine.beacons
             except AttributeError:
                 continue
-            unresolved_ = None
+            haveUnresolved = False
             for b in beacons:
-                if isinstance(b, Beacon) and b.id is not None:
-                    beaconMap[b.id] = b
-                elif isinstance(b, UnresolvedBeacon):
-                    unresolved_ = m
-            if unresolved_ is not None:
-                unresolved.append(unresolved_)
+                if isinstance(b.machine, Beacon) and b.machine.id is not None:
+                    beaconMap[b.machine.id] = b.machine
+                elif isinstance(b.machine, UnresolvedBeacon):
+                    haveUnresolved = True
+            if haveUnresolved:
+                unresolved.append(m)
         for m in unresolved:
             for i, b in enumerate(m.machine.beacons):
-                if isinstance(b, UnresolvedBeacon):
-                    m.machine.beacons[i] = beaconMap[b.id]
+                if isinstance(b.machine, UnresolvedBeacon):
+                    m.machine.beacons[i].machine = beaconMap[b.machine.id]
 
     @property
     def machine(self):
