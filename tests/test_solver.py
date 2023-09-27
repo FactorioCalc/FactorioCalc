@@ -15,7 +15,7 @@ from .common import *
 from copy import copy, deepcopy
 
 def _fromBlueprint(name, burnerFuel = None, **boxParams):
-    grp = bpBook().find(name).convert(burnerFuel = burnerFuel)
+    grp = bpBook().find(name).convert(burnerFuel = burnerFuel)[0]
     return Box(grp, **boxParams)
 
 class SolverTest:
@@ -163,7 +163,7 @@ class SolverTests(unittest.TestCase):
     ))
 
     testComplicatedOilStuff4 = SolverTest(
-        lambda: Box(bpBook().find('oil-stuff+lds').convert(burnerFuel = itm.solid_fuel)
+        lambda: Box(bpBook().find('oil-stuff+lds').convert(burnerFuel = itm.solid_fuel)[0]
                     + 10*OilRefinery(rcp.coal_liquefaction) + 24*Boiler(fuel=itm.solid_fuel),
                     outputTouchups = {itm.plastic_bar: frac(1448, 25),
                                       itm.low_density_structure: frac(672, 25)},
@@ -255,8 +255,8 @@ class SolverTests2(unittest.TestCase):
             *MP_MAX_PROD.withSpeedBeacons({AssemblingMachine3:8, OilRefinery:12, ChemicalPlant:8})))
         
         cb = circuitsBpBook()
-        g0 = BlackBox(box(cb.convert('green0')), name='green')
-        r0 = BlackBox(box(cb.convert('red0')), name='red')
+        g0 = BlackBox(box(cb.convert('green0')[0]), name='green')
+        r0 = BlackBox(box(cb.convert('red0')[0]), name='red')
 
         cls.circuits6 = Box(3*copy(g0) + 3*copy(r0) + 12*rcp.processing_unit(),
                         outputs=[itm.electronic_circuit, itm.advanced_circuit, itm.processing_unit],

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass,FrozenInstanceError
 from collections import defaultdict
 from collections.abc import Sequence
 
@@ -193,9 +193,15 @@ class Beacon(Machine):
 
     id: str
     modules: tuple[Module, ...]
+    _frozen: bool = False
 
     def __hash__(self):
-        return hash((self.__class__, id(self.blueprintInfo), *self.modules))
+        if not self._frozen:
+            raise ValueError("can't take hash of non-frozen Beacon")
+        return hash((self.__class__,
+                     self.id,
+                     -1 if self.blueprintInfo == {} else id(self.blueprintInfo),
+                     *self.modules))
 
     def _jsonObj(self, **kwargs):
         obj = super()._jsonObj(**kwargs)
@@ -204,7 +210,7 @@ class Beacon(Machine):
         obj['modules'] = [m._jsonObj() for m in self.modules]
         return obj
 
-    def __init__(self, id = None, *, modules = None, **kws):
+    def __init__(self, id = None, *, modules = None, freeze = True, **kws):
         super().__init__(**kws)
         if isinstance(id, (type(None), str)):
             pass
@@ -213,8 +219,15 @@ class Beacon(Machine):
             id = None
         self.id = id
         self.modules = [] if modules is None else modules
+        if freeze:
+            self._frozen = True
 
     def __setattr__(self, prop, val):
+        if prop == 'throttle':
+            if val != 1:
+                raise ValueError('beacons can not be throttled')
+        elif self._frozen and prop.find('__') == -1:
+            raise FrozenInstanceError()
         if hasattr(self,  'moduleInventorySize') and prop == 'modules':
             if isinstance(val, Module):
                 modules = self.moduleInventorySize * val
@@ -224,6 +237,11 @@ class Beacon(Machine):
                     raise ValueError(f'too many modules for {self.alias}: {len(modules)} > {self.moduleInventorySize}')
             val = tuple(modules)
         return super().__setattr__(prop, val)
+
+    def __delattr__(self, prop):
+        if self._frozen:
+            raise FrozenInstanceError()
+        return super().__delattr__(prop, val)
 
     def _repr_parts(self, lst):
         _repr_modules_part('', self.modules, lst)

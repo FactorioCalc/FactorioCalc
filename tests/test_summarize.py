@@ -22,8 +22,8 @@ class SummarizeTest:
 
 class SummarizeTests(unittest.TestCase):
 
-    testScience = SummarizeTest(lambda: bpBook().find('science3').convert())
+    testScience = SummarizeTest(lambda: bpBook().find('science3').convert()[0])
 
     testScienceB = SummarizeTest(science3Boxed)
 
-    testOilStuff = SummarizeTest(lambda: bpBook().find('oil-stuff+lds').convert())
+    testOilStuff = SummarizeTest(lambda: bpBook().find('oil-stuff+lds').convert()[0])

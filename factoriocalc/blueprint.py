@@ -43,7 +43,10 @@ class Blueprint:
                 cls = mchByName[v['name']]
             except KeyError:
                 continue
-            m = cls()
+            if issubclass(cls, machine.Beacon):
+                m = cls(freeze=False)
+            else:
+                m = cls()
             m.blueprintInfo = v
             if isinstance(m, machine.RocketSilo):
                 m.recipe = recipeMap[rocketSiloRecipe]
@@ -54,6 +57,7 @@ class Blueprint:
             if 'items' in v:
                 m.modules = [*chain.from_iterable(repeat(itmByName[item], num) for item, num in v['items'].items())]
             if isinstance(m, machine.Beacon):
+                m._frozen = True
                 beacons.append(m)
             elif m :
                 machines.append(m)

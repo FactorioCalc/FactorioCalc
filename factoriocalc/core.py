@@ -207,9 +207,12 @@ class Machine(MachineBase, metaclass=MachineMeta):
     """A entity that used directly or indirectly to produce something."""
     throttle: Rational
     unbounded: bool = False
-    blueprintInfo: dict = field(default = None, init = False, repr = False, compare = False)
-    __flows1: Flows = field(default = None, init = False, repr = False, compare = False)
-    __flows: Flows = field(default = None, init = False, repr = False, compare = False)
+    blueprintInfo: dict = None
+    __flows1: Flows = field(default = None, compare = False)
+    __flows: Flows = field(default = None, compare = False)
+
+    def __init__(self, *, throttle = 1):
+        self.throttle = throttle
 
     @property
     def machine(self):
@@ -238,7 +241,7 @@ class Machine(MachineBase, metaclass=MachineMeta):
         # fixme: should likely make a copy ...
         self.unbounded = True
         return self
-    
+
     def __setattr__(self, prop, val):
         if prop == 'throttle':
             val = frac(val)
@@ -345,9 +348,6 @@ class Machine(MachineBase, metaclass=MachineMeta):
             self.__flows = res
         return res
 
-    def __init__(self, *, throttle = 1):
-        self.throttle = throttle
-
     def bonus(self) -> Bonus:
         return Bonus()
 
@@ -433,7 +433,7 @@ class Mul(MachineBase):
         return f'{self.num} {self.machine}'
 
     def __repr__(self):
-        return f'Mul({self.num!r}, {self.machine!r})'
+        return repr(self.num) + '*' + repr(self.machine)
 
     def _jsonObj(self, objs, **kwargs):
         from .jsonconv import _jsonObj
