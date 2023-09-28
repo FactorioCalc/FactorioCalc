@@ -29,6 +29,9 @@ class _BurnerMixin:
     def _repr_parts(self, lst):
         lst.append(f'fuel={self.fuel!r}')
 
+    def _keyParts(self, lst):
+        lst.append('fuel', self.fuel)
+
     def _jsonObj(self, **kwargs):
         obj = super()._jsonObj(**kwargs)
         if type(obj) is int:
@@ -85,6 +88,13 @@ class _ModulesMixin:
         _repr_modules_part('modules=', self.modules, lst)
         if len(self.beacons) > 0:
             lst.append('beacons=' + '+'.join(repr(b) for b in self.beacons))
+
+    def _keyParts(self, lst):
+        lst.append(('modules', tuple(sorted(self.modules))))
+        beacons = defaultdict(lambda: 0)
+        for m in self.beacons:
+            beacons[(m.machine.__class__, tuple(sorted(m.machine.modules)))] += m.num
+        lst.append(('beacons', tuple(sorted((num, cls, modules) for (cls, modules), num in beacons.items()))))
 
     def _jsonObj(self, **kwargs):
         obj = super()._jsonObj(**kwargs)
@@ -146,7 +156,10 @@ class _ModulesMixin:
                 else:
                     raise TypeError('expected Beacon type')
             for v in val:
-                if isinstance(v, Mul):
+                if isinstance(v, tuple):
+                    num = v[0]
+                    beacon = v[1](*v[2:])
+                elif isinstance(v, Mul):
                     num = v.num
                     beacon = asBeacon(v.machine)
                 else:
@@ -161,12 +174,12 @@ class _ModulesMixin:
             if num == 1:
                 return str(obj)
             else:
-                return f'{num:g} {obj}'
+                return f'{num:.3g}x {obj}'
         modules = defaultdict(lambda: 0)
         for m in self.modules:
             modules[m] += 1
-        modulesStr = ', '.join(fmt_w_num(num, m) for m, num in modules.items())
-        beaconsStr = ', '.join(str(b) for b in self.beacons)
+        modulesStr = ' + '.join(fmt_w_num(num, m) for m, num in modules.items())
+        beaconsStr = ' + '.join(fmt_w_num(m.num, m.machine) for m in self.beacons)
         if modulesStr and beaconsStr:
             return f'{modulesStr}; {beaconsStr}'
         elif modulesStr:
@@ -245,6 +258,9 @@ class Beacon(Machine):
 
     def _repr_parts(self, lst):
         _repr_modules_part('', self.modules, lst)
+
+    def _keyParts(self, lst):
+        lst.append(('modules', tuple(sorted(self.modules))))
     
     def effect(self):
         return sum([m.effect for m in self.modules],Effect()) * self.distributionEffectivity
@@ -253,7 +269,7 @@ class Beacon(Machine):
         modules = defaultdict(lambda: 0)
         for m in self.modules:
             modules[m] += 1
-        return ', '.join(str(m) if num == 1 else f'{num:g} {m}' for m, num in modules.items())
+        return ' + '.join(str(m) if num == 1 else f'{num}x {m}' for m, num in modules.items())
 
 class UnresolvedBeacon:
     __slots__ = ('id')

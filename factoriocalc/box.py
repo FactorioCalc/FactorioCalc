@@ -487,22 +487,24 @@ class Box(BoxBase):
         obj = _copy(self)
         obj.inner = obj.inner.summarize()
         return obj
-    
+
+    def print(self, out = None, prefix = ''):
+        if out is None:
+            out = sys.stdout
+        self._header(out, prefix)
+        prefix += '  '
+        for m in self.inner.machines:
+            m.print(out, prefix + '  ')
+        self._footer(out, prefix)
+
     def summary(self, out = None, *, prefix = '', includeSolvedBoxFlows = True, includeMachineFlows = False, includeBoxDetails = True, flowsItemFilter = None):
         self._summary(out, prefix, includeSolvedBoxFlows, includeMachineFlows, includeBoxDetails, flowsItemFilter)
 
     def _summary(self, out, prefix, includeSolvedBoxFlows, includeMachineFlows, includeBoxDetails, flowsItemFilter, _namePrefix = ''):
         if out is None:
             out = sys.stdout
-        out.write(prefix)
-        nameSuffix = ''
-        if getattr(self, 'throttle', 1) != 1:
-            nameSuffix = f' @{self.throttle:.6g}'
-        if self.name is None:
-            out.write(f'{_namePrefix}{self.__class__.__name__}{nameSuffix}:\n')
-        else:
-            out.write(f'{_namePrefix}{self.name}{nameSuffix}:\n')
-        prefix = prefix + '  '
+        self._header(out, prefix, _namePrefix)
+        prefix += '  '
         self.inner._summary(out, prefix + '  ', includeSolvedBoxFlows, includeMachineFlows, includeBoxDetails, flowsItemFilter)
         flows = self.flows()
         if flows.state != FlowsState.OK:
@@ -511,6 +513,18 @@ class Box(BoxBase):
             pass
         else:
             flows = None
+        self._footer(out, prefix, flows)
+
+    def _header(self, out, prefix, namePrefix = ''):
+        nameSuffix = ''
+        if getattr(self, 'throttle', 1) != 1:
+            nameSuffix = f' @{self.throttle:.6g}'
+        if self.name is None:
+            out.write(f'{prefix}{namePrefix}{self.__class__.__name__}{nameSuffix}:\n')
+        else:
+            out.write(f'{prefix}{namePrefix}{self.name}{nameSuffix}:\n')
+
+    def _footer(self, out, prefix, flows = None):
         if self.byproducts:
             out.write(f'{prefix}Products: {self.products.str(flows)}\n')
             out.write(f'{prefix}Byproducts: {self.byproducts.str(flows)}\n')

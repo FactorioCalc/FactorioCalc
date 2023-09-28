@@ -188,15 +188,18 @@ class MachineBase:
     def __add__(self, other):
         return Group(self,other)
 
-    def print(self, out = None, prefix = '', suffix = '\n'):
+    def print(self, out = None, prefix = ''):
         if out is None:
             out = sys.stdout
+        out.write(prefix)
         out.write(str(self))
+        out.write('\n')
 
     def pprint(self, out = None, prefix = '', suffix = '\n'):
         if out is None:
             out = sys.stdout
         out.write(repr(self))
+        out.write(suffix)
 
     def __new__(cls, *args, **kwargs):
         if getattr(cls, 'abstract', None) == cls:
@@ -216,13 +219,14 @@ class MachineMeta(type):
 class Machine(MachineBase, metaclass=MachineMeta):
     """A entity that used directly or indirectly to produce something."""
     throttle: Rational
-    unbounded: bool = False
+    unbounded: bool
     blueprintInfo: dict = None
     __flows1: Flows = field(default = None, compare = False)
     __flows: Flows = field(default = None, compare = False)
 
-    def __init__(self, *, throttle = 1):
+    def __init__(self, *, throttle = 1, unbounded = False):
         self.throttle = throttle
+        self.unbounded = unbounded
 
     @property
     def machine(self):
@@ -294,7 +298,7 @@ class Machine(MachineBase, metaclass=MachineMeta):
         if self.recipe:
             parts.append(self.recipe.alias)
         if self.throttle != 1:
-            parts.append(f'@{self.throttle:g}')
+            parts.append(f'@{self.throttle:.6g}')
         prefix = '~' if self.unbounded else ''
         modulesStr = self._modulesStr()
         if modulesStr:
@@ -306,6 +310,18 @@ class Machine(MachineBase, metaclass=MachineMeta):
 
     def _modulesStr(self):
         return ''
+
+    def _key(self):
+        parts = [self.__class__]
+        if self.recipe:
+            parts.append(('recipe', self.recipe))
+        parts.append(('throttle', self.throttle))
+        parts.append(('unbounded', self.unbounded))
+        self._keyParts(parts)
+        return tuple(parts)
+
+    def _keyParts(self, lst):
+        pass
 
     def _jsonObj(self, objs, **kwargs):
         from .jsonconv import _jsonObj
@@ -442,7 +458,7 @@ class Mul(MachineBase):
         super().__setattr__(prop, val)
 
     def __str__(self):
-        return f'{self.num} {self.machine}'
+        return f'{self.num:.3g}x {self.machine}'
 
     def __repr__(self):
         return repr(self.num) + '*' + repr(self.machine)
@@ -473,7 +489,6 @@ class Mul(MachineBase):
     @property
     def byproducts(self):
         return self.machine.byproducts
-    
 
     @property
     def recipe(self):
@@ -585,20 +600,14 @@ class Group(Sequence,MachineBase):
     def __add__(self, other):
         return Group(*self,other)
 
-    def print(self, out = None, prefix = '', suffix = '\n'):
+    def print(self, out = None, prefix = ''):
         if out is None:
             out = sys.stdout
-        out.write('(')
-        prefix += '  '
-        if len(self.machines) > 0:
-            self.machines[0].print(out, prefix, '')
-        for m in self.machines[1:]:
-            out.write(f'\n')
-            out.write(prefix)
-            out.write('+ ')
-            m.print(out, prefix, '')
-        out.write(')')
-        out.write(suffix)
+        out.write(prefix)
+        out.write('Group:\n')
+        prefix += '   '
+        for m in self.machines:
+            m.print(out, prefix)
 
     def pprint(self, out = None, prefix = '', suffix = '\n'):
         if out is None:
@@ -613,6 +622,28 @@ class Group(Sequence,MachineBase):
             m.pprint(out, prefix, '')
         out.write(')')
         out.write(suffix)
+
+    def simplify(self):
+        tally = defaultdict(lambda: 0)
+        for m in self.machines:
+            if isinstance(m.machine, Machine):
+                tally[m.machine._key()] += m.num
+            else:
+                tally[id(m.machine)] = m.simplify()
+        machines = []
+        for key, val in tally.items():
+            if isinstance(key, tuple):
+                machine = key[0](**{k: v for k, v in key[1:]})
+                num = val
+                if num == 0:
+                    pass
+                elif num == 1:
+                    machines.append(machine)
+                else:
+                    machines.append(Mul(num, machine))
+            else:
+                machines.append(val)
+        return Group(machines)
 
     def summary(self, out = sys.stdout, *, prefix = '',
                 includeSolvedBoxFlows = True, includeMachineFlows = True, includeBoxDetails = True,
