@@ -51,5 +51,7 @@ _extraSymbols = ['Constraint', 'Term']
 ## separately
 from . import import_
 from .import_ import *
-importGameInfoVanilla()
+__all__ += ['setGameConfig']
+setGameConfig('normal')
 
+from . import mods

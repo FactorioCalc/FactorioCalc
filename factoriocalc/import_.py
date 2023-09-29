@@ -11,6 +11,42 @@ from collections import defaultdict
 
 _dir = Path(__file__).parent.resolve()
 
+def setGameConfig(mode, path = None, **kwargs):
+    if mode == 'normal':
+        importFun = vanillaImport
+        if path is None:
+            path = _dir / 'game-info-normal.json'
+    elif mode == 'expensive':
+        importFun = vanillaImport
+        if path is None:
+            path = _dir / 'game-info-expensive.json'
+    elif mode == 'custom':
+        importFun = vanillaImport
+    elif mode == 'mod':
+        importFun = basicImport
+    elif isinstance(mode, str):
+        from . import mods
+        fname = mode.translate(str.maketrans({' ': '_', '-': '_'})).lower()
+        importFun = getattr(mods, fname)
+    else:
+        importFun = mode
+
+    with open(path) as f:
+        gameInfo = json.load(f)
+
+    return importFun(gameInfo, **kwargs)
+
+def vanillaImport(gameInfo, **kwargs):
+    return importGameInfo(gameInfo,
+                          presets = vanillaPresets,
+                          extraPasses = [vanillaResearchHacks],
+                          craftingHints = vanillaCraftingHints,
+                          rocketRecipeHints = {'rocket-silo::space-science-pack': 'default'},
+                          **kwargs)
+
+def basicImport(gameInfo, **kwargs):
+    return importGameInfo(gameInfo, **kwargs)
+
 def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHints, logger):
     from . import mch
 
@@ -411,22 +447,37 @@ def vanillaCraftingHints():
 
     return craftingHints
 
-def basicAliasPass(gi):
-    for name,obj in gi.itmByName.items():
-        setattr(gi.itm, toPythonName(name), obj)
-        gi.aliases[name] = toPythonName(name)
-    
-    for name,obj in gi.rcpByName.items():
-        setattr(gi.rcp, toPythonName(name), obj)
-        gi.aliases[name] = toPythonName(name)
 
-    for name,obj in gi.mchByName.items():
-        setattr(gi.mch, toClassName(name), obj)
+def standardAliasPass(gi, nameTouchup = None):
+    if nameTouchup is None:
+        nameTouchup = lambda name: name
+        
+    for name,obj in gi.itmByName.items():
+        alias = nameTouchup(name)
+        alias = toPythonName(alias)
+        assert(not hasattr(gi.itm, alias))
+        setattr(gi.itm, alias,  obj)
+        gi.aliases[name] = alias
+
+    for name,obj in gi.rcpByName.items():
+        alias = nameTouchup(name)
+        alias = toPythonName(alias)
+        assert(not hasattr(gi.rcp, alias))
+        setattr(gi.rcp, alias, obj)
+        gi.aliases[name] = alias
+
+    for name,cls in gi.mchByName.items():
+        alias = nameTouchup(name)
+        alias = toClassName(alias)
+        assert(not hasattr(gi.mch, alias))
+        cls.__name__ = alias
+        cls.__qualname__ = alias
+        setattr(gi.mch, alias, cls)
 
 def importGameInfo(gameInfo, *,
                    includeDisabled = True,
                    preAliasPasses = (),
-                   aliasPass = basicAliasPass,
+                   aliasPass = standardAliasPass,
                    presets = None,
                    extraPasses = (),
                    craftingHints = None,
@@ -552,23 +603,5 @@ def importGameInfo(gameInfo, *,
 
     return token
 
-def _defaultImport(gameInfo, includeDisabled = True):
-    return importGameInfo(gameInfo,
-                          includeDisabled = includeDisabled,
-                          presets = vanillaPresets,
-                          extraPasses = [vanillaResearchHacks],
-                          craftingHints = vanillaCraftingHints,
-                          rocketRecipeHints = {'rocket-silo::space-science-pack': 'default'},
-                          logger = None)
-
-def importGameInfoVanilla(gameInfo = None, includeDisabled = True):
-    if gameInfo is None:
-        gameInfo = _dir / 'game-info-normal.json'
-    return _defaultImport(gameInfo, includeDisabled)
-
-def importGameInfoExpensive():
-    return _defaultImport(_dir / 'game-info-expensive.json')
-
-
-__all__ = ('importGameInfo', 'importGameInfoVanilla', 'importGameInfoExpensive',
-           'vanillaResearchHacks', 'vanillaCraftingHints', 'basicAliasPass', 'CraftingHint', 'GameInfo', 'toPythonName', 'toClassName')
+__all__ = ('setGameConfig', 'importGameInfo', 'importGameInfo',
+           'vanillaResearchHacks', 'vanillaCraftingHints', 'standardAliasPass', 'CraftingHint', 'GameInfo', 'toPythonName', 'toClassName')
