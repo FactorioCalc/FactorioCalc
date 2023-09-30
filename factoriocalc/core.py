@@ -283,13 +283,13 @@ class Machine(MachineBase, metaclass=MachineMeta):
             parts.append(repr(self.recipe))
         if self.throttle != 1:
             parts.append(f'throttle={self.throttle!r}')
-        self._repr_parts(parts)
+        self._reprParts(parts)
         if self.blueprintInfo is not None:
             parts.append(f'blueprintInfo=...')
         prefix = '~' if self.unbounded else ''
         return '{}mch.{}({})'.format(prefix, name, ', '.join(parts))
 
-    def _repr_parts(self, lst):
+    def _reprParts(self, lst):
         pass
 
     def __str__(self):
@@ -300,15 +300,13 @@ class Machine(MachineBase, metaclass=MachineMeta):
         if self.throttle != 1:
             parts.append(f'@{self.throttle:.6g}')
         prefix = '~' if self.unbounded else ''
-        modulesStr = self._modulesStr()
-        if modulesStr:
-            parts.append(modulesStr)
+        self._strParts(parts)
         if parts:
             return '{}{}({})'.format(prefix, name, '; '.join(parts))
         else:
             return name
 
-    def _modulesStr(self):
+    def _strParts(self, lst):
         return ''
 
     def _key(self):
