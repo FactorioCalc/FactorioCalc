@@ -249,7 +249,7 @@ class Box(BoxBase):
     priorities: Priorities
     simple: Bool
 
-    def __init__(self, inner, *, name = None,
+    def __init__(self, *args, name = None, inner = None,
                  outputs = None, extraOutputs = (), outputTouchups = (), outputsLoose = False,
                  inputs = None, extraInputs = (), inputTouchups = (), inputsLoose = True,
                  unconstrained = None,
@@ -272,11 +272,13 @@ class Box(BoxBase):
         Also see `box()`, which is a shortcut to both create a box and then
         solve it.
 
-        *inner*
-            A `Group`.
+        *args*
 
         *name*
             A name for the box
+
+        *inner*
+            A `Group`.
 
         *outputs*, *extraOutputs*, *outputTouchups*, *inputs*, *extraInputs*, *inputTouchups*
             A sequence or mapping of outputs and inputs.  The key value can
@@ -327,6 +329,23 @@ class Box(BoxBase):
             |nbsp|
 
         """
+        if len(args) > 0 and isinstance(args[0], str):
+            if name is None:
+                name = args[0]
+                args = args[1:]
+            else:
+                raise TypeError("'name' parameter provided as both a positional and keyword argument")
+            
+        if len(args) > 0:
+            if inner is None:
+                inner = args[0]
+                args = args[1:]
+            else:
+                raise TypeError("'inner' parameter provided as both a positional and keyword argument")
+
+        if len(args) > 0:
+            raise TypeError('too many positional arguments provided')
+        
         from .solver import SolveRes
 
         orig = None

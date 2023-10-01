@@ -19,18 +19,19 @@ from ._helper import getDefaultFuel
 __all__ = ('box', 'produce', 'merge', 'union',
            'ProduceResult', 'MultipleChoiceError', 'SolveFailedError', 'NonUniqueSolutionError')
 
-def _box(inner, minSolveRes, cls, **kwargs):
+def _box(args, minSolveRes, kwargs):
     if minSolveRes is None:
         minSolveRes = SolveRes.MULTI
-    b = cls(inner, **kwargs)
+    b = Box(*args, **kwargs)
     res = b.solve()
     if res > minSolveRes:
-        if not res.ok():
+        if res.ok():
+            raise NonUniqueSolutionError(_BoxFailedInfo(b, res))
+        else:
             raise SolveFailedError(_BoxFailedInfo(b, res))
-        raise NonUniqueSolutionError(_BoxFailedInfo(b, res))
     return b
 
-def box(inner, *, minSolveRes = None, **kwargs):
+def box(*args, minSolveRes = None, **kwargs):
     """Create a `Box` and then solve it.
 
     Will raise `NonUniqueSolutionError` if the solver returned a result larger
@@ -40,14 +41,14 @@ def box(inner, *, minSolveRes = None, **kwargs):
     All other parameters are passed to `Box`.
 
     """
-    return _box(inner, minSolveRes, Box, **kwargs)
+    return _box(args, minSolveRes, kwargs)
 
-def blackBox(inner, *, minSolveRes = None, **kwargs):
+def blackBox(*args, minSolveRes = None, **kwargs):
     """Create a `BlackBox` and then solve it.
 
     See `box`.
     """
-    b = _box(inner, minSolveRes, Box, **kwargs)
+    b = _box(args, minSolveRes, kwargs)
     return BlackBox(b)
 
 @dataclass
