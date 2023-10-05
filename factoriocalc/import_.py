@@ -12,14 +12,38 @@ from collections import defaultdict
 _dir = Path(__file__).parent.resolve()
 
 def setGameConfig(mode, path = None, **kwargs):
+    """Changes the game configuration.
+
+    *mode*
+        One of: ``'normal'`` for normal gameplay; ``'expansive'`` for the
+        expensive gameplay mode; ``'custom'`` for vanilla gameplay but using a
+        custom configuration; ``'mod'`` for overhaul mods; or a string
+        specifying a custom mod with builin support, currently this included
+        "Space Exploration" and "Krastorio 2".
+
+    *path*
+        Path to a JSON file created by the XXX mod.  Ignored if mode is
+        ``'normal'`` or ``'expensive'``, otherwise must be provided.
+
+    Note that changing the game configuration creates a new set of symbols in
+    the `itm`, `rcp`, `mch`, and `preset` modules.  Any references to symboles
+    created before calling this function are unlikely to work.
+
+    The game configuration is stored in a context varable `config.gameInfo`
+    so, in theory, it should be possible to use different game configurations
+    within the same python program, but this has not been tested.
+
+    Returns a `contextvars.Token` that can in theory be used to restore the
+    previous configuration by directly setting `config.gameInfo` but again,
+    this has not been tested.
+
+    """
     if mode == 'normal':
         importFun = vanillaImport
-        if path is None:
-            path = _dir / 'game-info-normal.json'
+        path = _dir / 'game-info-normal.json'
     elif mode == 'expensive':
         importFun = vanillaImport
-        if path is None:
-            path = _dir / 'game-info-expensive.json'
+        path = _dir / 'game-info-expensive.json'
     elif mode == 'custom':
         importFun = vanillaImport
     elif mode == 'mod':

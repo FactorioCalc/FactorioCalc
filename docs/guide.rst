@@ -39,15 +39,20 @@ used to create a `Frac`.  For example: ``frac('0.12')``, ``frac('1/3')``,
 
 Each machine is a class in the runtime generated `mch` package.  The name of
 the machine is the same as the internal name but converted to TitleCase.  The
-first argument of the constructor is the recipe.  For example, to create an
+internal name is often the same as English name, but not always.  To find a
+machine based on the translated name you can use the `mch._find()` function.
+
+To produce something from a machine you need to instantiate it.  The first
+argument of the constructor is the recipe.  For example, to create an
 "assembling-machine-3" that produces electronic circuits you could use
 ``mch.AssemblingMachine3(rcp.electronic_circuit)``.  Additional keyword
-arguments can be provided to specify the fuel used, beacons, or modules when
+arguments can be provided to specify the fuel used, beacons, and modules when
 applicable.
 
 Recipes are in the runtime generated `rcp` package and are the same as the
 internal names but with ``-`` (dashes) converted to ``_`` (underscores).
-Items are in `itm`.
+Items are in `itm`.  Like the `mch` package, both the `rcp` and `itm` package
+have have a `_find()` function to find an item based on the translated name.
 
 Within FactorioCalc the items a machine produces or consumes is cosidered a
 *flow*.  The rate of the flow is positive for items produced and negative
@@ -687,3 +692,6 @@ afterwards.  Rocket silos are assumed to be creating space
 science, by default.
 
 See :ref:`blueprints`.
+
+Expensive Mode and Mod Support
+==============================

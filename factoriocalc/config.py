@@ -10,7 +10,8 @@
 
   Machine to use when instantiating recipes, The value is a sequence of
   machines (with or without a recipe) to try.  The `MP_*
-  <factoriocalc.MP_EARLY_GAME>` presets provide some common configuration.
+  <factoriocalc.preset.MP_EARLY_GAME>` presets provide some common configuration for
+  vanilla gameplay.
 
   When selecting a machine to use the first best match is used.  If the
   machine has a matching recipe associated then that will be given priority.
@@ -31,10 +32,7 @@
   :type: ContextVar
 
   Internal variable to control the contents of the `factoriocalc.mch`,
-  `factoriocalc.itm`, amd `factoriocalc.rcp` modules.
-
-  Do not modify the contents directly, instead use
-  `factoriocalc.defaultImport` or `factoriocalc.importGameInfo`.
+  `factoriocalc.itm`, `factoriocalc.rcp` and `factoriocalc.preset` modules.
 
 """
 

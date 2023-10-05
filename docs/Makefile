@@ -16,7 +16,7 @@ help:
 	@echo 'supported taregts: clean html dirhtml singlehtml linkcheck'
 
 clean:
-	rm reference.rst
+	rm -f reference.rst
 	@$(SPHINXBUILD) -M clean "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 html dirhtml singlehtml linkcheck: reference.rst description.rst
