@@ -18,7 +18,7 @@ class Blueprint:
         if 'blueprint' not in bp:
             raise ValueError('expected a blueprint')
         self.raw = bp
-    def convert(self, *, burnerFuel=None, rocketSiloRecipe='space-science-pack') -> Group:
+    def convert(self, *, burnerFuel=None, rocketSiloRecipe=None) -> Group:
         """Convert a blueprint into a nested `Group`.
 
         The outer group contained two inner groups.  The first inner group is
@@ -39,7 +39,7 @@ class Blueprint:
         
         if burnerFuel is None:
             burnerFuel = getDefaultFuel()
-        
+
         machines = []
         machinesOnGrid = {}
         beacons = []
@@ -55,7 +55,10 @@ class Blueprint:
                 m = cls()
             m.blueprintInfo = v
             if isinstance(m, machine.RocketSilo):
-                m.recipe = recipeMap[rocketSiloRecipe]
+                if rocketSiloRecipe:
+                    m.recipe = rocketSiloRecipe
+                else:
+                    m.recipe = m.defaultProduct()
             elif 'recipe' in v:
                 m.recipe = recipeMap[v['recipe']]
             if hasattr(m, 'fuel'):

@@ -33,6 +33,7 @@ class GameInfo:
     recipesThatMake: dict = None
     recipesThatUse: dict = None
     craftingHints: dict = None
+    rocketSiloDefaultProduct: dict = _dc.field(default_factory = dict)
     translatedNames: dict = None
     aliases: dict = _dc.field(default_factory = dict)
     disabledRecipes: set = _dc.field(default_factory = set)

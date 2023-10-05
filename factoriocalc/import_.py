@@ -323,6 +323,8 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
         except KeyError:
             pass
 
+    rocketSiloDefaultProduct = {}
+
     # create recipes for rocket launch products
     for k,v in gameInfo['items'].items():
         rocket_launch_products = v.get('rocket_launch_products', None)
@@ -349,12 +351,12 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
             num = rocketSilo.rocketPartsRequired
             rocket_parts_inputs = tuple(RecipeComponent(rc.num*num, 0, rc.item) for rc in recipe.inputs)
             rocket_parts_time = recipe.time*num
-            if useHint == '':
+            if useHint == '' or useHint == 'default-for-machine':
                 name = f'{item.name}--{rocketSilo.name}'
-            elif useHint == 'default':
+            elif useHint == 'default' or useHint == 'default-for-item':
                 name = item.name
             else:
-                raise ValueError(f"expected one of 'skip', 'default' ot '' for rocketRecipeHints['{name}'] but got '{useHint}'")
+                raise ValueError(f"expected one of 'skip', 'default' or '' for rocketRecipeHints['{name}'] but got '{useHint}'")
             recipe = rocketSilo.Recipe(
                 name = name,
                 category = categories['rocket-building'],
@@ -369,7 +371,16 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
                 cargo = RecipeComponent(num=1, catalyst=0, item=lookupItem(k)),
             )
             addRecipe(recipe)
+            if useHint == 'default' or useHint == 'default-for-machine':
+                if rocketSilo in rocketSiloDefaultProduct:
+                    rocketSiloDefaultProduct[rocketSilo] = None
+                else:
+                    rocketSiloDefaultProduct[rocketSilo] = recipe
 
+    for rocketSilo, product in list(rocketSiloDefaultProduct.items()):
+        if product is None:
+            del rocketSiloDefaultProduct[rocketSilo]
+                                
     steam = Recipe(
         name = 'steam',
         category = Category('Boiler', [mchByName['boiler']]),
@@ -386,6 +397,7 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
         mchByName = mchByName,
         translatedNames = translatedNames,
         disabledRecipes = disabledRecipes,
+        rocketSiloDefaultProduct = rocketSiloDefaultProduct,
     )
 
     return res
@@ -576,13 +588,17 @@ def importGameInfo(gameInfo, *,
         ``<rocket-silo>::<product>``, where ``<rocket-silo>`` is the internal
         name of the rocket silo used to launch the rocket, and ``<product>``
         is the result of launching the rocket.  The value of the mapping is
-        one of ``''`` (an empty string), ``default``, or ``skip``.  If an
-        empty string than a recipe is created but the name is mangled.  If
-        ``default`` than a recipe is created and given the same name as the
-        product.  If ``skip`` is used than no recipe is created.  As a special
-        case, if ``skip`` is used and the key is a name of a rocket silo
-        without any product, than no recipes are created involving that rocket
-        silo.
+        one of ``''`` (an empty string), ``default``, ``default-for-machine``,
+        ``default-for-item`` or ``skip``.  If an empty string or
+        ``default-for-machine`` than a recipe is created but the name is
+        mangled.  If ``default`` or ``default-for-item``, than a recipe is
+        created and given the same name as the product.  In addition, if the
+        value is ``default`` or ``default-for-machine`` than the recipe will
+        be assumed to be the product of a launching a rocket in the specified
+        rocket silo when importing blueprints.  If ``skip`` is used than no
+        recipe is created.  As a special case, if ``skip`` is used and the key
+        is a name of a rocket silo without any product, than no recipes are
+        created involving that rocket silo.
 
     *logger*
         Function called to log additional info, it is called once per line to

@@ -335,4 +335,13 @@ class RocketSilo(CraftingMachine):
                       adjusted = throttle != 1)
         return flows
 
+    @classmethod
+    def defaultProduct(cls):
+        from . import config
+        rocketSiloDefaultProduct = config.gameInfo.get().rocketSiloDefaultProduct
+        for c in cls.__mro__:
+            if c in rocketSiloDefaultProduct:
+                return rocketSiloDefaultProduct[c]
+        return None
+
 
