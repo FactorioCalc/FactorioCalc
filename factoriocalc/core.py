@@ -45,39 +45,64 @@ class DefaultType(Uniq):
     def __repr__(self):
         return 'Default'
     def __new__(cls):
-        return DEFAULT
-    def __copy__(self):
-        return self
-    def __deepcopy__(self, _):
-        return self
+        return Default
 
 Default = object.__new__(DefaultType)
 
-class _SortByOrderKey:
+class FirstType(Uniq):
+    __slots__ = ()
+    def __repr__(self):
+        return 'First'
+    def __new__(cls):
+        return First
     def __lt__(self, other):
-        if not isinstance(other, Ingredient):
-            return NotImplemented
-        return self.order < other.order
+        if other is First:
+            return False
+        return True
     def __le__(self, other):
-        return self.__eq__(other) or self.__lt__(other)
+        return True
     def __gt__(self, other):
-        if not isinstance(other, Ingredient):
-            return NotImplemented
-        return self.order > other.order
+        return False
     def __ge__(self, other):
-        return self.__eq__(other) or self.__gt__(other)
+        if other is First:
+            return True
+        return False
+
+First = object.__new__(FirstType)
+
+class LastType(Uniq):
+    __slots__ = ()
+    def __repr__(self):
+        return 'Last'
+    def __new__(cls):
+        return Last
+    def __lt__(self, other):
+        return False
+    def __le__(self, other):
+        if other is Last:
+            return True
+        return False
+    def __gt__(self, other):
+        if other is Last:
+            return False
+        return True
+    def __ge__(self, other):
+        return True
+
+Last = object.__new__(LastType)
 
 class RecipesForItems(NamedTuple):
     products: list
     byproducts: list
     inputs: list
     
-class Ingredient(_SortByOrderKey,Uniq,Immutable):
+class Ingredient(Uniq,Immutable):
     """Base class for all items."""
-    __slots__ = ('name', 'order')
+    __slots__ = ('name', 'order', '_sortKey')
     def __init__(self, name, order):
         object.__setattr__(self, 'name', name)
         object.__setattr__(self, 'order', order)
+        object.__setattr__(self, '_sortKey', (order, id(self)))
     @property
     def alias(self):
         from .config import gameInfo
@@ -108,6 +133,22 @@ class Ingredient(_SortByOrderKey,Uniq,Immutable):
                 if self == rc.item:
                     byproducts.append(rcp)
         return RecipesForItems(products, byproducts,  gi.recipesThatUse[self])
+    def __lt__(self, other):
+        if not isinstance(other, Ingredient):
+            return NotImplemented
+        return self._sortKey < other._sortKey
+    def __le__(self, other):
+        if not isinstance(other, Ingredient):
+            return NotImplemented
+        return self._sortKey <= other._sortKey
+    def __gt__(self, other):
+        if not isinstance(other, Ingredient):
+            return NotImplemented
+        return self._sortKey > other._sortKey
+    def __ge__(self, other):
+        if not isinstance(other, Ingredient):
+            return NotImplemented
+        return self._sortKey >= other._sortKey
 
 def _rate(r):
     if isinstance(r, str):
@@ -188,6 +229,22 @@ class MachineBase:
     def __add__(self, other):
         return Group(self,other)
 
+    def __lt__(self, other):
+        if not isinstance(other, MachineBase):
+            return NotImplemented
+        try:
+            return self._sortKey() < other._sortKey()
+        except AttributeError:
+            return NotImplemented
+
+    def __gt__(self, other):
+        if not isinstance(other, MachineBase):
+            return NotImplemented
+        try:
+            return self._sortKey() > other._sortKey()
+        except AttributeError:
+            return NotImplemented
+
     def print(self, out = None, prefix = ''):
         if out is None:
             out = sys.stdout
@@ -266,6 +323,22 @@ class Machine(MachineBase, metaclass=MachineMeta):
             if prop != 'throttle':
                 self.__flows1 = None
         super().__setattr__(prop, val)
+
+    def _sortKey(self, num = ()):
+        recipe = self.recipe
+        fuel = getattr(self, 'fuel', None)
+        extraKeys = self._extraSortKeys()
+        return (1,
+                Last if recipe is None else recipe,
+                Last if fuel is None else fuel,
+                self.order,
+                extraKeys,
+                num,
+                self.unbounded,
+                self.throttle)
+
+    def _extraSortKeys(self):
+        return ()
 
     def _flatten(self, lst, factor):
         if factor == 1:
@@ -461,6 +534,9 @@ class Mul(MachineBase):
     def __repr__(self):
         return repr(self.num) + '*' + repr(self.machine)
 
+    def _sortKey(self, num = ()):
+        return self.machine._sortKey(num + (self.num,))
+
     def _jsonObj(self, objs, **kwargs):
         from .jsonconv import _jsonObj
         if id(self) in objs:
@@ -557,7 +633,10 @@ class Group(Sequence,MachineBase):
     @property 
     def num(self): 
         return 1
-    
+
+    def _sortKey(self, num = ()):
+        return (2, self.machines, num)
+
     def _flatten(self, lst, num):
         for m in self.machines:
             m._flatten(lst, num)
@@ -621,6 +700,12 @@ class Group(Sequence,MachineBase):
         out.write(')')
         out.write(suffix)
 
+    @classmethod
+    def _new(cls, machines):
+        res = super().__new__(cls)
+        res.machines = machines
+        return res
+
     def simplify(self):
         tally = defaultdict(lambda: 0)
         for m in self.machines:
@@ -641,7 +726,10 @@ class Group(Sequence,MachineBase):
                     machines.append(Mul(num, machine))
             else:
                 machines.append(val)
-        return Group(machines)
+        return self._new(machines)
+
+    def sorted(self):
+        return self._new(sorted(self.machines))
 
     def summary(self, out = sys.stdout, *, prefix = '',
                 includeSolvedBoxFlows = True, includeMachineFlows = True, includeBoxDetails = True,
@@ -1270,7 +1358,7 @@ class RecipeComponent(NamedTuple):
             return f'{self.num:g} ({self.product():g}) {self.item}'.format(float(self.num), self.item)
 
 
-class Recipe(_SortByOrderKey,Uniq,Immutable):
+class Recipe(Uniq,Immutable):
     """A recipe to produce something.
 
     """
@@ -1283,6 +1371,7 @@ class Recipe(_SortByOrderKey,Uniq,Immutable):
         object.__setattr__(self, 'byproducts', tuple(byproducts))
         object.__setattr__(self, 'time', time)
         object.__setattr__(self, 'order', order)
+        object.__setattr__(self, '_sortKey', (order, id(self)))
     @property
     def alias(self):
         from .config import gameInfo
@@ -1301,12 +1390,22 @@ class Recipe(_SortByOrderKey,Uniq,Immutable):
     @property
     def outputs(self):
         return self.products + self.byproducts
-    def __eq__(self, other):
-        return object.__eq__(self, other)
-    def __ne__(self, other):
-        return object.__ne__(self, other)
-    def __hash__(self):
-        return hash(self.name)
+    def __lt__(self, other):
+        if not isinstance(other, Recipe):
+            return NotImplemented
+        return self._sortKey < other._sortKey
+    def __le__(self, other):
+        if not isinstance(other, Recipe):
+            return NotImplemented
+        return self._sortKey <= other._sortKey
+    def __gt__(self, other):
+        if not isinstance(other, Recipe):
+            return NotImplemented
+        return self._sortKey > other._sortKey
+    def __ge__(self, other):
+        if not isinstance(other, Recipe):
+            return NotImplemented
+        return self._sortKey >= other._sortKey
     def __str__(self):
         return self.alias
     def __repr__(self):

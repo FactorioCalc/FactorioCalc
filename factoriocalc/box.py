@@ -33,6 +33,9 @@ class BoxBase(MachineBase):
     def recipe(self):
         return None
 
+    def _sortKey(self):
+        return (3,)
+
     def __repr__(self):
         nameStr = f' ({self.name})' if self.name is not None else ''
         throttleStr = f' @{self.throttle:g}' if getattr(self, 'throttle', 1) != 1 else ''

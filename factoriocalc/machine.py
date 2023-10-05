@@ -159,6 +159,9 @@ class _ModulesMixin(_ModulesHelperMixin):
             val = [Mul(num, beacon) for beacon, num in beacons.items()]
         return super().__setattr__(prop, val)
 
+    def _extraSortKeys(self):
+        return (self.modules, self.beacons)
+
     def _reprParts(self, lst):
         self._fmtModulesRepr('modules=', lst)
         if len(self.beacons) > 0:
@@ -246,6 +249,9 @@ class Beacon(_ModulesHelperMixin,Machine):
         if self._frozen:
             raise FrozenInstanceError()
         return super().__delattr__(prop, val)
+
+    def _extraSortKeys(self):
+        return (self.modules,)
 
     def _reprParts(self, lst):
         if self.id is not None:
