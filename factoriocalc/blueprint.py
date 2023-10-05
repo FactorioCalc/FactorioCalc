@@ -134,17 +134,26 @@ class BlueprintBook:
         return self.find(label).convert(**convertArgs)
 
 # fixme: rename to importBlueprint
-def decodeBlueprint(bp):
-    """Decode a string or file (if `pathlib.Path <https://docs.python.org/3/library/pathlib.html>`_) to a blueprint or blueprint book.
-    """
+def decodeBlueprint(arg = None, *, file = None):
+    """Decode *arg* to a blueprint or blueprint book.  If *arg* is a `pathlib.Path
+    <https://docs.python.org/3/library/pathlib.html>`_ or the *file* argument
+    is provided than read the contents from a file, otherwise decode the
+    string provided."""
     import zlib
     from base64 import b64decode
     import json
 
-    if isinstance(bp,Path):
-        bpStr = bp.read_bytes()
+    if arg is None:
+        if file is None:
+            raise TypeError('either arg or file must be defined')
+        arg = Path(file)
+    elif file is not None:
+        raise TypeError('both arg and file cannot be be defined at the same time')
+
+    if isinstance(arg, Path):
+        bpStr = arg.read_bytes()
     else:
-        bpStr = bp
+        bpStr = arg
 
     decoded = b64decode(bpStr[1:])
     decompressed = zlib.decompress(decoded)
