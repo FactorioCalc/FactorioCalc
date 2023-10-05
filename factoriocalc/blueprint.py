@@ -19,8 +19,14 @@ class Blueprint:
             raise ValueError('expected a blueprint')
         self.raw = bp
     def convert(self, *, burnerFuel=None, rocketSiloRecipe='space-science-pack') -> Group:
-        """Convert a blueprint into a `Group`."""
+        """Convert a blueprint into a nested `Group`.
 
+        The outer group contained two inner groups.  The first inner group is
+        the factory, and the second is the beacons the factory used.
+
+        The original blueprint info for each machine is stored in the
+        blueprintInfo field.
+        """
         def as_int(x):
             if not x.is_integer():
                 raise ValeuError
@@ -90,6 +96,10 @@ class Blueprint:
 
         return Group(Group(machines), Group(beacons))
 
+    def group(self, **convertArgs) -> Group:
+        """Shorthand for ``self.convert(**convertArgs)[0].simplify().sorted()``"""
+        return self.convert(**convertArgs)[0].simplify().sorted()
+
 class BlueprintBook:
     def __init__(self, bp):
         """Create a blueprint book from a decoded JSON object.
@@ -129,9 +139,6 @@ class BlueprintBook:
         elif 'blueprint_book' in bp:
             for b in bp['blueprint_book']['blueprints']:
                 BlueprintBook._labels(b, lst)
-    def convert(self, label, **convertArgs) -> Group:
-        """Convert a blueprint with *label* into a `Group`"""
-        return self.find(label).convert(**convertArgs)
 
 # fixme: rename to importBlueprint
 def decodeBlueprint(arg = None, *, file = None):

@@ -255,8 +255,8 @@ class SolverTests2(unittest.TestCase):
             *MP_MAX_PROD.withSpeedBeacons({AssemblingMachine3:8, OilRefinery:12, ChemicalPlant:8})))
         
         cb = circuitsBpBook()
-        g0 = BlackBox(box(cb.convert('green0')[0]), name='green')
-        r0 = BlackBox(box(cb.convert('red0')[0]), name='red')
+        g0 = BlackBox(box(cb.find('green0').convert()[0]), name='green')
+        r0 = BlackBox(box(cb.find('red0').convert()[0]), name='red')
 
         cls.circuits6 = Box(3*copy(g0) + 3*copy(r0) + 12*rcp.processing_unit(),
                         outputs=[itm.electronic_circuit, itm.advanced_circuit, itm.processing_unit],
