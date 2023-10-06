@@ -18,20 +18,22 @@ class Blueprint:
         if 'blueprint' not in bp:
             raise ValueError('expected a blueprint')
         self.raw = bp
-    def convert(self, *, burnerFuel=None, rocketSiloRecipe=None) -> Group:
+    def convert(self, *, burnerFuel=None, recipes=None) -> Group:
         """Convert a blueprint into a nested `Group`.
 
         The outer group contained two inner groups.  The first inner group is
         the factory, and the second is the beacons the factory used.
 
+        If *burnerFuel* is defined than use that item for machines that
+        require a fuel source, otherwise `config.defaultFuel` is used.  If
+        *recipes* are defined it is expected to be a mapping of machines
+        classes to recipes and will be used as the recipe for that machine if
+        none is defined.
+
         The original blueprint info for each machine is stored in the
         blueprintInfo field.
-        """
-        def as_int(x):
-            if not x.is_integer():
-                raise ValeuError
-            return int(x)
 
+        """
         gameInfo = config.gameInfo.get()
         itmByName = gameInfo.itmByName
         mchByName = gameInfo.mchByName
@@ -39,6 +41,27 @@ class Blueprint:
         
         if burnerFuel is None:
             burnerFuel = getDefaultFuel()
+
+        if recipes is None:
+            recipes = {}
+        else:
+            recipes = recipes.copy()
+
+        def recipeForMachine(m):
+            if m.__class__ in recipes:
+                return recipes[m.__class__]
+            for c in m.__class__.__mro__:
+                if c in recipes:
+                    r = recipes[c]
+                    recipes[m.__class__] = r
+                    return r
+            recipes[m.__class__] = None
+            return None
+
+        def as_int(x):
+            if not x.is_integer():
+                raise ValeuError
+            return int(x)
 
         machines = []
         machinesOnGrid = {}
@@ -55,12 +78,15 @@ class Blueprint:
                 m = cls()
             m.blueprintInfo = v
             if isinstance(m, machine.RocketSilo):
-                if rocketSiloRecipe:
-                    m.recipe = rocketSiloRecipe
-                else:
+                m.recipe = recipeForMachine(m)
+                if m.recipe is None:
                     m.recipe = m.defaultProduct()
             elif 'recipe' in v:
                 m.recipe = recipeMap[v['recipe']]
+            else:
+                r = recipeForMachine(m)
+                if r:
+                    m.recipe = r
             if hasattr(m, 'fuel'):
                 m.fuel = burnerFuel
             if 'items' in v:
