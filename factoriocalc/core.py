@@ -120,7 +120,12 @@ class Ingredient(Uniq,Immutable):
         else:
             return f'<{type(self).__name__}: {alias}>'
     def __matmul__(self, rate):
-        return OneWayFlow(self, _rate(rate))
+        try:
+            return OneWayFlow(self, _rate(rate))
+        except ValueError:
+            if isinstance(rate, str) and rate.startswith('p'):
+                return (self, rate)
+            raise
     def recipes(self):
         from .config import gameInfo
         gi = gameInfo.get()

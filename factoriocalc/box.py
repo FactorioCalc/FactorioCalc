@@ -132,9 +132,9 @@ class Box(BoxBase):
 
     class _ExternalFlows(dict):
         __slots__ = ()
-        def __init__(self, vals = None):
-            self.update(vals)
-        def update(self, vals = None):
+        def __init__(self, vals = None, priorities = None):
+            self.update(vals, priorities)
+        def update(self, vals = None, priorities = None):
             if vals is None:
                 return
             for v in vals.items() if isinstance(vals, Mapping) else vals:
@@ -146,7 +146,15 @@ class Box(BoxBase):
                     item, rate = v.item, abs(v.rate())
                 else:
                     item, rate = v, None
-                self[item] = rate
+                try:
+                    self[item] = rate
+                except ValueError:
+                    if isinstance(rate, str) and rate.startswith('p'):
+                        i = 2 if rate.startswith('p:') else 1
+                        self[item] = None
+                        priorities[item] = frac(rate[i:])
+                    else:
+                        raise
         def add(self, item, rate = None):
             self[item] = rate
         def str(self, flows = None):
@@ -256,7 +264,7 @@ class Box(BoxBase):
                  outputs = None, extraOutputs = (), outputTouchups = (), outputsLoose = False,
                  inputs = None, extraInputs = (), inputTouchups = (), inputsLoose = True,
                  unconstrained = None,
-                 constraints = (), priorities = (),
+                 constraints = (), priorities = None,
                  allowExtraInputs = False):
         """Create a new box.
 
@@ -321,7 +329,7 @@ class Box(BoxBase):
 
               <key-item> = <num> * <item>
 
-        *priority* 
+        *priorities* 
             A mapping of priories for the solver.  The key is either a
             recipe or an item.  The value in a number between -100 and 100
             with larger values having a higher priority.  The default priority
@@ -359,51 +367,39 @@ class Box(BoxBase):
         if not isinstance(inner, Group):
             inner = Group(inner)
 
-        self.simple = (len(inner) == 1
-                       and outputs is None and inputs is None
-                       and len(extraOutputs) == 0 and len(outputTouchups) == 0
-                       and len(extraInputs) == 0 and len(inputTouchups) == 0
-                       and unconstrained is None
-                       and len(constraints) == 0
-                       and len(priorities) == 0 and allowExtraInputs is False
-                       and (orig is None or orig.simple))
-
-        outputRates = {}
-        if outputs is not None:
-            outputs = Box.Outputs(outputs)
-            for item, rate in outputs.items():
-                if rate is not None:
-                    outputRates[item] = rate
-
-        inputRates = {}
-        if inputs is not None:
-            inputs = Box.Inputs(inputs)
-            for item, rate in inputs.items():
-                if rate is not None:
-                    inputRates[item] = rate
+        self.inner = inner
 
         if orig is None:
             self.name = name
             self.priorities = Box.Priorities(priorities)
+            self.outputs = Box.Outputs(outputs, self.priorities)
+            outputRates = {item: rate for item, rate in self.outputs.items() if rate is not None}
+            self.inputs = Box.Inputs(inputs, self.priorities)
+            inputRates = {item: rate for item, rate in self.inputs.items() if rate is not None}
             self.simpleConstraints = Box.SimpleConstraints()
             self.otherConstraints = Box.OtherConstraints()
             self.unconstrained = Box.OtherFlows(unconstrained)
         else:
-            if constraints:
-                raise ValueError('cannot specify constraints when inner is another box')
-            if outputs is None:
-                outputs = _copy(orig.outputs)
-            if inputs is None:
-                inputs = _copy(orig.inputs)
             self.name = orig.name if name is None else name
             self.priorities = _copy(orig.priorities) if priorities is None else Box.Priorities(priorities)
+            if outputs is None:
+                self.outputs = _copy(orig.outputs)
+                outputRates = {}
+            else:
+                self.outputs = Box.Outputs(outputs, self.priorities)
+                outputRates = {item: rate for item, rate in self.outputs.items() if rate is not None}
+            if inputs is None:
+                self.inputs = _copy(orig.inputs)
+                inputRates = {}
+            else:
+                self.inputs = Box.Inputs(inputs, self.priorities)
+                inputRates = {item: rate for item, rate in self.inputs.items() if rate is not None}
+            if constraints:
+                raise ValueError('cannot specify constraints when inner is another box')
             self.simpleConstraints = _copy(orig.simpleConstraints)
             self.otherConstraints = _copy(orig.otherConstraints)
             self.unconstrained = _copy(orig.unconstrained) if unconstrained is None else Box.OtherFlows(unconstrained)
 
-        self.inner = inner
-        self.outputs = outputs
-        self.inputs = inputs
         self.unconstrainedHints = set()
                     
         inputs_ = set()
@@ -444,12 +440,12 @@ class Box(BoxBase):
             self.inputs[item] = None
             self.priorities[item] = IGNORE
             
-        for item, rate in Box.Outputs(outputTouchups).items():
+        for item, rate in Box.Outputs(outputTouchups, priorities).items():
             self.outputs[item] = rate
             if rate is not None:
                 outputRates[item] = rate
                 
-        for item, rate in Box.Inputs(inputTouchups).items():
+        for item, rate in Box.Inputs(inputTouchups, priorities).items():
             self.inputs[item] = rate
             if rate is not None:
                 inputRates[item] = rate
