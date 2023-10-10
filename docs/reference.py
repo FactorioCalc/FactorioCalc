@@ -216,14 +216,18 @@ Helpers
 
 {documentSymbols('helper')}
 
-Mod Support
------------
-
-These symbols are not imported by ``from factorocalc import *``.
+`setGameConfig`
+---------------
 
 .. :currentmodule:: factoriocalc
 
-{documentSymbols('import_')}
+{documentSymbol(fc.import_, 'setGameConfig')}
+{documentSymbol(fc.import_, 'userRecipesFile')}
+
+`mods` module
+-------------
+
+.. automodule:: factoriocalc.mods
 
 Miscellaneous
 -------------
@@ -232,6 +236,14 @@ These symbols are not imported by ``from factorocalc import *``.
 
 .. py:currentmodule:: factoriocalc
 {documentExtraSymbols()}
+
+`setGameConfig` internals
+-------------------------
+
+These symbols are only useful when adding support for new mods and are not
+imported by ``from factorocalc import *``.
+
+{''.join(documentSymbol(fc.import_, symname) for symname in fc.import_.__all__ if symname not in ('setGameConfig', 'userRecipesFile'))}
 
 `fracs` module
 --------------

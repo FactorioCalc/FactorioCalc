@@ -807,6 +807,103 @@ Calculator".
 
 See the :ref:`blueprints` section for more advanced usages.
 
+Custom Game Configurations
+==========================
 
-Expensive Mode and Mod Support
-==============================
+The `setGameConfig` function can be used to change the game configuration from
+*normal* to *expensive*, or load a custon configuration from a JSON file.
+
+Expensive Mode
+--------------
+
+To change the game configuration to use *expensive* recipes use
+``setGameConfig('expensive')`` to switch it back to *normal* mode use,
+``setGameConfig('normal')``.  Note that any call to `setGameConfig` replaces
+all the symbols in the `itm`, `rcp`, `mch`, and `preset` packages so any non
+symbolic refrences to the old symbols are unlikely to work correctly with the
+new configuration.
+
+Alternative Configurations and Locale Support
+---------------------------------------------
+
+FactorioCalc currently uses the English translation for the `.descr` property
+and `._find()` function.  To use an alternative language you need to load a
+custom configuration with the translated names in the language you want.
+
+To load a custom configuration, you first need to export the data from Factorio
+in the configuration you want (in this case an alternative language).  To
+export the data use the "Recipe Exporter" (author fac301) mod.  Install it,
+and load a map with the configuration you want.  Then, from the console run
+the run the ``dump_recipes`` command.  This command will export the recipes
+and other needed data to the ``script-output/recipes.json`` file.  Then, to
+load the file use::
+
+  >>> setGameConfig('custom', userRecipesFile())
+
+`userRecipesFile()` assumes factorio is storing its data in the standard
+location (``%APPDATA%\Factorio`` for Windows or ``$HOME/.factorio`` for
+Linux).  If this is not the case you will need to provide the correct path.
+
+Loading a custom configuration also gives you the option to disable recipes
+that have not been researched yet by passing ``includeDisabled = False`` into
+the call to `setGameConfig`.
+
+Mod Support
+-----------
+
+For a simple mod that only adds recipes or makes very simple changes, you can
+load the configution like you would in the previous section by calling
+`setGameConfig` with ``'custom'`` as the first paramater.
+
+Overhaul mods will take a little more work.  For basic support you can just
+call `setGameConfig` with the ``'mod'`` as the first paramater.  Unlike ``'custom'``
+this assumes nothing about the games configuration: the `preset` package will
+be empty, `produce` is unlikely to work for recipes with multiple outputs, and
+although it will be able to derive recipes for rocket launch products the
+names will be mangled.
+
+Currently FactorioCalc has bulitin support for "Space Exploitation",
+"Krastorio 2" and "SEK2" (Space Exploration + Krastorio 2).  A recipe file is
+not provided, however, as any provided is likely to out of date and will not
+match your exact configuration.  To enable support use the name as first
+paramater to `setGameConfig`.  For additional information see `mods`.
+
+Adding Additional Mods
+----------------------
+
+To add support for additional mods it is best to look at the source code, in
+particular the files ``factoriocalc/import_.py`` and ``factoriocalc/mod.py``.
+
+Advanced Box Usage
+==================
+
+.. _revisiting unbounded throttles:
+
+Revisiting Unbounded Throttles
+------------------------------
+
+Using produce with the Space Exploration mod (if it workes at all) will be a
+frustrating experience as there are multiple ways to produce most items.
+Therefor, it is generally easier to select the machines yourself, and then let
+the solver determine the number of machines, by prefixing each machine with a
+``~`` to mark the throttle as unbounded.
+
+Unconstrained Flows
+-------------------
+
+In Space Exploration many recipes create byproducts, and other recipes may
+consume that byproduct, but not as the only ingredient.  If both recipes are
+used in the same factory the net output of the byproduct may be positive or
+negative.  To handle this the byproduct needs to be marked as *unconstrained*.
+The *unconstrained* parameter of the Box constructor is a simple list of flows
+you want to mark as unconstrained.
+
+Failure to mark a flow as *unconstrained* may result in a solution that sets
+all the machines throttles to zero (or in the lesser case just throttles
+machines unexpectedly).  If this happens the `~Box.unconstrainedHints`
+property may give you hints about what values might need to be marked as
+unconstrained, but, as of now, it is not comprehensive.  If the hints in
+`~Box.unconstrainedHints` fail, then the best thing to do is reset the
+throttles back to 1 using `~Box.resetThrottle()` then carefully evaluating the
+internal flows (use ``.inner.flows().print()`` to find them) to determine if
+any of them need to marked as unconstrained.

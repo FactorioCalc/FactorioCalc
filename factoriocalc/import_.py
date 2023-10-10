@@ -8,26 +8,45 @@ from .core import *
 from .data import CraftingHint,GameInfo
 from ._helper import toPythonName,toClassName
 from collections import defaultdict
+import os
 
 _dir = Path(__file__).parent.resolve()
 
-def setGameConfig(mode, path = None, **kwargs):
+def userRecipesFile():
+    """Attempt to determine the location of the JSON file created by the "Recipe
+     Exporter" mod."""
+
+    appData = os.environ.get('APPDATA', None)
+    if appData is not None:
+        return Path(appData) / 'Factorio/script-output/recipes.json'
+    elif 'HOME' in os.environ:
+        return Path(os.environ['HOME']) / '.factorio/script-output/recipes.json'
+    else:
+        return None
+
+def setGameConfig(mode, path = None, includeDisabled=True):
     """Changes the game configuration.
 
     *mode*
         One of: ``'normal'`` for normal gameplay; ``'expansive'`` for the
         expensive gameplay mode; ``'custom'`` for vanilla gameplay but using a
         custom configuration; ``'mod'`` for overhaul mods; or a string
-        specifying a custom mod with builin support, currently this included
-        "Space Exploration" and "Krastorio 2".
+        specifying a custom mod with builtin support.  See the `mods` module
+        for currently supported mods.
 
     *path*
-        Path to a JSON file created by the XXX mod.  Ignored if mode is
-        ``'normal'`` or ``'expensive'``, otherwise must be provided.
+        Path to a JSON file created by the "Recipe Exporter" mod.  Ignored if
+        mode is ``'normal'`` or ``'expensive'``, otherwise it must be
+        provided.
+
+    *includeDisabled*
+        If false, skip recipes marked as disabled.  Disabled recipes include
+        those that are not yet researched.
 
     Note that changing the game configuration creates a new set of symbols in
-    the `itm`, `rcp`, `mch`, and `preset` modules.  Any references to symboles
-    created before calling this function are unlikely to work.
+    the `itm`, `rcp`, `mch`, and `preset` modules.  Any non-symbolic
+    references to symboles created before calling this function are unlikely
+    to work.
 
     The game configuration is stored in a context varable `config.gameInfo`
     so, in theory, it should be possible to use different game configurations
@@ -58,7 +77,8 @@ def setGameConfig(mode, path = None, **kwargs):
     with open(path) as f:
         gameInfo = json.load(f)
 
-    return importFun(gameInfo, **kwargs)
+    return importFun(gameInfo,
+                     includeDisabled = includeDisabled)
 
 def vanillaImport(gameInfo, **kwargs):
     return importGameInfo(gameInfo,
@@ -484,36 +504,52 @@ def vanillaCraftingHints():
     return craftingHints
 
 
-def standardAliasPass(gi, nameTouchup = None):
+def _aliasPass(gi, nameTouchup = None):
     if nameTouchup is None:
         nameTouchup = lambda name: name
-        
+
+    conflicts = defaultdict(list)
     for name,obj in gi.itmByName.items():
         alias = nameTouchup(name)
         alias = toPythonName(alias)
-        assert(not hasattr(gi.itm, alias))
+        conflicts[f'itm.{alias}'].append(name)
         setattr(gi.itm, alias,  obj)
         gi.aliases[name] = alias
+    conflicts = {k: v for k, v in conflicts.items() if len(v) > 1}
+    if conflicts:
+        raise AliasConflicts(conflicts)
 
+    conflicts = defaultdict(list)
     for name,obj in gi.rcpByName.items():
         alias = nameTouchup(name)
         alias = toPythonName(alias)
-        assert(not hasattr(gi.rcp, alias))
+        conflicts[f'rcp.{alias}'].append(name)
         setattr(gi.rcp, alias, obj)
         gi.aliases[name] = alias
+    conflicts = {k: v for k, v in conflicts.items() if len(v) > 1}
+    if conflicts:
+        raise AliasConflicts(conflicts)
 
+    conflicts = defaultdict(list)
     for name,cls in gi.mchByName.items():
         alias = nameTouchup(name)
         alias = toClassName(alias)
-        assert(not hasattr(gi.mch, alias))
+        conflicts[f'mch.{alias}'].append(name)
         cls.__name__ = alias
         cls.__qualname__ = alias
         setattr(gi.mch, alias, cls)
+    conflicts = {k: v for k, v in conflicts.items() if len(v) > 1}
+    if conflicts:
+        raise AliasConflicts(conflicts)
+
+class AliasConflicts(ValueError):
+    def __init__(self, conflicts):
+        super().__init__(conflicts)
 
 def importGameInfo(gameInfo, *,
                    includeDisabled = True,
                    preAliasPasses = (),
-                   aliasPass = standardAliasPass,
+                   nameTouchups = None,
                    presets = None,
                    extraPasses = (),
                    craftingHints = None,
@@ -524,17 +560,15 @@ def importGameInfo(gameInfo, *,
 
     *gameInfo*
         A JSON string or `pathlib.Path` to a file that contains the
-        game info to import.  Created with the FIXME mod.
+        game info to import.  Created with the "Recipe Exporter" mod.
 
     *includeDisabled*
-        If false, skip recipes marked as disabled.  A recipe is normally
-        marked as disabled if it is not yet researched.
+        If false, skip recipes marked as disabled.  Disabled recipes include
+        those that are not yet researched.
 
-    *aliasPass*
-        A function to create alias for machines, items, and recipes.  The
-        alias is the python symbol used for refering to the entity within the
-        `mch`, `itm` or, `rcp`. namespace.  See the source code for
-        `basicAliasPass` for more details on how this function is used.
+    *nameTouchups*
+        A function to transform internal names before they are
+        converted to aliases.
 
     *presets* 
         A function to create useful presets that live in the preset module.
@@ -578,7 +612,7 @@ def importGameInfo(gameInfo, *,
 
         Within a tuple, the special string ``*fluid*`` can be used as shortcut
         for all possible fluids in the game.  Unlike specifying the fluids
-        explicitly the fluid itself is not marked as a byproduct, unless it is
+        explicitly, the fluid itself is not marked as a byproduct, unless it is
         also mentioned elsewhere is the list.  For example, ``[('empty-barrel',
         'water')]`` is equivalent to ``[('empty-barrel', '*fluid*'), 'water']``.
 
@@ -599,6 +633,9 @@ def importGameInfo(gameInfo, *,
         recipe is created.  As a special case, if ``skip`` is used and the key
         is a name of a rocket silo without any product, than no recipes are
         created involving that rocket silo.
+
+        If *logger* is set then a warning will be created for any combinations
+        not included in this mapping.
 
     *logger*
         Function called to log additional info, it is called once per line to
@@ -622,7 +659,7 @@ def importGameInfo(gameInfo, *,
     for p in preAliasPasses:
         p(res)
 
-    aliasPass(res)
+    _aliasPass(res, nameTouchups)
 
     token = config.gameInfo.set(res)
 
@@ -643,5 +680,5 @@ def importGameInfo(gameInfo, *,
 
     return token
 
-__all__ = ('setGameConfig', 'importGameInfo', 'importGameInfo',
-           'vanillaResearchHacks', 'vanillaCraftingHints', 'standardAliasPass', 'CraftingHint', 'GameInfo', 'toPythonName', 'toClassName')
+__all__ = ('setGameConfig', 'userRecipesFile', 'importGameInfo',
+           'vanillaResearchHacks', 'vanillaCraftingHints', 'CraftingHint', 'GameInfo', 'toPythonName', 'toClassName')
