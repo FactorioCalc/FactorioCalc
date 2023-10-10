@@ -714,13 +714,99 @@ is a summary of the solved factory::
 Working with Blueprints
 =======================
 
-FactoroCalc provides limited support for converting a blueprint of a factory
-into a `Group` for further analysis:  Furnaces will be converted, but since
-they don't have a fixed recipe, you will need to manually set the recipe
-afterwards.  Rocket silos are assumed to be creating space
-science, by default.
+FactoroCalc provides support for converting a blueprint of a factory into a
+`Group` for further analysis with a few minor limiations.  For example,
+furnaces in blueprint will be converted, but since they don't have a fixed
+recipe, you will need to tell the convert function what recipe to use or
+manually set the recipe afterwards.
 
-See :ref:`blueprints`.
+An Example
+----------
+
+Here is a fairly simple blueprint to create electronic and advanced circuits
+using productivity modules and beacons:
+
+.. image:: circuits-bp.png
+
+.. code-block::
+
+  >>> bp = '0eNq1W+1u4zgMfBf/dhaiPiy5r7IoFk7i7hqX2IbtFFcUffeT20OTTeWYnCL/mtYZUpRID4fqa7Y9nOp+aNope3jNml3XjtnDz9dsbH631WH+3fTS19lD1kz1McuztjrOn6pxrI/bQ9P+3hyr3Z+mrTcme8uzpt3X/2YP9JavQjxV47SZhqod+26YNtv6MF0g6LfHPKvbqZma+sOj9w8vv9rTcVsP0cRNoDzruzF+t2tn+xGv8D9cnr1kDxtDP1y0s2+GevfxgJ69vYLXQvhCBm+E8KUM3grhgwzefcKPU7X7Z9O0Yz1M8S9fkD19IquInMAqZK56JXPVC+FJBh8+4Y/1vjkdN/UhPj40u03fHeoEvv4rHvHbdfP7z7Y7DfMhpzI3/jFhphSuwshWQUqIr4X4xD8wbu3AkDA1LxB5zgpz01shvjA5vbBykRPiC0sXFfzNDKubKc1PYSGkIMQXVkIqhQUg0K0CEHKrU/mvhQkahGVMC9+mQViFtTBng7DAaMM+k0GvnUlt2WDn97IOLD8d+mL+im9T+MVthnbjffe/gQjfvJO1j3PctfEk75phd2pm92YGN85f7Yduf4qOPEfrm2P8+TDDR59STnl+wTDCeAbpet3Sendd39fDZldt39MWW2kpdSfc0x2j+FmhlgNfpKBJuNJz2t3voBnNX68VrldICoKTJa6xaEOgC1a/gRceHn4B43tWfLyUaNPVAq7fsyr3NvWqNQFtSL5GKrmSEuDC79CpPk9Jw+JvhSVG2eo8mFRcLAG0b9FvLaVN5pbfMQyRiJVJ6mTxzGXtp7UwPuvk23PmbutqFx+7oW1o8w75WT3Hvq73F2VTJzejgGuPY63Aw/iWhY9nrOPUfluiGgIP36nVHb6ARHbYEdrfM1egUX2CiW/WI2S/FyGLNv3MFThUtGDiF2jTz8T3qGjBxA/rO/y9KudKVAngraBQqJLBxKfVCF2QeCRChUZFAOYKDCpiMPGlb2JhFSocKmIw8Yv1HTbf22FhFgdhlSsCzIV4+MIcDsIq5xXMVDSHqXiC8Q0LXyPK1YIM5uEZleZNZize0qlk7xJMTio5P/EOpnC8tcBTLCa+QELTqxsbYLbGc7aE2SZv5qaQDnohGIFgYsZzVsPEkodvcAUgkUUxKWMzXeqcKNlNB3h4xVwOPLxi4iPDq8WzAw+vmM7CwysmPl+KCrQWjBIeUfGcLeERFRP/G5JUapJnZimNKD3ONzBT5a3FwkyVh+9gnsfDLxAhf+lg4qSX5+xVlo79oZnSvl4UqyvcPHtqDvOXFuYh3WnqT9Ovfmi6IRqPjx3qp/m+1Fd3pBxZWKFJKeHo50wM6Wr0U+2fq3YX+5ZvDn5IScdRZ85xP580PJu8n08GHlDezycrHSXS/X1yUp/s/X0qgOaOWDOM2DXBvRgVSRa5wB9JBT4BU3/ZSKKVwNWCRTRSQJfFjDB0BY6LreEeILV782mYW+k0dyHi37U5s/PlmFuAkHPjIrinWq57WgBsmeuph8lncgfjiUhPQ4kCcFNqOSaCDsKtomkF0D5mhK9vuHFYGhXLLC1R1r9ytCHuSZKkkfRC3HnES47F0rRBL7BzDcA3VrgG4CsrXAOwaMc1AF8+5xqAlTyuAVjKYxowCpXfuAYI1d+4BjSqiHENGFQS4xqwqIzFNeBQHYtroEC1J64Bj4pPXAMBVYS4BkpUEmIasArVhLgGCNVxuAY0qpykDDx+9HnzMPfzP+zy7Lkexo8HAllfau+NL12IHd9/xQERxQ=='
+
+To import it and convert it::
+
+  >>> circuits = importBlueprint(bp).convert()
+
+`importBlueprint` returns a `Blueprint` object.  The `~Blueprint.convert()`
+method converts the blueprint into a nested group.  The outer group contained
+two inner groups. The first inner group is the factory, and the second is the
+beacons the factory used.
+
+We are generally only interested in the first inner group (the one with the
+factory).  We can view it using the `Group.pprint()` methods, which is just a
+nicer formated version of `repr`::
+
+  >>> circuits[0].pprint()
+  Group(mch.AssemblingMachine3(rcp.electronic_circuit, modules=4*itm.productivity_module_3, beacons=mch.Beacon(2*itm.speed_module_3, blueprintInfo=...)+mch.Beacon(2*itm.speed_module_3, blueprintInfo=...)+mch.Beacon(2*itm.speed_module_3, blueprintInfo=...), blueprintInfo=...),
+        mch.AssemblingMachine3(rcp.copper_cable, modules=4*itm.productivity_module_3, beacons=mch.Beacon(2*itm.speed_module_3, blueprintInfo=...)+mch.Beacon(2*itm.speed_module_3, blueprintInfo=...)+mch.Beacon(2*itm.speed_module_3, blueprintInfo=...)+mch.Beacon(2*itm.speed_module_3, blueprintInfo=...), blueprintInfo=...),
+        mch.AssemblingMachine3(rcp.copper_cable, modules=4*itm.productivity_module_3, beacons=mch.Beacon(2*itm.speed_module_3, blueprintInfo=...)+mch.Beacon(2*itm.speed_module_3, blueprintInfo=...)+mch.Beacon(2*itm.speed_module_3, blueprintInfo=...)+mch.Beacon(2*itm.speed_module_3, blueprintInfo=...), blueprintInfo=...),
+        mch.AssemblingMachine3(rcp.electronic_circuit, modules=4*itm.productivity_module_3, beacons=mch.Beacon(2*itm.speed_module_3, blueprintInfo=...)+mch.Beacon(2*itm.speed_module_3, blueprintInfo=...)+mch.Beacon(2*itm.speed_module_3, blueprintInfo=...), blueprintInfo=...),
+        mch.AssemblingMachine3(rcp.advanced_circuit, modules=4*itm.productivity_module_3, beacons=mch.Beacon(2*itm.speed_module_3, blueprintInfo=...)+mch.Beacon(2*itm.speed_module_3, blueprintInfo=...)+mch.Beacon(2*itm.speed_module_3, blueprintInfo=...), blueprintInfo=...),
+        mch.AssemblingMachine3(rcp.advanced_circuit, modules=4*itm.productivity_module_3, beacons=mch.Beacon(2*itm.speed_module_3, blueprintInfo=...)+mch.Beacon(2*itm.speed_module_3, blueprintInfo=...)+mch.Beacon(2*itm.speed_module_3, blueprintInfo=...)+mch.Beacon(2*itm.speed_module_3, blueprintInfo=...), blueprintInfo=...),
+        mch.AssemblingMachine3(rcp.advanced_circuit, modules=4*itm.productivity_module_3, beacons=mch.Beacon(2*itm.speed_module_3, blueprintInfo=...)+mch.Beacon(2*itm.speed_module_3, blueprintInfo=...)+mch.Beacon(2*itm.speed_module_3, blueprintInfo=...)+mch.Beacon(2*itm.speed_module_3, blueprintInfo=...), blueprintInfo=...),
+        mch.AssemblingMachine3(rcp.advanced_circuit, modules=4*itm.productivity_module_3, beacons=mch.Beacon(2*itm.speed_module_3, blueprintInfo=...)+mch.Beacon(2*itm.speed_module_3, blueprintInfo=...)+mch.Beacon(2*itm.speed_module_3, blueprintInfo=...)+mch.Beacon(2*itm.speed_module_3, blueprintInfo=...), blueprintInfo=...),
+        mch.AssemblingMachine3(rcp.advanced_circuit, modules=4*itm.productivity_module_3, beacons=mch.Beacon(2*itm.speed_module_3, blueprintInfo=...)+mch.Beacon(2*itm.speed_module_3, blueprintInfo=...)+mch.Beacon(2*itm.speed_module_3, blueprintInfo=...), blueprintInfo=...),
+        mch.AssemblingMachine3(rcp.advanced_circuit, modules=4*itm.productivity_module_3, beacons=mch.Beacon(2*itm.speed_module_3, blueprintInfo=...)+mch.Beacon(2*itm.speed_module_3, blueprintInfo=...), blueprintInfo=...))
+
+As shown above, the output of `~Blueprint.convert()` contains each machine
+individually converted, and the blueprint info is stored along with the object.
+In most cases this is more information than we need.  We can clean this up by
+calling `Group.simplify()` and then `Group.sorted()`::
+
+  >>> circuits = circuits[0].simplify().sorted()
+  >>> circuits.pprint()
+  Group(2*mch.AssemblingMachine3(rcp.copper_cable, modules=4*itm.productivity_module_3, beacons=4*mch.Beacon(2*itm.speed_module_3)),
+        2*mch.AssemblingMachine3(rcp.electronic_circuit, modules=4*itm.productivity_module_3, beacons=3*mch.Beacon(2*itm.speed_module_3)),
+        mch.AssemblingMachine3(rcp.advanced_circuit, modules=4*itm.productivity_module_3, beacons=2*mch.Beacon(2*itm.speed_module_3)),
+        2*mch.AssemblingMachine3(rcp.advanced_circuit, modules=4*itm.productivity_module_3, beacons=3*mch.Beacon(2*itm.speed_module_3)),
+        3*mch.AssemblingMachine3(rcp.advanced_circuit, modules=4*itm.productivity_module_3, beacons=4*mch.Beacon(2*itm.speed_module_3)))
+
+As a shortcut, instead of calling `~Blueprint.convert()` then
+`~Group.simplify()` and finally `~Group.sorted()` we can instead just use the
+`~Blueprint.group()` method::
+
+  >>> circuits = importBlueprint(bp).group()
+
+If we look at flows of the factory, we will notice that there is not quite
+enough copper cables, so the rates of the electronic circuits will be slightly too high::
+
+  >>> circuits.flows().print()
+  advanced_circuit 3.61667/s
+  copper_cable! -5.23333/s (33.6/s - 38.8333/s)
+  electronic_circuit* 8.13333/s (13.3/s - 5.16667/s)
+  iron_plate -9.5/s
+  copper_plate -12/s
+  plastic_bar -5.16667/s
+  electricity -24.8 MW
+
+To fix this, we need to wrap the factory in a box, and give the advanced circuit priority::
+
+  >>> circuits = box(circuits, outputs = [itm.electronic_circuit, itm.advanced_circuit@'p1'])
+  >>> circuits.summary()
+  b-electronic-circuit:
+       2x copper_cable: AssemblingMachine3  +140% speed +40% prod. +600% energy +40% pollution
+       2x electronic_circuit: AssemblingMachine3  @0.816374  +90% speed +40% prod. +530% energy +40% pollution
+       6x advanced_circuit: AssemblingMachine3  +107% speed +40% prod. +553% energy +40% pollution
+  Outputs: electronic_circuit 5.69111/s (10.8578/s - 5.16667/s), advanced_circuit 3.61667/s
+  Inputs: iron_plate -7.75556/s, copper_plate -12/s, plastic_bar -5.16667/s
+  Priorities: itm.advanced_circuit: 1
+
+Being able to wrap the converted blueprint in a box to limit flows is the
+primary advantage of using of using FactorioCalc to analysis flows of a
+factory over in game tools such as "Rate Calculator" and "Max Rate
+Calculator".
+
+See the :ref:`blueprints` section for more advanced usages.
+
 
 Expensive Mode and Mod Support
 ==============================

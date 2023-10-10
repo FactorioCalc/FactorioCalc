@@ -31,7 +31,7 @@ class Blueprint:
         none is defined.
 
         The original blueprint info for each machine is stored in the
-        blueprintInfo field.
+        `~Group.blueprintInfo` field.
 
         """
         gameInfo = config.gameInfo.get()
