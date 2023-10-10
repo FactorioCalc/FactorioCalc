@@ -1,0 +1,9 @@
+#!/usr/bin/python3
+
+import json
+import sys
+
+with open(f'{sys.path[0]}/info.json') as f:
+  j = json.load(f)
+
+print(j['version'])

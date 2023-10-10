@@ -20,3 +20,6 @@ upload:
 	python3 -m twine check dist/*
 	python3 -m twine upload dist/*
 
+mod:
+	rm RecipeExporter.zip
+	zip -9r RecipeExporter_`RecipeExporter/get-version`.zip RecipeExporter/

@@ -6,3 +6,4 @@ docs/_build/
 docs/reference.rst
 docs/description.rst
 factoriocalc.egg-info/
+RecipeExporter_*

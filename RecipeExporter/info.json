@@ -1,0 +1,10 @@
+{
+    "name": "RecipeExporter",
+    "version": "0.0.1",
+    "title": "Recipe Exporter",
+    "author": "fac301",
+    "homepage": "https://github.com/kevina/factoriocalc",
+    "factorio_version": "1.1",
+    "dependencies": ["base >= 1.1.1"],
+    "description": "Adds a console command 'dump_recipes' that exports recipes and relevant info to the file script-output/recipes.json."
+}
