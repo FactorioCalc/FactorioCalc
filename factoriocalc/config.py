@@ -17,8 +17,8 @@
   machine has a matching recipe associated then that will be given priority.
   In addition a machine with compatible modules will be given priority.
 
-  Does not have a default.  Must be set being calling a recipe to instantiate
-  it or using `produce <factoricalc.produce>`.
+  Does not have a default.  Must be set before calling a recipe to instantiate
+  it or using `~factoricalc.produce`.
 
 .. py:data:: recipePrefs
   :type: ContextVar

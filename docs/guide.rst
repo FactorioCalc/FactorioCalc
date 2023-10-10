@@ -41,6 +41,7 @@ Each machine is a class in the runtime generated `mch` package.  The name of
 the machine is the same as the internal name but converted to TitleCase.  The
 internal name is often the same as English name, but not always.  To find a
 machine based on the translated name you can use the `mch._find()` function.
+To get the translated name of a machine use the `~Machine.descr` property.
 
 To produce something from a machine you need to instantiate it.  The first
 argument of the constructor is the recipe.  For example, to create an
@@ -58,21 +59,32 @@ Within FactorioCalc the items a machine produces or consumes is cosidered a
 *flow*.  The rate of the flow is positive for items produced and negative
 for items consumed.
 
-To get the flow of items for a machine use the `flows` method, for example
-``print(mch.AssemblingMachine3(rcp.electronic_circuit).flows())`` will output::
+To get the flow of items for a machine use the `flows` method, for example::
 
-  iron_plate -2.5/s, copper_cable -7.5/s, electronic_circuit 2.5/s, electricity -0.3875 MW
+  >>> mch.AssemblingMachine3(rcp.electronic_circuit).flows()
+  <<iron_plate -2.5/s> <copper_cable -7.5/s> <electronic_circuit 2.5/s> <electricity -0.3875 MW>>
 
-Electricity used is also tracked as a flow.
+Electricity used is also tracked as a flow.  To get a nicer formatted version
+use the `~Flows.print()` method:
+
+  >>> mch.AssemblingMachine3(rcp.electronic_circuit).flows().print()
+  iron_plate -2.5/s
+  copper_cable -7.5/s
+  electronic_circuit 2.5/s
+  electricity -0.3875 MW
 
 Multiple machines can be grouped together using the `+` operator which will
 create a `Group`.  For example::
 
   >>> ec = mch.AssemblingMachine3(rcp.electronic_circuit) + mch.AssemblingMachine3(rcp.copper_cable)
 
-We can then get the flows of the group by using ``print(ec.flows())``::
+We can then get the flows of the group by using ``ec.flows().print()``::
 
-  electronic_circuit 2.5/s, copper_cable! -2.5/s (5/s - 7.5/s), iron_plate -2.5/s, copper_plate -2.5/s, electricity -0.775 MW
+  electronic_circuit 2.5/s
+  copper_cable! -2.5/s (5/s - 7.5/s)
+  iron_plate -2.5/s
+  copper_plate -2.5/s
+  electricity -0.775 MW
 
 This is showing us the maxium rates for the group, but there is a problem:
 we are creating copper cables at a rate of 5/s but consuming them at -7.5/s.
@@ -88,7 +100,11 @@ ratio::
 
 If we ask for the flows of the new `Group` we now get::
 
-  electronic_circuit 5/s, copper_cable 0/s (15/s - 15/s), iron_plate -5/s, copper_plate -7.5/s, electricity -1.9375 MW
+  electronic_circuit 5/s
+  copper_cable 0/s (15/s - 15/s)
+  iron_plate -5/s
+  copper_plate -7.5/s
+  electricity -1.9375 MW
 
 To instead slow down the machines we need to adjust the *throttle*.  We can do
 this manually, but it's best to let the solver determine it for us.  To do so,
@@ -102,9 +118,12 @@ and then solve it::
   <SolveRes.UNIQUE: 2>
 
 The result of solve tells us a single unique solution was found.  Now if we
-call ``b.flows()`` we get::
+call ``b.flows().print()`` we get::
 
-  electronic_circuit 1.66667/s, iron_plate -1.66667/s, copper_plate -2.5/s, electricity -0.65 MW
+  electronic_circuit 1.66667/s
+  iron_plate -1.66667/s
+  copper_plate -2.5/s
+  electricity -0.65 MW
 
 Copper-cable is not in the list beacuase it's net flow is now zero.  Boxes,
 unlike groups, do not include internal flows unless the net flow is non-zero.
@@ -120,7 +139,7 @@ shortcut function is provided to do just that, it usage is the same as the
 To determine what the solver did we can use the `summary` method.  Calling
 it gives us::
 
-  >> b.summary()
+  >>> b.summary()
   b-electronic-circuit:
          1x electronic_circuit: AssemblingMachine3  @0.666667
          1x copper_cable: AssemblingMachine3
@@ -154,23 +173,28 @@ Of cource in the late game we are going to want to use productivity-3
 modules with beacons stuffed with speed-3 modules.  You can pass modules and
 beacons to the call above or include them in the `machinePrefs`.
 
-For example, to make electronic circuits with 4 productivity-3 modules
-and 8 beacons with speed-3 modules you would use::
+To include them in the call simply use the *modules* and *beacons* parameter.
+For example, to make electronic circuits with 4 productivity-3 modules and 8
+beacons with speed-3 modules use::
 
   rcp.electronic_circuit(modules=4*itm.productivity_module_3,
                          beacons=8*Beacon(modules=2*itm.speed_module_3))
 
-As a beacons with 2 speed-3 modules is a very common thing the shortcut
-`~preset.SPEED_BEACON` in the `preset` module is provied so the above can become::
+When specifying modules you can either provide a list of them (as above) or a
+single module to fill the machine to with as many of that module as possible.
+When you need a beacon with two speed-3 modules you can use the
+`~preset.SPEED_BEACON` shortcut in `preset`.  For example, the above call
+can become::
 
-  rcp.electronic_circuit(modules=4*itm.productivity_module_3,
-                         beacons=8*SPEED_BEACON)
+   rcp.electronic_circuit(modules=itm.productivity_module_3,
+                          beacons=8*SPEED_BEACON)
 
-However, specifying the modules and becons configuration for each machine
-can be tedious so it's best to include them as part of the `machinePrefs`.  If
-all we cared about is assmebling machines we could just use::
+Specifying the modules and becons configuration for each machine can be
+tedious so as an alternative FactorioCalc lets you set prefered machine
+configurations as part of `config.machinePrefs`.  If all we cared about is
+assmebling machines we could just use::
 
-  >>> config.machinePrefs.set([mch.AssemblingMachine3(modules=4*itm.productivity_module_3,
+  >>> config.machinePrefs.set([mch.AssemblingMachine3(modules=itm.productivity_module_3,
                                                       beacons=8*SPEED_BEACON)])
 
 However we most likely want all machines to have the maxium number of
@@ -429,8 +453,13 @@ that a particular output should get priorty over another.  For example::
     Priorities: itm.advanced_circuit: 1
 
 will give priory to the advanced circuits and output whatever it can of the
-electronic circuits.  The values for the `priorities` argument mapping
-needs to be between -100 and 100.
+electronic circuits.  The values for the `priorities` argument mapping needs
+to be between -100 and 100.  A priority can also be specified as part of the
+outputs or inputs by using a string that starts with ``p`` or ``p:`` for
+example::
+
+  >>> circuits2 = box(rcp.electronic_circuit() + rcp.copper_cable() + 2*rcp.advanced_circuit(),
+                      outputs = [itm.electronic_circuit, itm.advanced_circuit @ 'p:1'])
 
 Another way to avoid `SolveRes.OK` is to specify rates for some of the
 outputs, for example if we wanted electronic circuits at 8/s::
@@ -503,7 +532,7 @@ The number in parentheses indicates that instead of 1.82 assembling machines
 producing electronic circuits, there is a single machine with an unbounded
 throttle of 1.82.
 
-Unbounded throttles can be removed by using the `finalize` method of a box.
+Unbounded throttles can be removed by using the `~Box.finalize` method of a box.
 For example::
 
   >> circuits = circuits0.finalize().factory
@@ -514,9 +543,9 @@ For example::
     Outputs: electronic_circuit 28/s
     Inputs: iron_plate -20/s, copper_plate -21.4286/s
 
-The result of `finalize` is similar to `produce`.  As we are only interested
+The result of `~Box.finalize` is similar to `produce`.  As we are only interested
 in the main results, we just extract the `factory` field.  Finalize, like
-produce, can also round up if `roundUp=True` is used.  
+produce, can also round up if ``roundUp=True`` is used.
 
 Using union
 -----------
@@ -582,7 +611,7 @@ For example::
     Outputs: plastic_bar 90/s, rocket_fuel 0/s
     Inputs: coal -34.6154/s, water -761.232/s, crude_oil -462.579/s
 
-And as shown in the summary, when producing plastic the the light-oil-cracking
+And as shown in the summary, when producing plastic the light-oil-cracking
 chemical plants are fully utilized.
 
 It should be noted that in order for this factory to work as intended the flow
