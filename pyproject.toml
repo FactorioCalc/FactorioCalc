@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "factoriocalc"
-version = "0.0.1"
+version = "0.1.0a0"
 authors = [
   { name="Kevin Atkinson" },
 ]
@@ -22,3 +22,6 @@ classifiers = [
 [project.urls]
 "Homepage" = "https://github.com/kevina/factoriocalc"
 "Bug Tracker" = "https://github.com/kevina/factoriocalc/issues"
+
+[tool.setuptools]
+packages = ["factoriocalc"]
