@@ -44,7 +44,7 @@ def setGameConfig(mode, path = None, includeDisabled=True):
         those that are not yet researched.
 
     Note that changing the game configuration creates a new set of symbols in
-    the `itm`, `rcp`, `mch`, and `preset` modules.  Any non-symbolic
+    the `itm`, `rcp`, `mch`, and `presets` modules.  Any non-symbolic
     references to symboles created before calling this function are unlikely
     to work.
 
@@ -571,7 +571,7 @@ def importGameInfo(gameInfo, *,
         converted to aliases.
 
     *presets* 
-        A function to create useful presets that live in the preset module.
+        A function to create useful presets that live in the `presets` module.
         The function takes no paramaters and is expected to return a `dict`.
         The `config.gameInfo` context variable is set so the `mch`, `itm`,
         `rcp` are now populated.
@@ -583,7 +583,7 @@ def importGameInfo(gameInfo, *,
 
     *craftingHints*
         A function to create hints used to guide the selection of machines
-        `produce` selects.  Like the `presets` function, it takes no
+        `produce` selects.  Like the *presets* function, it takes no
         paramaters and is expected to return a `dict`.  See the source code
         for `vanillaCraftingHints` for more details on how this function is
         used.

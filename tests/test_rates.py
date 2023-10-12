@@ -1,6 +1,6 @@
 from factoriocalc import *
 from factoriocalc.mch import AssemblingMachine3, RocketSilo, OilRefinery, Centrifuge
-from factoriocalc.preset import *
+from factoriocalc.presets import *
 from unittest import TestCase
 
 class RateTests(TestCase):

@@ -1,5 +1,5 @@
-from . import itm, rcp, mch, config, preset
-__all__ = ['itm', 'rcp', 'mch', 'config', 'preset']
+from . import itm, rcp, mch, config, presets
+__all__ = ['itm', 'rcp', 'mch', 'config', 'presets']
 
 from .fracs import frac, div, Frac
 __all__ += ['frac', 'div', 'Frac']

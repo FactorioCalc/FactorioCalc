@@ -1,7 +1,6 @@
 import factoriocalc
 from factoriocalc import *
-from factoriocalc.preset import *
-from factoriocalc import solver
+from factoriocalc.presets import *
 from factoriocalc.solver import SolveRes
 from factoriocalc.mch import AssemblingMachine3,ElectricFurnace,ChemicalPlant,OilRefinery,Centrifuge,Boiler
 from contextlib import redirect_stdout

@@ -157,10 +157,10 @@ very fast so FactorioCalc provides a shortcut.  However, before you can use
 the shortcut, you need to specify what type of assembling machine you want to
 use.  This is done by setting `config.machinePrefs`, which is a python
 `ContextVar <https://docs.python.org/3/library/contextvars.html>`_.  For now
-we will set it to `~preset.MP_LATE_GAME` in the `preset` module which will use
+we will set it to `~presets.MP_LATE_GAME` in the `presets` module which will use
 the most advanced machines possible for a recipe::
 
-  >>> from preset import *
+  >>> from presets import *
   >>> config.machinePrefs.set(MP_LATE_GAME)
 
 With that we can simply call a recipe to produce a machine that will use the
@@ -183,7 +183,7 @@ beacons with speed-3 modules use::
 When specifying modules you can either provide a list of them (as above) or a
 single module to fill the machine to with as many of that module as possible.
 When you need a beacon with two speed-3 modules you can use the
-`~preset.SPEED_BEACON` shortcut in `preset`.  For example, the above call
+`~presets.SPEED_BEACON` shortcut in `presets`.  For example, the above call
 can become::
 
    rcp.electronic_circuit(modules=itm.productivity_module_3,
@@ -199,16 +199,16 @@ assmebling machines we could just use::
 
 However we most likely want all machines to have the maxium number of
 productivity-3 modules and at least some speed beacons.  To make this easier
-the `~preset.MP_MAX_PROD` preset can used to indicate that we want all machines to
+the `~presets.MP_MAX_PROD` preset can used to indicate that we want all machines to
 have to maxium number of productivity-3 modules.  There is no preset for
 beacons as the number the beacons often various.  Instead use the
-`withSpeedBeacons` method to modify the preset by adding `~preset.SPEED_BEACON`'s for
+`withSpeedBeacons` method to modify the preset by adding `~presets.SPEED_BEACON`'s for
 specific machines.  For example::
 
   >>> config.machinePrefs.set(MP_MAX_PROD.withSpeedBeacons({mch.AssemblingMachine3:8}))
 
 will give all machines the maxium number of productivity-3 modules possble and
-assembling machine 3 with 8 `~preset.SPEED_BEACON`'s.  With `machinePrefs` set
+assembling machine 3 with 8 `~presets.SPEED_BEACON`'s.  With `machinePrefs` set
 we can get an assembling machine 3, with 4 productivity-3 modules, and 8 speed
 beacons that creates electronic circuits by just using
 ``rcp.electronic_circuit()``.
@@ -819,7 +819,7 @@ Expensive Mode
 To change the game configuration to use *expensive* recipes use
 ``setGameConfig('expensive')`` to switch it back to *normal* mode use,
 ``setGameConfig('normal')``.  Note that any call to `setGameConfig` replaces
-all the symbols in the `itm`, `rcp`, `mch`, and `preset` packages so any non
+all the symbols in the `itm`, `rcp`, `mch`, and `presets` packages so any non
 symbolic refrences to the old symbols are unlikely to work correctly with the
 new configuration.
 
@@ -857,7 +857,7 @@ load the configution like you would in the previous section by calling
 
 Overhaul mods will take a little more work.  For basic support you can just
 call `setGameConfig` with the ``'mod'`` as the first paramater.  Unlike ``'custom'``
-this assumes nothing about the games configuration: the `preset` package will
+this assumes nothing about the games configuration: the `presets` package will
 be empty, `produce` is unlikely to work for recipes with multiple outputs, and
 although it will be able to derive recipes for rocket launch products the
 names will be mangled.

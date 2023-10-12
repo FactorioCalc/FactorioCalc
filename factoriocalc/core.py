@@ -1539,7 +1539,7 @@ class MachinePrefs(tuple):
         raise NotImplementedError
     __rmul__ = __mul__
     def withSpeedBeacons(self, mapping):
-        from .preset import SPEED_BEACON
+        from .presets import SPEED_BEACON
         lst = list(self)
         for i, m in enumerate(lst):
             cls = type(m)

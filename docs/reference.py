@@ -152,30 +152,30 @@ Core
 
 .. automodule:: factoriocalc.config
 
-`preset` module
----------------
+`presets` module
+----------------
 
-.. automodule:: factoriocalc.preset
+.. automodule:: factoriocalc.presets
    :no-members:
 
    When the gameInfo context variable is configured for the base game this module
    provides:
 
    .. py:data:: MP_EARLY_GAME
-      :value: {fc.preset.MP_EARLY_GAME!r}
+      :value: {fc.presets.MP_EARLY_GAME!r}
 
    .. py:data:: MP_LATE_GAME
-      :value: {fc.preset.MP_LATE_GAME!r}
+      :value: {fc.presets.MP_LATE_GAME!r}
 
    .. py:data:: MP_MAX_PROD
-      :value: {fc.preset.MP_MAX_PROD!r}
+      :value: {fc.presets.MP_MAX_PROD!r}
 
    .. py:data:: SPEED_BEACON
-      :value: {fc.preset.SPEED_BEACON!r}
+      :value: {fc.presets.SPEED_BEACON!r}
 
    .. py:data:: sciencePacks
       :type: set
-      :value: {fc.preset.sciencePacks!r}
+      :value: {fc.presets.sciencePacks!r}
 
 Units
 -----

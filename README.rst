@@ -30,12 +30,11 @@ Examples
 
 ::
 
-  >>> from factoriocalc import itm, rcp, mch, preset, config, produce
-
+  >>> from factoriocalc import itm, rcp, mch, presets, config, produce
 
 Create a simple factory that creates electronic circuits from copper and iron plates::
 
-  >>> config.machinePrefs.set(preset.MP_LATE_GAME)
+  >>> config.machinePrefs.set(presets.MP_LATE_GAME)
   >>> circuits = 2*rcp.electronic_circuit() + 3*rcp.copper_cable()
   >>> circuits.summary()
      2x electronic-circuit: assembling-machine-3:
@@ -52,7 +51,7 @@ Create a simple factory that creates electronic circuits from copper and iron pl
 
 Use `produce` to create a factory that produces rocket fuel::
 
-  >>> config.machinePrefs.set(preset.MP_MAX_PROD.withSpeedBeacons({
+  >>> config.machinePrefs.set(presets.MP_MAX_PROD.withSpeedBeacons({
           mch.AssemblingMachine3:8, mch.ChemicalPlant:8, mch.OilRefinery:12}))
   >>> rocketFuel = produce([itm.rocket_fuel@6], using=[rcp.advanced_oil_processing]).factory
   >>> rocketFuel.summary()
