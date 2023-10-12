@@ -253,21 +253,23 @@ def produce(outputs, using = (), *,
             for item in m_outputs.keys():
                 if item not in boxOutputs:
                     boxOutputs[item] = None
-    b = res.factory = Box(name = name,
-                          inner = Group([~m for m in machines.values()]),
-                          outputs = boxOutputs, inputTouchups = inputs,
-                          priorities = boxPriorities,
-                          constraints = constraints)
+    b = Box(name = name,
+            inner = Group([~m for m in machines.values()]),
+            outputs = boxOutputs, inputTouchups = inputs,
+            priorities = boxPriorities,
+            constraints = constraints)
     someOutputRatesSpecified = any(r != None for r in outputs.values())
+    extraOutputs = set()
     for item in b.outputs.keys():
         if item not in outputs:
-            b.priorities[item] = IGNORE
+            extraOutputs.add(item)
         elif someOutputRatesSpecified and outputs[item] is None:
-            b.priorities[item] = IGNORE
+            extraOutputs.add(item)
     if inputs:
         for item in b.inputs.keys():
             if item not in inputs: 
                 res.extraInputs.append(item)
+    b = res.factory = Box(b, extraOutputs = extraOutputs)
     if not solve or (all(rate is None for rate in outputs.values()) and all(rate is None for rate in inputs.values())):
         return res
     res.solveRes = b.solve()
