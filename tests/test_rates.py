@@ -26,7 +26,7 @@ class RateTests(TestCase):
                              itm.iron_plate: '-6',
                              itm.copper_cable: '-18'})
         self.rateTest(AssemblingMachine3, rcp.electronic_circuit,
-                      beacons = 4*SPEED_BEACON,                   
+                      beacons = 4*SPEED_BEACON,
                       rates={itm.electronic_circuit: '7.5',
                              itm.iron_plate: '-7.5',
                              itm.copper_cable: '-22.5'})
@@ -39,21 +39,21 @@ class RateTests(TestCase):
                              itm.rocket_fuel: frac(-20000, 6811),
                              itm.satellite: frac(-20, 6811)})
         self.rateTest(RocketSilo, rcp.space_science_pack,
-                      modules=4*itm.productivity_module_3, 
+                      modules=4*itm.productivity_module_3,
                       rates={itm.space_science_pack: frac(140000, 80677),
                              itm.rocket_control_unit: frac(-100000, 80677),
                              itm.low_density_structure: frac(-100000, 80677),
                              itm.rocket_fuel: frac(-100000, 80677),
                              itm.satellite: frac(-140, 80677)})
         self.rateTest(RocketSilo, rcp.space_science_pack, beacons = 4*SPEED_BEACON,
-                      modules=4*itm.productivity_module_3,                   
+                      modules=4*itm.productivity_module_3,
                       rates={itm.space_science_pack: frac(140000, 18177),
                              itm.rocket_control_unit: frac(-100000, 18177),
                              itm.low_density_structure: frac(-100000, 18177),
                              itm.rocket_fuel: frac(-100000, 18177),
                              itm.satellite: frac(-140, 18177)})
         self.rateTest(RocketSilo, rcp.space_science_pack,
-                      beacons = 4*SPEED_BEACON,                   
+                      beacons = 4*SPEED_BEACON,
                       rates={itm.space_science_pack: frac(20000, 2811),
                              itm.rocket_control_unit: frac(-20000, 2811),
                              itm.low_density_structure: frac(-20000, 2811),
@@ -93,5 +93,5 @@ class RateTests(TestCase):
                              itm.uranium_238: '-0.15'})
 
 
-    
+
 

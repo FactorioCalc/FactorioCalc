@@ -51,7 +51,7 @@ def seAliasPass(gi):
         cls.__name__ = clsName
         cls.__qualname__ = clsName
         setattr(gi.mch, clsName, cls)
-        
+
 from pathlib import Path
 importGameInfo(Path('/srv/gamer/Users/kevina/AppData/Roaming/Factorio/script-output/recipes.json'),
                includeDisabled = True,
@@ -249,9 +249,9 @@ bm = unboundedBox(1*rcp.material_science_pack_1()
                   + 1*rcp.tensile_strength_data()
                   + 1*rcp.hot_thermodynamics_data()
                   + 1*rcp.cold_thermodynamics_data()
-                  
+
                   + 1*rcp.material_testing_pack()
-                  
+
                   + 1*rcp.radiating_space_coolant_normal()
                   + 1*rcp.space_coolant_cold()
                   + 1*rcp.space_coolant()
@@ -259,7 +259,7 @@ bm = unboundedBox(1*rcp.material_science_pack_1()
                   + 1*rcp.data_storage_substrate_cleaned()
                   + 1*rcp.data_storage_substrate()
                   + 1*rcp.formatting_1()
-                  
+
                   ,
                   outputTouchups={itm.material_science_pack_1:'1/2'},
 #                 unconstrained = {itm.empty_data}
@@ -275,14 +275,14 @@ bb = unboundedBox(1*rcp.biological_science_pack_1()
                   + 1*rcp.genetic_data()
 
                   + 1*rcp.bio_sludge()
-                  
+
                   + 1*rcp.specimen()
                   + 1*rcp.bioculture()
                   + 1*rcp.nutrient_gel()
                   + 1*rcp.nutrient_vat()
                   + 1*rcp.bio_sludge_decontamination()
                   + 1*rcp.space_water_decontamination()
-                  
+
                   + 1*rcp.radiating_space_coolant_normal()
                   + 1*rcp.space_coolant_cold()
                   + 1*rcp.space_coolant()

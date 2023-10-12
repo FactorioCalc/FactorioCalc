@@ -25,4 +25,4 @@ def __getattr__(name):
 def __dir__():
     from .config import gameInfo
     return ['_find', *gameInfo.get().itm.__dict__.keys()]
-    
+

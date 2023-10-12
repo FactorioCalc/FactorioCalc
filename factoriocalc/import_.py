@@ -105,7 +105,7 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
 
     def getOrderKey(d):
         return (groups[d['group']]['order'],groups[d['subgroup']]['order'],d['order'])
-    
+
     def addItem(item, descr = ''):
         name = item.name
         pythonName = toPythonName(name)
@@ -400,7 +400,7 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
     for rocketSilo, product in list(rocketSiloDefaultProduct.items()):
         if product is None:
             del rocketSiloDefaultProduct[rocketSilo]
-                                
+
     steam = Recipe(
         name = 'steam',
         category = Category('Boiler', [mchByName['boiler']]),
@@ -459,7 +459,7 @@ def vanillaResearchHacks(gi):
         gi.rcpByName[name] = recipe
 
     from .helper import FakeLab
-    
+
     def addResearch(name, order, inputs):
         order = ('z', 'z', order)
         from . import helper
@@ -480,8 +480,8 @@ def vanillaResearchHacks(gi):
 def vanillaCraftingHints():
     from . import rcpByName, itm
     craftingHints = {}
-    
-    for r in rcpByName.values():       
+
+    for r in rcpByName.values():
         if any(item == itm.empty_barrel for _, _, item in r.outputs) and len(r.outputs) > 1:
             craftingHints[r.name] = CraftingHint(priority = IGNORE)
 
@@ -570,13 +570,13 @@ def importGameInfo(gameInfo, *,
         A function to transform internal names before they are
         converted to aliases.
 
-    *presets* 
+    *presets*
         A function to create useful presets that live in the `presets` module.
         The function takes no paramaters and is expected to return a `dict`.
         The `config.gameInfo` context variable is set so the `mch`, `itm`,
         `rcp` are now populated.
-        
-    *extraPasses* 
+
+    *extraPasses*
         Sequence of extra passes to run.  Each function takes in
         `config.gameInfo` as a paramater and is expected to modify it in
         place.
@@ -607,7 +607,7 @@ def importGameInfo(gameInfo, *,
         byproduct.
 
         A tuple of the form ``(<item>, (<item1>, <item2>, ...))``. Is a
-        shortcut for ``(<item>, <item1>)``, ``(<item>, <item2>)``, 
+        shortcut for ``(<item>, <item1>)``, ``(<item>, <item2>)``,
         ``(<item>, ...)``.
 
         Within a tuple, the special string ``*fluid*`` can be used as shortcut
@@ -647,7 +647,7 @@ def importGameInfo(gameInfo, *,
         logger = lambda str: None
     if rocketRecipeHints is None:
         rocketRecipeHints = {}
-    
+
     if isinstance(gameInfo, Path):
         with open(gameInfo) as f:
             d = json.load(f)
@@ -672,7 +672,7 @@ def importGameInfo(gameInfo, *,
         p(res)
 
     res.finalize()
-    
+
     if craftingHints:
         res.craftingHints = craftingHints()
     else:

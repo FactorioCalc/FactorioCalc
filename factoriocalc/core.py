@@ -28,7 +28,7 @@ class Uniq:
     def __eq__(self, other):
         # we want to compare by identity but also give other.__eq__ a chance
         # to be called if defined, so return NotImplemented...
-        return NotImplemented 
+        return NotImplemented
     def __ne__(self, other):
         return NotImplemented
     def __hash__(self):
@@ -95,7 +95,7 @@ class RecipesForItems(NamedTuple):
     products: list
     byproducts: list
     inputs: list
-    
+
 class Ingredient(Uniq,Immutable):
     """Base class for all items."""
     __slots__ = ('name', 'order', '_sortKey')
@@ -294,8 +294,8 @@ class Machine(MachineBase, metaclass=MachineMeta):
     def machine(self):
         return self
 
-    @property 
-    def num(self): 
+    @property
+    def num(self):
         return 1
 
     @property
@@ -592,7 +592,7 @@ class Mul(MachineBase):
 
     def summarize(self):
         return Mul(self.num, self.machine.summarize())
-        
+
 
 @dataclass(repr=False,init=False)
 class Group(Sequence,MachineBase):
@@ -600,7 +600,7 @@ class Group(Sequence,MachineBase):
     machines: List[MachineBase]
     def __init__(self, *machines):
         from .machine import Beacon, UnresolvedBeacon
-        
+
         super().__init__()
         if len(machines) == 1 and isinstance(machines[0], Sequence) and not isinstance(machines[0], Group):
             self.machines = list(machines[0])
@@ -635,8 +635,8 @@ class Group(Sequence,MachineBase):
     def machine(self):
         return self
 
-    @property 
-    def num(self): 
+    @property
+    def num(self):
         return 1
 
     def _sortKey(self, num = ()):
@@ -807,7 +807,7 @@ class Group(Sequence,MachineBase):
                 #   time = recipeTime / craftingSpeed / (1 + speed) / (1 + productivity) + delay
                 #   rateIn = 1 / time / (1 + productivity)
                 #   rateOut = 1 / time
-                # To derive the required speed and productivity we 
+                # To derive the required speed and productivity we
                 # need to solve for speed and productivity
                 if v.rateIn > 0 and v.rateOut > 0:
                     craftingSpeed, delay = m.craftingSpeed, getattr(m, 'delay', 0)
@@ -822,7 +822,7 @@ class Group(Sequence,MachineBase):
                     m = Mul(m, num)
                 grp.append(m)
         return Group(grp)
- 
+
     def _summary(self, out, prefix, includeSolvedBoxFlows, includeMachineFlows, includeBoxDetails, flowsItemFilter):
         from .box import BoxBase, Box
         byRecipe = defaultdict(list)
@@ -1131,7 +1131,7 @@ class Flows:
         return [flow for flow in self.outputs() if flow.item not in self._byproducts]
     def byproducts(self):
         return [flow for flow in self.outputs() if flow.item in self._byproducts]
-    def mul(self,num,markAsAdjusted=False): 
+    def mul(self,num,markAsAdjusted=False):
         flows = _MutableFlows(initFrom = self)
         for f in self:
             flows.merge(f,num,markAsAdjusted)
@@ -1279,7 +1279,7 @@ class NetFlows(Flows):
 class EffectBase(NamedTuple):
     speed: Rational = 0
     productivity: Rational = 0
-    consumption: Rational = 0 # energy used 
+    consumption: Rational = 0 # energy used
     pollution: Rational = 0
 
     def __str__(self):
@@ -1288,7 +1288,7 @@ class EffectBase(NamedTuple):
             parts.append('{:+.0%} speed'.format(self.speed))
         if self.productivity != 0:
             parts.append('{:+.0%} prod.'.format(self.productivity))
-        if self.consumption != 0: 
+        if self.consumption != 0:
             parts.append('{:+.0%} energy'.format(self.consumption))
         if self.pollution != 0:
             parts.append('{:+.0%} pollution'.format(self.pollution))

@@ -38,7 +38,7 @@ class Blueprint:
         itmByName = gameInfo.itmByName
         mchByName = gameInfo.mchByName
         recipeMap = gameInfo.rcpByName
-        
+
         if burnerFuel is None:
             burnerFuel = getDefaultFuel()
 

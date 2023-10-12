@@ -1,2 +1,2 @@
 .. highlight:: none
-.. include:: ../README.rst 
+.. include:: ../README.rst

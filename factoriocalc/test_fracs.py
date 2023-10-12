@@ -13,7 +13,7 @@ class TestFracNonFinite(TestCase):
     def tearDownClass(cls):
         assume_positive_zero.reset(cls.assume_positive_zero_token)
         allow_nans.reset(cls.allow_nans_token)
-    
+
     def assertEq(self, a, b):
         if b is NaN:
             self.assertIs(a,b)

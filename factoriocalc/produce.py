@@ -55,7 +55,7 @@ def blackBox(*args, minSolveRes = None, **kwargs):
 class _BoxFailedInfo:
     factory: Box = None
     solveRes: SolveRes = SolveRes.UNSOLVED
-    
+
 
 def produce(outputs, using = (), *,
             stopAt = (), fuel = None, constraints = (),
@@ -77,7 +77,7 @@ def produce(outputs, using = (), *,
     *using*
       an optional mixed type sequence used to guide the selection of
       what recipes to use and when to stop.
- 
+
       If an item is given it will try and select recipes that use that item
       and stop once it is used.  If paired with a rate (using the '@'
       operator) then will use that item at the given rate.
@@ -184,7 +184,7 @@ def produce(outputs, using = (), *,
                 except KeyError:
                     adj = 0
                 p = priority - 100 + adj
-                recipePrefs[r] = max(recipePrefs.get(r, p), p) 
+                recipePrefs[r] = max(recipePrefs.get(r, p), p)
     machines = {}
     toResolve = deque(outputs.keys())
     while toResolve:
@@ -267,7 +267,7 @@ def produce(outputs, using = (), *,
             extraOutputs.add(item)
     if inputs:
         for item in b.inputs.keys():
-            if item not in inputs: 
+            if item not in inputs:
                 res.extraInputs.append(item)
     b = res.factory = Box(b, extraOutputs = extraOutputs)
     if not solve or (all(rate is None for rate in outputs.values()) and all(rate is None for rate in inputs.values())):
@@ -286,7 +286,7 @@ class ProduceResult:
     solveRes: SolveRes = SolveRes.UNSOLVED
     extraOutputs: list = field(default_factory=list)
     extraInputs: list = field(default_factory=list)
-    unusedInputs: list = field(default_factory=list) 
+    unusedInputs: list = field(default_factory=list)
 
 class MultipleChoiceError(ValueError):
     pass
@@ -317,7 +317,7 @@ def merge(*args, mergeFun = operator.add):
 
 def union(*args):
     return merge(*args, mergeFun = max)
-    
+
 def _merge(b1, b2, mergeFun):
     combined = {}
     for m in b1.inner:
@@ -352,7 +352,7 @@ def _merge(b1, b2, mergeFun):
         o2 = b2.outputs.get(item, None)
         if o1 == o2:
             outputs[item] = o1
-        
+
     inputs = dict()
     inputs.update((item, None) for item in b1.inputs.keys())
     inputs.update((item, None) for item in b2.inputs.keys())

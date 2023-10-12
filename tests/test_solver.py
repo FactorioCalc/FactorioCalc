@@ -169,7 +169,7 @@ class SolverTests(unittest.TestCase):
         ), {}, {'plastic-bar-t': 1, 'low-density-structure-t': 1,
                 'rocket-fuel-1': 1, 'sulfer-t': 1, 'lubricant-t': 1,
                 'flamethrower-ammo-t': 1})
-    
+
     testCircuits = SolverTest(lambda: _fromBlueprint(
         'circuits3',
         outputs=[itm.electronic_circuit,itm.advanced_circuit,itm.processing_unit]
@@ -216,8 +216,8 @@ class SolverTests(unittest.TestCase):
     #  >>> s.tableau.addPendingObjective()
     #  >>> s.tableau.solve()
     #  >>> s.tableau.print()
-    #          -0-    -1-    -2-    -3-    -4-   -5-  -6-  -7-  -8-  -9- -10- 
-    #        plasti light- solid- rocket solid-  s2   s3   s4   s5   s6   s7  |    rhs    
+    #          -0-    -1-    -2-    -3-    -4-   -5-  -6-  -7-  -8-  -9- -10-
+    #        plasti light- solid- rocket solid-  s2   s3   s4   s5   s6   s7  |    rhs
     #     0:    0      0    0.320    0     *1*    0    0    0    0    1    0  |     1     | -4- solid-fuel-from-light-oil-t
     #     1:   *1*     0    0.173    0      0    1.8   0    0    0  -0.4   0  |     1     | -0- plastic-bar-t
     #     2:    0     *1*  -0.253    0      0    1.8   0    0    0  -0.8   0  |  0.573402 | -1- light-oil-cracking-t
@@ -252,7 +252,7 @@ class SolverTests2(unittest.TestCase):
         cls.origMachinePrefs = config.machinePrefs.set((
             ElectricFurnace(modules=2*itm.effectivity_module_2),
             *MP_MAX_PROD.withSpeedBeacons({AssemblingMachine3:8, OilRefinery:12, ChemicalPlant:8})))
-        
+
         cb = circuitsBpBook()
         g0 = BlackBox(box(cb.find('green0').convert()[0]), name='green')
         r0 = BlackBox(box(cb.find('red0').convert()[0]), name='red')
@@ -287,7 +287,7 @@ class SolverTests2(unittest.TestCase):
                                         outputs=[*SolverTests2.circuits6.outputs, itm.speed_module_3, itm.rocket_control_unit @ 2],
                                         priorities={itm.speed_module_3:1}),
         {itm.speed_module_3: frac(1,4), itm.rocket_control_unit: 2})
-    
+
 # _science = _fromBlueprint('science3')
 
 def _populate(cls, scienceGrp):
@@ -353,7 +353,7 @@ def _populate(cls, scienceGrp):
         inputs = inputs,
         priorities = {itm.production_science_pack: -1},
     ), {item: rate for item, rate in maxOutputs.items() if item is not itm.production_science_pack})
-    
+
     cls.testProd18 = SolverTest(lambda: Box(
         scienceGrp(),
         inputs = inputs,
@@ -420,7 +420,7 @@ class TestScience(unittest.TestCase):
     @classmethod
     def getScience(cls):
         return deepcopy(cls.science)
-    
+
 _populate(TestScience, TestScience.getScience)
 
 class TestScienceB(unittest.TestCase):
@@ -446,7 +446,7 @@ class ProduceTests(unittest.TestCase):
     testElectronicCircuit = ProduceTest(
         lambda: produce([itm.electronic_circuit@30]),
         {itm.electronic_circuit: 30, itm.copper_ore: -45, itm.iron_ore: -30})
-    
+
     testJustOil = ProduceTest(
         lambda: produce([itm.petroleum_gas@60], using=[rcp.advanced_oil_processing]),
         {itm.petroleum_gas: 60, itm.crude_oil: frac(-800,13)})
@@ -458,7 +458,7 @@ class ProduceTests(unittest.TestCase):
     testRocketFuel = ProduceTest(
         lambda: produce([itm.rocket_fuel@6], using=[rcp.advanced_oil_processing]),
         {itm.rocket_fuel: 6, itm.crude_oil: frac(-52800,73)})
-                                             
+
     testUranium238 = ProduceTest(
         lambda: produce([itm.uranium_fuel_cell@1],[rcp.uranium_processing, rcp.kovarex_enrichment_process,
                                                    itm.used_up_uranium_fuel_cell@1]),
@@ -468,4 +468,4 @@ class ProduceTests(unittest.TestCase):
     testSpaceSciencePack = ProduceTest(
         lambda: produce([itm.space_science_pack@1],recursive=False),
         {itm.space_science_pack:1, itm.rocket_control_unit: frac(-5,7), itm.satellite: frac(-1,1000)})
-    
+

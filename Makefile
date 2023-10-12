@@ -2,7 +2,7 @@ all:
 
 test: tests unittests
 
-tests: 
+tests:
 	python3 -m unittest discover -t . -s tests
 
 unittests:

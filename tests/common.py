@@ -48,7 +48,7 @@ def science3Boxed():
     tally=defaultdict(list)
     for m in grp:
         tally[(m.blueprintInfo['position']['x'],m.recipe)].append(m)
-        
+
     def extract(f):
         res = []
         keys = [k for k in tally.keys() if f(k)]
@@ -56,12 +56,12 @@ def science3Boxed():
             res += tally[k]
             del tally[k]
         return res
-    
+
     def extractByPos(minX, maxX = None):
         if maxX is None:
             maxX = minX
         return extract(lambda k: k[0] >= minX and k[0] <= maxX)
-        
+
     bA = Box(Group(extractByPos(-188.5)))
     bL = Box(Group(extractByPos(-178.5)))
     bM = Box(Group(extractByPos(-168.5,-158.5)))
@@ -74,5 +74,5 @@ def science3Boxed():
 
     return Group(Group(bA,bL,bM,bC,engineB,bU,bP,batteryB,bS),
                  grp0[1])
-    
+
 

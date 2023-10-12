@@ -4,10 +4,10 @@ Example::
 
   >>> from factoriocalc import *
   >>> config.machinePrefs.set(MP_MAX_PROD.withSpeedBeacons({AssemblingMachine3:8, ChemicalPlant:8, OilRefinery:12}))
-  >>> rocketFuel = UnboundedBox(1*rcp.advanced_oil_processing() 
-                                + 1*rcp.heavy_oil_cracking() 
+  >>> rocketFuel = UnboundedBox(1*rcp.advanced_oil_processing()
+                                + 1*rcp.heavy_oil_cracking()
                                 + 1*rcp.light_oil_cracking()
-                                + 1*rcp.solid_fuel_from_light_oil() 
+                                + 1*rcp.solid_fuel_from_light_oil()
                                 + 1*rcp.solid_fuel_from_petroleum_gas()
                                 + 1*rcp.rocket_fuel(),
                                 outputs = [itm.rocket_fuel@6])
@@ -24,8 +24,8 @@ Example::
     aux (water): -124.534*light-oil-cracking-m -18.7613*solid-fuel-from-light-oil-m -1.51190*rocket-fuel-m
     aux (crude-oil): -75.6757*light-oil-cracking-m -25.2252*solid-fuel-from-light-oil-m -2.03280*rocket-fuel-m
   >>> solver.tableau.print()
-        -0-    -1-    -2-    -3-   -4-  -5-  -6- 
-      light- solid- solid- rocket  a0   a1   p2  |    rhs    
+        -0-    -1-    -2-    -3-   -4-  -5-  -6-
+      light- solid- solid- rocket  a0   a1   p2  |    rhs
    0:  0.635 -0.255  0.101  0.008  *1*   0    0  |     0     | -4- a0
    1:    0    0.381  0.381 -0.236   0   *1*   0  |     0     | -5- a1
    2:    0      0      0      1     0    0   *1* |  23.3766  | -6- p2
@@ -38,8 +38,8 @@ Example::
   <SolveRes.OPTIMAL: 1>
   >>> solver.tableau.addPendingObjective()
   >>> solver.tableau.print()
-        -0-    -1-    -2-    -3-  
-      light- solid- solid- rocket |    rhs    
+        -0-    -1-    -2-    -3-
+      light- solid- solid- rocket |    rhs
    0:   *1*     0    0.560    0   |  5.52158  | -0- light-oil-cracking-m
    1:    0     *1*     1      0   |  14.4910  | -1- solid-fuel-from-petroleum-gas-m
    2:    0      0      0     *1*  |  23.3766  | -3- rocket-fuel-m
@@ -50,8 +50,8 @@ Example::
   >>> solver.tableau.solve()
   <SolveRes.UNIQUE: 2>
   >>> solver.tableau.print()
-        -0-    -1-    -2-    -3-  
-      light- solid- solid- rocket |    rhs    
+        -0-    -1-    -2-    -3-
+      light- solid- solid- rocket |    rhs
    0:  1.782    0     *1*     0   |  9.84266  | -2- solid-fuel-from-light-oil-m
    1: -1.782   *1*     0      0   |  4.64834  | -1- solid-fuel-from-petroleum-gas-m
    2:    0      0      0     *1*  |  23.3766  | -3- rocket-fuel-m
@@ -93,7 +93,7 @@ from .core import *
 from .box import *
 from .core import _fmt_rate
 
-__all__ = ('Var', 'Term', 'SolveRes', 'Cond', 'EQ', 'GE', 'LE', 
+__all__ = ('Var', 'Term', 'SolveRes', 'Cond', 'EQ', 'GE', 'LE',
            'LinearEqId', 'Terms', 'LinearEq', 'VarGroup', 'LinearEqSystem',
            'Solver', 'SlackVar', 'ArtificialVar', 'PartialVar', 'OptFun',
            'Tableau', 'Solution')
@@ -153,7 +153,7 @@ class SolveRes(OrdEnum):
     #: not yet solved
     UNSOLVED = -2
 
-    #: already solved 
+    #: already solved
     NOOP = -1
 
     #: a solution was found, no test for uniqueness was done
@@ -187,7 +187,7 @@ class SolveRes(OrdEnum):
     # MULTI  = 4
     # PARTIAL = 8
     # UNBOUNDED = 16
-    
+
     def ok(self):
         return self < SolveRes.PARTIAL
     def notok(self):
@@ -262,7 +262,7 @@ class Terms(dict):
         for var, rate in itr:
             self.add(var, mul*rate)
         return self
-                
+
     def apply(self, values = None):
         if values is None:
             values = {}
@@ -270,7 +270,7 @@ class Terms(dict):
         for var, rate in self.items():
             res += rate * values.get(var, var.max)
         return res
-    
+
     def sub(self, var, repl):
         factor = self.pop(var, 0)
         if factor == 0:
@@ -287,7 +287,7 @@ class Terms(dict):
         for var, rate in self.items():
             self[var] = -rate
         return self
-    
+
     def __str__(self):
         return fmt_terms(self.items())
     __iadd__ = merge
@@ -346,7 +346,7 @@ class LinearEq:
             return Le(terms, Number(self.rate))
         else:
             raise ValueError
-        
+
 class _Target(NamedTuple):
     cond: Cond
     rate: Rational
@@ -392,7 +392,7 @@ class LinearEqSystem:
             out.write(f'{prefix}{item} = {fmt_terms(terms)} (input)\n')
         for item, terms in self.other.items():
             out.write(f'{prefix}{item} = {fmt_terms(terms)} (other)\n')
-        
+
 
     @classmethod
     def fromBox(cls, box, *, _tally = None):
@@ -420,9 +420,9 @@ class LinearEqSystem:
         if tally is None:
             tally = defaultdict(dict)
         tally[''][id(box)] = len(tally['']) + 1
-            
+
         for m in machines:
-            (key, name) = varInfo(m) 
+            (key, name) = varInfo(m)
             tally[name][key] = len(tally[name]) + 1
 
         inners = []
@@ -435,7 +435,7 @@ class LinearEqSystem:
             priorities.update(l.priorities) # fixme is this right
             inners.append(l)
             machines[idx] = None
-            
+
         for m in machines:
             if m is None: continue
             (key, name) = varInfo(m)
@@ -464,7 +464,7 @@ class LinearEqSystem:
             for item, terms in l.external():
                 eqs[item].terms += terms
             byVar.update(l.byVar)
-        
+
         for (item,rate) in box.outputs.items():
             row = eqs[item]
             if rate is None:
@@ -509,7 +509,7 @@ class LinearEqSystem:
         byId = {}
         for var in byVar:
             byId[var.id] = var
-            
+
         for key0, prior in box.priorities.items():
             key = (id(box), key0)
             if key in byId:
@@ -553,12 +553,12 @@ class LinearEqSystem:
                                         (*(Term(v, r*mul1) for v, r in external[None][item1]),
                                          *(Term(v, -r*mul2) for v, r in external[None][item2])),
                                         EQ, 0)
-            
+
         #sortedEqs = sorted(eqs.values(), key = lambda v: v.target)
         #eqs = {row.id: row for row in sortedEqs}
 
         ###
-        
+
         for l in inners:
             for eqId, eq in l.eqs.items():
                 if eqId.qualifier == '':
@@ -639,7 +639,7 @@ def _simplify(leq):
                 terms = ()
             elif eq.terms:
                 factor = -eq.terms.pop(var)
-                eq.terms /= factor 
+                eq.terms /= factor
                 eq.rhs = Term(var, 1)
                 terms = eq.terms
             else: # empty eq -- fixme: is this right, why can this happen
@@ -768,7 +768,7 @@ class Solver:
                 obj[:] = [obj[0]]
 
         self.objectives = objectives
-        
+
         self.tableau = Tableau(self.eqs, self.objectives)
         return self._result
 
@@ -835,7 +835,7 @@ class Solver:
         for var,grp in self.leqs.byVar.items():
             grp.setThrottle(solution.get(var, 1))
         return res, solution
-        
+
 
 @dataclass(frozen=True)
 class SlackVar:
@@ -873,7 +873,7 @@ class Tableau:
         cols = []
         eqs0 = eqs
         eqs = {}
-        
+
         def addEq(terms, minv, maxv, id = None):
             #assert(minv <= maxv)
             factor = 0
@@ -897,7 +897,7 @@ class Tableau:
                             min(orig[1], maxv),
                             orig[2] + [id])
             eqs[terms] = combined
-        
+
         for eq in eqs0:
             if eq.cond is EQ:
                 addEq(eq.terms, eq.rate, eq.rate, eq.id)
@@ -907,12 +907,12 @@ class Tableau:
                 addEq(eq.terms, eq.rate, Inf, eq.id)
             else:
                 raise ValueError
-            
+
         for var in cols:
             if var.max != Inf:
                 t = (Term(var, 1),)
                 addEq(t, -Inf, var.max)
-        
+
         eql = []
         self.rowInfo = []
         for rowIdx, (terms, (minv,maxv,ids)) in enumerate(eqs.items()):
@@ -929,14 +929,14 @@ class Tableau:
                 eql.append((terms, LE, maxv))
 
         self.cols = cols
-                
+
         slackVarsOffset = len(cols)
         slackVars = {}
         for rowIdx, (_, cond, _) in enumerate(eql):
             if cond is LE:
                 slackVars[rowIdx] = slackVarsOffset + len(slackVars)
                 cols.append(SlackVar(rowIdx))
-        
+
         artificialVarsOffset = len(cols)
         artificialVars = {}
         for rowIdx, (_, cond, rhs) in enumerate(eql):
@@ -987,7 +987,7 @@ class Tableau:
                 self.addObjective(objective2)
 
         self.pendingObjectives = objectives
-        
+
     def print(self, out = None, ratioCol = None):
         if out is None:
             out = sys.stdout
@@ -1045,7 +1045,7 @@ class Tableau:
             raise ZeroDivisionError
         for i, rate in enumerate(row):
             row[i] = div(rate, r)
-            
+
     def clear(self, rowIdx, colIdx):
         self._cleared = None
         self.normalize(rowIdx, colIdx)
@@ -1064,7 +1064,7 @@ class Tableau:
         factor = row[colIdx]
         for j, val in enumerate(self.tableau[rowIdx]):
             row[j] -= factor*val
-        
+
     def clearCol(self, colIdx):
         rowIdx = self.bestRow(colIdx)
         if rowIdx is not None:
@@ -1075,7 +1075,7 @@ class Tableau:
         for row in self.tableau:
             row[colIdx] = 0
         self.zeroed[colIdx] = True
-        
+
     def solution(self):
         res = {var: 0 for var in self.cols if type(var) is Var}
         other = {}
@@ -1090,7 +1090,7 @@ class Tableau:
             elif isinstance(var, ArtificialVar):
                 other[var] = sol
         return Solution(res,other)
-    
+
     def allSolutions(self):
         assert self.optFunBegin == len(self.tableau)
         prev = {}
@@ -1110,7 +1110,7 @@ class Tableau:
             prev[encoding] = colIdx
             self.clearCol(colIdx)
         return sols
-            
+
     def ratios(self, colIdx):
         res = {}
         for i, row in enumerate(self.tableau[:self.optFunBegin]):
@@ -1120,7 +1120,7 @@ class Tableau:
                 if r >= 0:
                     res[i] = r
         return res
-    
+
     def bestRow(self, colIdx, start = 0):
         try:
             row, ratio = min(self.ratios(colIdx).items(), key=operator.itemgetter(1))
@@ -1128,7 +1128,7 @@ class Tableau:
             return None
         else:
             return row
-        
+
     def cleared(self):
         if self._cleared:
             return self._cleared
@@ -1138,18 +1138,18 @@ class Tableau:
             colIdx = self.colsByVar[var]
             cleared[colIdx] = rowIdx
         for colIdx, c in enumerate(cleared):
-            if c == -2: 
+            if c == -2:
                 for rowIdx in range(len(self.basic)):
                     if self.tableau[rowIdx][colIdx] != 0:
                         cleared[colIdx] = -1
         self._cleared = cleared
         return cleared
-    
+
     def encoding(self):
         cleared = self.cleared()
         l = len(cleared) - 1
         return sum(0 if c < 0 else 1<<(l-i) for i,c in enumerate(cleared))
-    
+
     #def copy(self): # broken, needs updating
     #    other = object.__new__(type(self))
     #    other.cols = self.cols
@@ -1158,7 +1158,7 @@ class Tableau:
     #    other.optFunBegin = self.optFunBegin
     #    other.cleared = self.cleared.copy()
     #    return other
-    
+
     def addObjective(self, terms, note = None, label = 'max'):
         if label not in ('max', 'aux'):
             raise ValueError("label must be 'max' or 'aux'")
@@ -1215,7 +1215,7 @@ class Tableau:
                 return SolveRes.NOOP
         if rowIdx < self.optFunBegin:
             raise ValueError(f'row {rowIdx} not an objective function')
-        
+
         opt = self.tableau[rowIdx]
         res = SolveRes.OPTIMAL
         if sum(v != 0 for v in opt) == 1:
@@ -1248,7 +1248,7 @@ class Tableau:
             res |= SolveRes.UNIQUE
         elif unique is False:
             res |= SolveRes.OK
-            
+
         if zero:
             toClear = []
             for colIdx in range(0, len(opt) - 1):
@@ -1277,7 +1277,7 @@ class Tableau:
         self.addObjective(*next(itr))
         for aux in itr:
             self.addObjective(*aux,'aux')
-        
+
     def solveAll(self):
         res = SolveRes.NOOP
         while len(self.tableau) > self.optFunBegin:
@@ -1309,7 +1309,7 @@ def _multiDel(lst, idxsToDel):
             lst[newIdx] = lst[origIdx]
             origIdx += 1
             newIdx += 1
-    del lst[newIdx:]                
+    del lst[newIdx:]
 
 class Solution(NamedTuple):
     solution: dict
@@ -1324,7 +1324,7 @@ class Solution(NamedTuple):
         for var, rate in self.other.items():
             out.write(f'  {var} = {rate:.9g}\n')
 
-def walk(t): 
+def walk(t):
     # note: likely broken
     prev = set()
     solutions = set()

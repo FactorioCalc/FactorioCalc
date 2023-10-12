@@ -278,7 +278,7 @@ previous section.  I personally don't find it worth it to use modules for
 basic smelting even in the late game so instead let's just change
 `machinePrefs` to that effect::
 
-  >>> config.machinePrefs.set([mch.ElectricFurnace(), 
+  >>> config.machinePrefs.set([mch.ElectricFurnace(),
                               *MP_MAX_PROD.withSpeedBeacons({mch.AssemblingMachine3:8})])
   >>> ec4 = produce([itm.electronic_circuit @ 30]).factory
   >>> ec4.summary()
@@ -289,7 +289,7 @@ basic smelting even in the late game so instead let's just change
       36.7x copper_plate: ElectricFurnace
     Outputs: electronic_circuit 30/s
     Inputs: iron_ore -21.4286/s, copper_ore -22.9592/s
-  
+
 Ok, we still need a lot of electronic furnaces, but I normally smelt in a
 separate factory.  So let's instead create electronic circuits from just
 iron and copper plates by using the `using` keyword argument::
@@ -423,7 +423,7 @@ outputs::
   >>> config.machinePrefs.set(MP_MAX_PROD.withSpeedBeacons({mch.AssemblingMachine3:8, mch.ChemicalPlant:8, mch.OilRefinery:12}))
   >>> circuits1 = box(rcp.electronic_circuit() + 2*rcp.copper_cable() + 2*rcp.advanced_circuit(),
 		      outputs = [itm.electronic_circuit, itm.advanced_circuit])
-  >>> circuits1.summary()	    
+  >>> circuits1.summary()	
   Box:
          1x electronic_circuit: AssemblingMachine3  +340% speed +40% prod. +880% energy +40% pollution
          2x copper_cable: AssemblingMachine3  @0.654762  +340% speed +40% prod. +880% energy +40% pollution
@@ -517,7 +517,7 @@ If, for example, we wanted to produce electronic circuits at 28/s from copper
 and iron plates we could use produce, but let's assume we would rather specify
 the machines used.  We don't know the number of machines we need however, so
 we use ubbounded throttles to let the solver figure it out for use::
-  
+
   >> config.machinePrefs.set(MP_MAX_PROD.withSpeedBeacons({mch.AssemblingMachine3:8}))
   >> circuits0 = box(~rcp.electronic_circuit() + ~rcp.copper_cable(),
                      outputs={itm.electronic_circuit@28})
@@ -637,7 +637,7 @@ light oil we can up the priority for that chemical plant::
     Outputs: plastic_bar 74.4195/s, rocket_fuel 6/s
     Inputs: coal -28.6229/s, water -849.454/s, crude_oil -678.303/s
     Priorities: rcp.solid_fuel_from_petroleum_gas: 2
-    
+
 And as a result the plastic output suffers as there is not enough petroleum
 gas.  When solving we only got `SolveRes.OK`, which means that other solutions
 are possible.  The slightly cryptic warning is telling us that the plastic

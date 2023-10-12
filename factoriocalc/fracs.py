@@ -119,7 +119,7 @@ class Rational(numbers.Number):
     """Abstract base class that includes `int` and `Frac`.
 
     Differes from `numbers.Rational` in that it is not also a `numbers.Real`.
-    
+
     To avoid confusion with `numbers.Rational`, it is not exported by default.
 
     """
@@ -155,7 +155,7 @@ class Frac(tuple,Rational):
     Compression operations will return `Invalid` if either argument is a NaN.
     Attempting to convert `Invalid` to a bool will raise a `ValueError`.  This
     prevents accidental comparasion with NaN and allows NaN to be used as an
-    unknown in a limited sense.  If you want the traditional behavior use 
+    unknown in a limited sense.  If you want the traditional behavior use
     ``(x == y) is True``.  If you want NaN to represent an unknown use
     ``(x == y) is not False``.
 
@@ -174,7 +174,7 @@ class Frac(tuple,Rational):
 
     """
     __slots__ = ()
-    
+
     def __new__(cls, num, den):
         """construct Frac directly, prefer `frac` function instead"""
         assert(den > 1 or den == 0)
@@ -221,7 +221,7 @@ class Frac(tuple,Rational):
             return NotImplemented
         cmp.__doc__ = None
         return cmp
-    
+
     __lt__ = __compare(operator.lt)
     __le__ = __compare(operator.le)
     __gt__ = __compare(operator.gt)
@@ -241,7 +241,7 @@ class Frac(tuple,Rational):
     __str__ = as_str
 
     def __repr__(self):
-        if self[1] == 0: 
+        if self[1] == 0:
             if self[0] < 0:
                 return '-Inf'
             elif self[0] > 0:
@@ -263,11 +263,11 @@ class Frac(tuple,Rational):
                 return format(_FORMAT_CONTEXT.divide(self.numerator,self.denominator), spec)
             else:
                 return format(_FORMAT_CONTEXT_9.divide(self.numerator,self.denominator), spec)
-                
-        
+
+
     def __pos__(self):
         return self
-    
+
     def __neg__(self):
         if self[0] == 0:
             return self
@@ -292,7 +292,7 @@ class Frac(tuple,Rational):
 
     def __floor__(self):
         return self[0] // self[1]
-        
+
     def __float__(self):
         if self[1] == 0:
             if self[0] > 0:
@@ -367,7 +367,7 @@ class Frac(tuple,Rational):
         """unimplemented, use `div` function instead"""
         raise NotImplementedError('use div function instead')
 
-    def __rtruediv__(self, other): 
+    def __rtruediv__(self, other):
         """unimplemented, use `div` function instead"""
         raise NotImplementedError('use div function instead')
 
@@ -379,10 +379,10 @@ class Frac(tuple,Rational):
 
 class NanType(numbers.Number):
     __slots__= ()
-    
+
     def __new__(cls):
         return NaN
-    
+
     def __copy__(self):
         return self
     def __deepcopy__(self, _):
@@ -393,7 +393,7 @@ class NanType(numbers.Number):
 
     def _cmp(self, other):
         return Invalid
-    
+
     __eq__ = _cmp
     __ne__ = _cmp
     __lt__ = _cmp
@@ -417,7 +417,7 @@ class NanType(numbers.Number):
 
     def __float__(self):
         return math.nan
-    
+
     def _binop(self, other):
         return self
 

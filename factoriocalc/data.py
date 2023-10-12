@@ -41,7 +41,7 @@ class GameInfo:
     def finalize(self):
         self.recipesThatMake = {}
         self.recipesThatUse = {}
-        
+
         for r in self.rcpByName.values():
             for _, _, item in r.outputs:
                 self.recipesThatMake.setdefault(item, []).append(r)

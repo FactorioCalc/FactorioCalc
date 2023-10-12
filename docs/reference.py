@@ -42,7 +42,7 @@ def documentSymbols(modulestr, *, also = (), docValues = True):
 
 def documentExtraSymbols():
     return ''.join(documentSymbol(fc, symname) for symname in fc._extraSymbols)
-    
+
 
 # def documentConfigSymbols():
 #     module = getattr(fc, 'config')
@@ -71,7 +71,7 @@ Fractions
 ---------
 
 .. autofunction:: frac
-                  
+
 .. autofunction:: div
 
 .. py:class:: Frac
@@ -99,7 +99,7 @@ Core
 ------------
 
 .. automodule:: factoriocalc.itm
-   :no-members: 
+   :no-members:
 
    .. autofunction:: _find
 

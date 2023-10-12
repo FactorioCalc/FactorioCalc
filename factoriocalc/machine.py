@@ -267,7 +267,7 @@ class Beacon(_ModulesHelperMixin,Machine):
 
     def _keyParts(self, lst):
         lst.append(('modules', tuple(sorted(self.modules))))
-    
+
     def __hash__(self):
         if not self._frozen:
             raise ValueError("can't take hash of non-frozen Beacon")
@@ -306,7 +306,7 @@ class AssemblingMachine(CraftingMachine):
 
 class Furnace(CraftingMachine):
     pass
-    
+
 @dataclass(init=False, repr=False)
 class RocketSilo(CraftingMachine):
     class Recipe(Recipe):
@@ -315,7 +315,7 @@ class RocketSilo(CraftingMachine):
             super().__init__(name, category, inputs, products, byproducts, time, order)
             object.__setattr__(self, 'origRecipe', origRecipe)
             object.__setattr__(self, 'cargo', cargo)
-        
+
     delay = frac(2420 + 13, 60)
 
     def _calc_flows(self, throttle):

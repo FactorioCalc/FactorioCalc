@@ -13,6 +13,6 @@ with open('../README.rst', 'r') as f:
     if i >= len(lines):
         stderr.write('ERROR: Failed to correctly extract description text from README\n')
         sys.exit(1)
-        
-        
-    
+
+
+

@@ -31,7 +31,7 @@ class JsonRoundtripTests(unittest.TestCase):
     testScience2 = JsonRoundtripTest(lambda: bpBook().find('science2').convert())
 
     testScience3 = JsonRoundtripTest(lambda: bpBook().find('science3').convert())
-    
+
     testPlasticAndSulfer = JsonRoundtripTest(lambda: bpBook().find('plastic+sulfer').convert())
 
     testOilStuff = JsonRoundtripTest(lambda: bpBook().find('oil-stuff+lds').convert())
