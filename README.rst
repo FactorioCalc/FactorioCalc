@@ -22,7 +22,7 @@ fixed recipe.
 
 I, the author, find designing my factory symbolically more natural than
 using a spreadsheet and tools like FactorioLab.
- 
+
 Read the docs at https://factoriocalc.readthedocs.io/en/latest/
 
 Examples
@@ -30,35 +30,40 @@ Examples
 
 ::
 
-  >>> import factoriocalc as fc
-  >>> from factoriocalc import itm, rcp, produce
+  >>> from factoriocalc import itm, rcp, mch, preset, config, produce
 
 
 Create a simple factory that creates electronic circuits from copper and iron plates::
 
-  >>> fc.config.machinePrefs.set(fc.MP_LATE_GAME)
+  >>> config.machinePrefs.set(preset.MP_LATE_GAME)
   >>> circuits = 2*rcp.electronic_circuit() + 3*rcp.copper_cable()
   >>> circuits.summary()
      2x electronic-circuit: assembling-machine-3:
            electronic-circuit 5/s, copper-cable -15/s, iron-plate -5/s, electricity -0.775 MW
      3x copper-cable: assembling-machine-3:
            copper-cable 15/s, copper-plate -7.5/s, electricity -1.1625 MW
-  >>> print(circuits.flows())
-  electronic-circuit 5/s, copper-cable 0/s (15/s - 15/s), iron-plate -5/s, copper-plate -7.5/s, electricity -1.9375 MW
+  >>> circuits.flows().print()
+  electronic_circuit 5/s
+  copper_cable 0/s (15/s - 15/s)
+  iron_plate -5/s
+  copper_plate -7.5/s
+  electricity -1.9375 MW
+
 
 Use `produce` to create a factory that produces rocket fuel::
 
-  >>> fc.config.machinePrefs.set(fc.MP_MAX_PROD.withSpeedBeacons({fc.AssemblingMachine3:8, fc.ChemicalPlant:8, fc.OilRefinery:12}))
+  >>> config.machinePrefs.set(preset.MP_MAX_PROD.withSpeedBeacons({
+          mch.AssemblingMachine3:8, mch.ChemicalPlant:8, mch.OilRefinery:12}))
   >>> rocketFuel = produce([itm.rocket_fuel@6], using=[rcp.advanced_oil_processing]).factory
   >>> rocketFuel.summary()
-  Box:
+  b-rocket-fuel:
       23.4x rocket-fuel: assembling-machine-3  +340% speed +40% prod. +880% energy +40% pollution
       9.84x solid-fuel-from-light-oil: chemical-plant  +355% speed +30% prod. +800% energy +30% pollution
       4.65x solid-fuel-from-petroleum-gas: chemical-plant  +355% speed +30% prod. +800% energy +30% pollution
       2.26x advanced-oil-processing: oil-refinery  +555% speed +30% prod. +1080% energy +30% pollution
       1.06x heavy-oil-cracking: chemical-plant  +355% speed +30% prod. +800% energy +30% pollution
     Outputs: rocket-fuel 6/s
-    Inputs: crude-oil -295.803/s, water -220.004/s
+    Inputs: water -220.004/s, crude_oil -295.803/s
 
 Installation
 ------------
@@ -66,9 +71,6 @@ Installation
 FactorioCalc is available on PyPi so you can install it using pip::
 
   pip3 install factoriocalc
-
-FactorioCalc currently depends on factorio-draftsman, but only to get the
-standard set of items and recipes.
 
 Status
 ------
