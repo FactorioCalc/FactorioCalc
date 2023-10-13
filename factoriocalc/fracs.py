@@ -147,7 +147,7 @@ class Frac(tuple,Rational):
     Infinity and NaN is supported.  NaN are a special type with a single value.
     So to test for NaN it is acceptable to use ``x is NaN``.
 
-    ``hash(Frac)`` is supported but for speed it is only compatible with
+    ``hash(Frac)`` is supported, but for speed it is only compatible with
     itself.  The automatic conversion to integers also mean that
     ``hash(frac(2)) == hash(2)``.  However, ``hash(frac(1,2)) != hash(0.5)``
     and ``hash(frac(1,2)) != hash(fractions.Fraction(1,2))``
@@ -168,7 +168,7 @@ class Frac(tuple,Rational):
 
     Format specifiers are also supported.  If the type character is empty it will
     be formated as <num>/<den> otherwise it will be converted to a `Decimal` and
-    then formatted.  This means trailing zeros are significant when the type
+    then formatted.  Trailing zeros are significant when the type
     character is 'g'.  For example, '1.500' represents a fraction close to 3/2
     while '1.5' represents the exact fraction 3/2.
 

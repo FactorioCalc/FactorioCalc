@@ -1089,14 +1089,20 @@ class FlowsState(OrdEnum):
         return self.value < FlowsState.UNSOLVED.value
 
 class Flows:
+    """A sequence of flows.
+
+    Individual flows are stored as a `dict` in the `byItem` field.
+    """
     __slots__ = ('byItem', '_byproducts', 'state')
     # self.byItem and self._byproducts and self.state are expected to be defined
     def flow(self, item):
+        """Returns the flow for *item* or an empty flow if item not in `byItem`."""
         if isinstance(item, Ingredient):
             return self.byItem.get(item,Flow(item))
         else:
             raise KeyError(item)
     def rate(self, item):
+        """Returns the flow rate for *item*."""
         return self.flow(item).rate()
     def __iter__(self):
         return iter(self.byItem.values())
@@ -1115,6 +1121,7 @@ class Flows:
         else:
             return flowsStr
     def items(self):
+        """Returns ``self.byItem.keys()``"""
         return self.byItem.keys()
     def print(self, out = None, prefix = '  '):
         if out is None:

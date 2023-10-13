@@ -321,7 +321,8 @@ class Box(BoxBase):
             and negative values will constrain inputs.  For example,
             {itm.plastic_bar: 2} will add a constraint to produce plastic bars
             at a rate of at least 2/s and {itm.plastic_bar: -2} will add a
-            constraint to consume plastic bars at a rate of 2/s max.
+            constraint to consume plastic bars at a rate of 2/s max
+            (inclusive).
 
             If a list, then it a list of simple equations that must be true.
             An equation currently is one of `Equal(term1, term2, ...)<Equal>` or
