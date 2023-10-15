@@ -281,7 +281,7 @@ class Box(BoxBase):
             A name for the box
 
         *inner*
-            A `Group` or another `Box`.
+            A `Group`.
 
         *outputs*, *extraOutputs*, *outputTouchups*, *inputs*, *extraInputs*, *inputTouchups*
             A sequence or mapping of outputs and inputs.  The key value can
@@ -360,95 +360,65 @@ class Box(BoxBase):
 
         from .solver import SolveRes
 
-        orig = None
-        if isinstance(inner, Box):
-            orig = inner
-            inner = _deepcopy(orig.inner)
-
         if not isinstance(inner, Group):
             inner = Group(inner)
 
         self.inner = inner
         """"""
 
-        if orig is None:
-            self.name = name
-            """"""
-            self.priorities = Box.Priorities(priorities)
-            """"""
-            self.outputs = Box.Outputs(outputs, self.priorities)
-            """"""
-            outputRates = {item: rate for item, rate in self.outputs.items() if rate is not None}
-            self.inputs = Box.Inputs(inputs, self.priorities)
-            """"""
-            inputRates = {item: rate for item, rate in self.inputs.items() if rate is not None}
-            self.simpleConstraints = Box.SimpleConstraints()
-            """"""
-            self.otherConstraints = Box.OtherConstraints()
-            """"""
-            self.unconstrained = Box.OtherFlows(unconstrained)
-            """"""
+        self.name = name
+        """"""
+        self.priorities = Box.Priorities(priorities)
+        """"""
+        self.outputs = Box.Outputs(outputs, self.priorities)
+        """"""
+        outputRates = {item: rate for item, rate in self.outputs.items() if rate is not None}
+        self.inputs = Box.Inputs(inputs, self.priorities)
+        """"""
+        inputRates = {item: rate for item, rate in self.inputs.items() if rate is not None}
+        self.simpleConstraints = Box.SimpleConstraints()
+        """"""
+        self.otherConstraints = Box.OtherConstraints()
+        """"""
+        self.unconstrained = Box.OtherFlows(unconstrained)
+        """"""
 
-            self.unconstrainedHints = set()
-            """"""
+        self.unconstrainedHints = set()
+        """"""
 
-            inputs_ = set()
-            outputs_ = set()
-            products_ = set()
-            innerUnconstrained = set()
-            for m in self.inner.flatten():
-                inputs_ |= m.inputs.keys()
-                outputs_ |= m.outputs.keys()
-                products_ |= m.products.keys()
-                if isinstance(m, Box):
-                    innerUnconstrained |= m.unconstrained.keys()
-                    self.unconstrainedHints |= m.unconstrained.keys()
-                    self.unconstrainedHints |= m.unconstrainedHints
+        inputs_ = set()
+        outputs_ = set()
+        products_ = set()
+        innerUnconstrained = set()
+        for m in self.inner.flatten():
+            inputs_ |= m.inputs.keys()
+            outputs_ |= m.outputs.keys()
+            products_ |= m.products.keys()
+            if isinstance(m, Box):
+                innerUnconstrained |= m.unconstrained.keys()
+                self.unconstrainedHints |= m.unconstrained.keys()
+                self.unconstrainedHints |= m.unconstrainedHints
 
-            self.__flows = inputs_ | outputs_
+        self.__flows = inputs_ | outputs_
 
-            byproducts_ = outputs_ - products_
-            self.unconstrainedHints |= byproducts_ & inputs_
-            del byproducts_
+        self.byproducts_ = frozenset(outputs_ - products_)
 
-            for item in (innerUnconstrained - inputs_ - outputs_):
-                self.unconstrained[item] = None
+        self.unconstrainedHints |= self.byproducts_ & inputs_
 
-            if outputs is None or inputs is None:
-                common = inputs_ & outputs_
-                if outputs is None:
-                    self.outputs = Box.Outputs(sorted(outputs_ - common - innerUnconstrained - self.unconstrained.keys()))
-                if inputs is None:
-                    if allowExtraInputs:
-                        self.inputs = Box.Inputs(inputs_ - self.outputs.keys() - innerUnconstrained - self.unconstrained.keys())
-                        for item in self.inputs.keys() & common:
-                            self.priorities[item] = IGNORE
-                    else:
-                        self.inputs = Box.Inputs(sorted(inputs_ - common - self.unconstrained.keys()))
+        for item in (innerUnconstrained - inputs_ - outputs_):
+            self.unconstrained.add(item)
 
-        else:
-            self.name = orig.name if name is None else name
-            self.priorities = _copy(orig.priorities) if priorities is None else Box.Priorities(priorities)
+        if outputs is None or inputs is None:
+            common = inputs_ & outputs_
             if outputs is None:
-                self.outputs = _copy(orig.outputs)
-                outputRates = {}
-            else:
-                raise ValueError('cannot specify outputs when inner is another box, use outputTouchups')
+                self.outputs = Box.Outputs(sorted(outputs_ - common - innerUnconstrained - self.unconstrained.keys()))
             if inputs is None:
-                self.inputs = _copy(orig.inputs)
-                inputRates = {}
-            else:
-                raise ValueError('cannot specify inputs when inner is another box, use inputTouchups')
-            if constraints:
-                raise ValueError('cannot specify constraints when inner is another box')
-            self.simpleConstraints = _copy(orig.simpleConstraints)
-            self.otherConstraints = _copy(orig.otherConstraints)
-            if unconstrained:
-                raise ValueError('cannot specify unconstrained when inner is another box')
-            self.unconstrained = _copy(orig.unconstrained)
-            self.__flows = orig.__flows
-            self.unconstrainedHints = _copy(orig.unconstrainedHints)
-            products_ = set(orig.products.keys())
+                if allowExtraInputs:
+                    self.inputs = Box.Inputs(inputs_ - self.outputs.keys() - innerUnconstrained - self.unconstrained.keys())
+                    for item in self.inputs.keys() & common:
+                        self.priorities[item] = IGNORE
+                else:
+                    self.inputs = Box.Inputs(sorted(inputs_ - common - self.unconstrained.keys()))
 
         for item in extraOutputs:
             self.outputs[item] = None
@@ -476,15 +446,6 @@ class Box(BoxBase):
 
         self.inputs = Box.Inputs((item,rate) for item, rate in self.inputs.items() if rate != 0)
 
-        for item, priority in self.priorities.items():
-            if priority == IGNORE and item in products_:
-                products_.remove(item)
-
-        self.products = Box.Outputs((item,rate) for item,rate in self.outputs.items() if item in products_)
-        """"""
-        self.byproducts = Box.Outputs((item,rate) for item,rate in self.outputs.items() if item not in products_)
-        """"""
-
         if outputsLoose:
             for item, rate in outputRates.items():
                 self.simpleConstraints[item] = rate
@@ -495,8 +456,7 @@ class Box(BoxBase):
                 self.simpleConstraints[item] = rate
                 self.inputs[item] = None
 
-        if len(self.products) == 1 and self.name is None:
-            self.name = 'b-{}'.format(next(iter(self.products)).name)
+        self.updateName_()
 
         if isinstance(constraints, Mapping):
             for item, rate in constraints.items():
@@ -514,6 +474,21 @@ class Box(BoxBase):
                         self.otherConstraints.append(c)
                 else:
                     raise ValueError(f'invalid constraint: {c}')
+
+    def updateName_(self):
+        products = self.products
+        if len(products) == 1 and self.name is None:
+            self.name = 'b-{}'.format(next(iter(products)).name)
+
+    @property
+    def products(self):
+        return Box.Outputs((item,rate) for item,rate in self.outputs.items()
+                           if item not in self.byproducts_ and self.priorities.get(item, 0) != IGNORE)
+
+    @property
+    def byproducts(self):
+        return Box.Outputs((item,rate) for item,rate in self.outputs.items()
+                           if item in self.byproducts_ or self.priorities.get(item, 0) == IGNORE)
 
     def internal(self):
         return self.__flows - self.inputs.keys() - self.outputs.keys()
@@ -577,9 +552,11 @@ class Box(BoxBase):
             out.write(f'{prefix}{namePrefix}{self.name}{nameSuffix}:\n')
 
     def _footer(self, out, prefix, flows = None):
-        if self.byproducts:
-            out.write(f'{prefix}Products: {self.products.str(flows)}\n')
-            out.write(f'{prefix}Byproducts: {self.byproducts.str(flows)}\n')
+        byproducts = self.byproducts
+        if byproducts:
+            products = self.products
+            out.write(f'{prefix}Products: {products.str(flows)}\n')
+            out.write(f'{prefix}Byproducts: {byproducts.str(flows)}\n')
         else:
             out.write(f'{prefix}Outputs: {self.outputs.str(flows)}\n')
         out.write(f'{prefix}Inputs: {self.inputs.str(flows)}\n')
@@ -730,9 +707,11 @@ class Box(BoxBase):
             for item in list(items):
                 del flowTally[item]
 
-        if self.byproducts:
-            printFlows('Products', self.products.keys())
-            printFlows('Byproducts', self.byproducts.keys())
+        byproducts = self.byproducts
+        if byproducts:
+            products = self.products
+            printFlows('Products', products.keys())
+            printFlows('Byproducts', byproducts.keys())
         else:
             printFlows('Outputs', self.outputs.keys())
         printFlows('Inputs', self.inputs.keys())
@@ -779,7 +758,6 @@ class Box(BoxBase):
                 if flows[item].rate() == 0:
                     del self.priorities[item]
                     del self.outputs[item]
-                    del self.byproducts[item]
                 else:
                     res.extraOutputs.append(item)
         filteredInputs = Box.Inputs()
