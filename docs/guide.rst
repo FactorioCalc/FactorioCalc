@@ -826,8 +826,8 @@ new configuration.
 Alternative Configurations and Locale Support
 ---------------------------------------------
 
-FactorioCalc currently uses the English translation for the `.descr` property
-and `._find()` function.  To use an alternative language you need to load a
+FactorioCalc currently uses the English translation for the `.descr<>` property
+and `._find()<>` function.  To use an alternative language you need to load a
 custom configuration with the translated names in the language you want.
 
 To load a custom configuration, you first need to export the data from Factorio
@@ -866,7 +866,8 @@ Currently FactorioCalc has bulitin support for "Space Exploitation",
 "Krastorio 2" and "SEK2" (Space Exploration + Krastorio 2).  A recipe file is
 not provided, however, as any provided is likely to out of date and will not
 match your exact configuration.  To enable support use the name as first
-paramater to `setGameConfig`.  For additional information see `mods`.
+paramater to `setGameConfig`.  For additional information see the `mods`
+module.
 
 Adding Additional Mods
 ----------------------
@@ -882,11 +883,11 @@ Advanced Box Usage
 Revisiting Unbounded Throttles
 ------------------------------
 
-Using produce with the Space Exploration mod (if it workes at all) will be a
+Using `produce()` with the Space Exploration mod (if it workes at all) will be a
 frustrating experience as there are multiple ways to produce most items.
-Therefor, it is generally easier to select the machines yourself, and then let
-the solver determine the number of machines, by prefixing each machine with a
-``~`` to mark the throttle as unbounded.
+Therefor, it is generally easier to select the machines yourself, and let
+the solver determine the number of machines for you.  This is done
+by prefixing each machine with a ``~`` to mark the throttle as unbounded.
 
 Unconstrained Flows
 -------------------
