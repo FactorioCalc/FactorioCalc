@@ -13,7 +13,7 @@ import sys
 from . import itm, rcp
 
 __all__ = ('Default',
-           'Ingredient', 'Item', 'Fluid', 'Research', 'Electricity', 'Module', 'FakeModule',
+           'Ingredient', 'Item', 'Fluid', 'Research', 'Electricity', 'Module',
            'MachineBase', 'Machine', 'CraftingMachine', 'Mul', 'Group',
            'Flow', 'OneWayFlow', 'FlowsState', 'Flows', 'SimpleFlows', 'NetFlows', 'EffectBase', 'Effect', 'Bonus',
            'Recipe', 'RecipeComponent', 'IGNORE', 'InvalidModulesError',
@@ -197,11 +197,11 @@ class Module(Item):
         return num*[self]
     __rmul__ = __mul__
 
-class FakeModule(Module):
-    def __init__(self, speed=0, productivity=0, consumption=0, pollution=0):
-        super().__init__('fake-module', '', 0, Bonus(speed, productivity, consumption, pollution))
+class _FakeModule(Module):
+    def __init__(self, effect):
+        super().__init__('fake-module', '', 0, effect)
     def __repr__(self):
-        return 'FakeModule({})'.format(', '.join(f'{k}={getattr(self.effect,k)!r}' for k in self.effect._fields if getattr(self.effect,k) != 0))
+        return '_FakeModule({})'.format(', '.join(f'{k}={getattr(self.effect,k)!r}' for k in self.effect._fields if getattr(self.effect,k) != 0))
     def __str__(self):
         return f'module: {self.effect}'
     def _jsonObj(self):
@@ -211,8 +211,8 @@ class FakeModule(Module):
         return type(self) == type(other) and self.effect == other.effect
     def __ne__(self, other):
         return type(self) != type(other) or  self.effect != other.effect
-    def __hash__(self, other):
-        raise NotImplementedError
+    def __hash__(self):
+        return hash((self.__class__, self.effect))
 
 @dataclass
 class MachineBase:
@@ -355,7 +355,7 @@ class Machine(MachineBase, metaclass=MachineMeta):
         return self
 
     def __repr__(self):
-        name = type(self).__name__
+        name = self._name()
         parts = []
         if self.recipe:
             parts.append(repr(self.recipe))
@@ -365,7 +365,10 @@ class Machine(MachineBase, metaclass=MachineMeta):
         if self.blueprintInfo is not None:
             parts.append(f'blueprintInfo=...')
         prefix = '~' if self.unbounded else ''
-        return '{}mch.{}({})'.format(prefix, name, ', '.join(parts))
+        return '{}{}({})'.format(prefix, name, ', '.join(parts))
+
+    def _name(self):
+        return f'mch.{type(self).__name__}'
 
     def _reprParts(self, lst):
         pass
@@ -817,7 +820,7 @@ class Group(Sequence,MachineBase):
                     consumption = div(v.consumption, num)
                     pollution = div(v.pollution, num)
                     if speed != 0 or productivity != 0 or consumption != 0 or pollution != 0:
-                        m.modules = [FakeModule(speed, productivity, consumption, pollution)]
+                        m.modules = [_FakeModule(Effect(speed, productivity, consumption, pollution))]
                 if num > 1:
                     m = Mul(m, num)
                 grp.append(m)
