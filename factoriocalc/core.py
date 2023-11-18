@@ -15,7 +15,7 @@ from . import itm, rcp
 __all__ = ('Default',
            'Ingredient', 'Item', 'Fluid', 'Research', 'Electricity', 'Module',
            'MachineBase', 'Machine', 'CraftingMachine', 'Mul', 'Group',
-           'Flow', 'OneWayFlow', 'FlowsState', 'Flows', 'SimpleFlows', 'NetFlows', 'EffectBase', 'Effect', 'Bonus',
+           'Flow', 'OneWayFlow', 'FlowsState', 'Flows', 'SimpleFlows', 'NetFlows', 'Effect', 'Bonus',
            'Recipe', 'RecipeComponent', 'IGNORE', 'InvalidModulesError',
            'maxInputs', 'MachinePrefs',
            )
@@ -1286,7 +1286,7 @@ class NetFlows(Flows):
    def lackof(self):
        return [f for f in self if '!' in f.annotations()]
 
-class EffectBase(NamedTuple):
+class _Effect(NamedTuple):
     speed: Rational = 0
     productivity: Rational = 0
     consumption: Rational = 0 # energy used
@@ -1313,41 +1313,41 @@ class EffectBase(NamedTuple):
     def __add__(self, other):
         if type(self) is not type(other):
             raise TypeError
-        return EffectBase.__new__(type(self),
+        return _Effect.__new__(type(self),
                                   self.speed + other.speed,
                                   self.productivity + other.productivity,
                                   self.consumption + other.consumption,
                                   self.pollution + other.pollution)
 
     def __mul__(self, n):
-        return EffectBase.__new__(type(self),
+        return _Effect.__new__(type(self),
                                   self.speed*n,
                                   self.productivity*n,
                                   self.consumption*n,
                                   self.pollution*n)
 
     def __rmul__(self, n):
-        return EffectBase.__new__(type(self),
+        return _Effect.__new__(type(self),
                                   self.speed*n,
                                   self.productivity*n,
                                   self.consumption*n,
                                   self.pollution*n)
 
     def __truediv__(self, n):
-        return EffectBase.__new__(type(self),
+        return _Effect.__new__(type(self),
                                   div(self.speed, n),
                                   div(self.productivity, n),
                                   div(self.consumption, n),
                                   div(self.pollution, n))
 
-class Effect(EffectBase):
+class Effect(_Effect):
     pass
 
-class Bonus(EffectBase):
+class Bonus(_Effect):
     def __new__(cls, *args, **kwargs):
         if len(args) <= 1 and len(kwargs) == 0:
             if len(args) == 0:
-                return EffectBase.__new__(cls)
+                return _Effect.__new__(cls)
             other = args[0]
             if type(other) is Bonus:
                 return other
@@ -1355,9 +1355,9 @@ class Bonus(EffectBase):
                 speed = other.speed if other.speed > frac(-4, 5) else frac(-4, 5)
                 consumption =  other.consumption if other.consumption > frac(-4, 5) else frac(-4, 5)
                 pollution = other.pollution if other.pollution > frac(-4, 5) else frac(-4, 5)
-                return EffectBase.__new__(cls, speed, other.productivity, consumption, pollution)
+                return _Effect.__new__(cls, speed, other.productivity, consumption, pollution)
         else:
-            return EffectBase.__new__(cls, *args, **kwargs)
+            return _Effect.__new__(cls, *args, **kwargs)
 
 class RecipeComponent(NamedTuple):
     num: Rational
