@@ -5,13 +5,13 @@ from collections.abc import Sequence
 
 from .fracs import frac,div,diva,Inf
 from .core import *
-from .core import Uniq,_MutableFlows,_toRecipe,InvalidRecipe
+from .core import Immutable,_MutableFlows,_toRecipe,InvalidRecipe
 from . import itm, rcp
 
-class Category(Uniq):
+class Category(Immutable):
     def __init__(self, name, members):
-        self.name = name
-        self.members = members
+        object.__setattr__(self, 'name', name)
+        object.__setattr__(self, 'members', members)
     def __repr__(self):
         return f'<Category: {self.name}>'
 

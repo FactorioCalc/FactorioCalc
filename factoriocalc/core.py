@@ -20,27 +20,17 @@ __all__ = ('Default',
            'maxInputs', 'MachinePrefs',
            )
 
-class Uniq:
+class Immutable:
     def __copy__(self):
         return self
     def __deepcopy__(self,memo):
         return self
-    def __eq__(self, other):
-        # we want to compare by identity but also give other.__eq__ a chance
-        # to be called if defined, so return NotImplemented...
-        return NotImplemented
-    def __ne__(self, other):
-        return NotImplemented
-    def __hash__(self):
-        return object.__hash__(self)
-
-class Immutable:
     def __setattr__(self, name, value):
         raise TypeError
     def __delattr__(self, name):
         raise TypeError
 
-class DefaultType(Uniq):
+class DefaultType(Immutable):
     __slots__ = ()
     def __repr__(self):
         return 'Default'
@@ -49,7 +39,7 @@ class DefaultType(Uniq):
 
 Default = object.__new__(DefaultType)
 
-class FirstType(Uniq):
+class FirstType(Immutable):
     __slots__ = ()
     def __repr__(self):
         return 'First'
@@ -70,7 +60,7 @@ class FirstType(Uniq):
 
 First = object.__new__(FirstType)
 
-class LastType(Uniq):
+class LastType(Immutable):
     __slots__ = ()
     def __repr__(self):
         return 'Last'
@@ -96,7 +86,7 @@ class RecipesForItems(NamedTuple):
     byproducts: list
     inputs: list
 
-class Ingredient(Uniq,Immutable):
+class Ingredient(Immutable):
     """Base class for all items."""
     __slots__ = ('name', 'order', '_sortKey')
     def __init__(self, name, order):
@@ -197,11 +187,15 @@ class Module(Item):
         return num*[self]
     __rmul__ = __mul__
 
-class _FakeModule(Module):
+class _FakeModule(Immutable):
+    __slots__ = ('effect')
     def __init__(self, effect):
-        super().__init__('fake-module', '', 0, effect)
+        object.__setattr__(self, 'effect', effect)
+    @property
+    def limitation(self):
+        return None
     def __repr__(self):
-        return '_FakeModule({})'.format(', '.join(f'{k}={getattr(self.effect,k)!r}' for k in self.effect._fields if getattr(self.effect,k) != 0))
+        return f'_FakeModule({self.effect!r})'
     def __str__(self):
         return f'module: {self.effect}'
     def _jsonObj(self):
@@ -1373,7 +1367,7 @@ class RecipeComponent(NamedTuple):
             return f'{self.num:g} ({self.product():g}) {self.item}'.format(float(self.num), self.item)
 
 
-class Recipe(Uniq,Immutable):
+class Recipe(Immutable):
     """A recipe to produce something.
 
     """
