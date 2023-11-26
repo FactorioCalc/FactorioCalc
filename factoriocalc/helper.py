@@ -21,6 +21,7 @@ def _withSettings(settings, fun, *args, **kwargs):
 class FakeLab(CraftingMachine):
     pass
 
+@dataclass(init=False,repr=False)
 class FakeBeacon(Beacon):
     moduleInventorySize = 1
     distributionEffectivity = 1
@@ -44,9 +45,9 @@ class FakeBeacon(Beacon):
         if effect.productivity != 0:
             lst.append(f'productivity={effect.productivity*100!r}')
         if effect.consumption != 0:
-            lst.append(f'speed={effect.consumption*100!r}')
+            lst.append(f'energy={effect.consumption*100!r}')
         if effect.pollution != 0:
-            lst.append(f'productivity={effect.pollution*100!r}')
+            lst.append(f'pollution={effect.pollution*100!r}')
 
     def _fmtModulesStr(self, lst):
         lst.append(str(self.modules[0].effect))
