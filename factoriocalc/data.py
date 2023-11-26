@@ -38,6 +38,17 @@ class GameInfo:
     aliases: dict = _dc.field(default_factory = dict)
     disabledRecipes: set = _dc.field(default_factory = set)
 
+    @_dc.dataclass
+    class Modules:
+        class List(list):
+            __slots__ = ('best')
+        speed: dict = _dc.field(default_factory = List)
+        productivity: dict = _dc.field(default_factory = List)
+        effectivity: dict = _dc.field(default_factory = List)
+        other: dict = _dc.field(default_factory = List)
+
+    modules: Modules = _dc.field(default_factory = Modules)
+
     def finalize(self):
         self.recipesThatMake = {}
         self.recipesThatUse = {}
@@ -47,6 +58,24 @@ class GameInfo:
                 self.recipesThatMake.setdefault(item, []).append(r)
             for _, _, item in r.inputs:
                 self.recipesThatUse.setdefault(item, []).append(r)
+
+        from .core import Module
+        for m in self.itmByName.values():
+            if not isinstance(m, Module):
+                continue
+            me = m.effect
+            if me.speed > 0 and me.productivity == 0 and me.consumption >= 0 and me.pollution >= 0:
+                self.modules.speed.append(m)
+            elif me.speed <= 0 and me.productivity > 0 and me.consumption >= 0 and me.pollution >= 0:
+                self.modules.productivity.append(m)
+            elif me.speed == 0 and me.productivity == 0 and me.consumption < 0 and me.pollution <= 0:
+                self.modules.effectivity.append(m)
+            else:
+                self.modules.other.append(m)
+            self.modules.speed.sort(key = lambda m: m.effect.speed)
+            self.modules.productivity.sort(key = lambda m: m.effect.productivity)
+            self.modules.effectivity.sort(key = lambda m: (-m.effect.consumption, -m.effect.pollution))
+            self.modules.other.sort()
 
 class DictProxy:
     __slots__ = ('field')
