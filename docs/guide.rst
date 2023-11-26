@@ -834,7 +834,7 @@ To load a custom configuration, you first need to export the data from Factorio
 in the configuration you want (in this case an alternative language).  To
 export the data use the "Recipe Exporter" (author fac301) mod.  Install it,
 and load a map with the configuration you want.  Then, from the console run
-the run the ``dump_recipes`` command.  This command will export the recipes
+the ``dump_recipes`` command.  This command will export the recipes
 and other needed data to the ``script-output/recipes.json`` file.  Then, to
 load the file use::
 
@@ -905,6 +905,6 @@ machines unexpectedly).  If this happens the `~Box.unconstrainedHints`
 property may give you hints about what values might need to be marked as
 unconstrained, but, as of now, it is not comprehensive.  If the hints in
 `~Box.unconstrainedHints` fail, then the best thing to do is reset the
-throttles back to 1 using `~Box.resetThrottle()` then carefully evaluating the
+throttles back to 1 using `~Box.resetThrottle()` then carefully evaluate the
 internal flows (use ``.inner.flows().print()`` to find them) to determine if
 any of them need to marked as unconstrained.

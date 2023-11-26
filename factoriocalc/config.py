@@ -10,7 +10,7 @@
 
   Machine to use when instantiating recipes, The value is a sequence of
   machines (with or without a recipe) to try.  The `MP_*
-  <factoriocalc.preset.MP_EARLY_GAME>` presets provide some common configuration for
+  <factoriocalc.presets.MP_EARLY_GAME>` presets provide some common configuration for
   vanilla gameplay.
 
   When selecting a machine to use the first best match is used.  If the
@@ -18,7 +18,7 @@
   In addition a machine with compatible modules will be given priority.
 
   Does not have a default.  Must be set before calling a recipe to instantiate
-  it or using `~factoricalc.produce`.
+  it or using `~factoriocalc.produce`.
 
 .. py:data:: recipePrefs
   :type: ContextVar
@@ -31,8 +31,8 @@
 .. py:data:: gameInfo
   :type: ContextVar
 
-  Internal variable to control the contents of the `factoriocalc.mch`,
-  `factoriocalc.itm`, `factoriocalc.rcp` and `factoriocalc.preset` modules.
+  Internal variable to control the contents of the `~factoriocalc.mch`,
+  `~factoriocalc.itm`, `~factoriocalc.rcp` and `~factoriocalc.preset` modules.
 
 """
 
