@@ -179,12 +179,12 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
         bases = []
         module_inventory_size = v.get('module_inventory_size', 0)
         if module_inventory_size > 0 and v['type'] != 'beacon':
-            bases.append(machine._ModulesMixin)
+            bases.append(machine.ModulesMixin)
         energy_source = v.get('energy_source', None)
         if energy_source == 'burner':
-            bases.append(machine._BurnerMixin)
+            bases.append(machine.BurnerMixin)
         elif energy_source == 'electric':
-            bases.append(machine._ElectricMixin)
+            bases.append(machine.ElectricMixin)
         isCraftingMachine = False
         if v['type'] == 'assembling-machine':
             isCraftingMachine = True

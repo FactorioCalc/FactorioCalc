@@ -219,7 +219,7 @@ Helpers
 `setGameConfig`
 ---------------
 
-.. :currentmodule:: factoriocalc
+.. py:currentmodule:: factoriocalc
 
 {documentSymbol(fc.import_, 'setGameConfig')}
 {documentSymbol(fc.import_, 'userRecipesFile')}
@@ -237,8 +237,15 @@ These symbols are not imported by ``from factorocalc import *``.
 .. py:currentmodule:: factoriocalc
 {documentExtraSymbols()}
 
+`machine` module
+----------------
+
+.. automodule:: factoriocalc.machine
+
 `setGameConfig` internals
 -------------------------
+
+.. py:currentmodule:: factoriocalc
 
 These symbols are only useful when adding support for new mods and are not
 imported by ``from factorocalc import *``.

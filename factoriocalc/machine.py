@@ -1,7 +1,11 @@
+"""Base classes for machines in `~factoriocalc.mch`.  Do not use directly."""
+
 from __future__ import annotations
 from dataclasses import dataclass,FrozenInstanceError
 from collections import defaultdict
 from collections.abc import Sequence
+from functools import reduce
+import operator
 
 from .fracs import frac,div,diva,Inf
 from .core import *
@@ -16,7 +20,7 @@ class Category(Immutable):
         return f'<Category: {self.name}>'
 
 @dataclass(init=False,repr=False)
-class _BurnerMixin:
+class BurnerMixin:
     energyType = 'burner'
     fuel: Item = None
 
@@ -52,7 +56,7 @@ class _BurnerMixin:
         return flows
 
 @dataclass(init=False,repr=False)
-class _ElectricMixin:
+class ElectricMixin:
     energyType = 'electric'
 
     def _calc_flows(self, throttle):
@@ -106,21 +110,31 @@ class _ModulesHelperMixin:
             raise InvalidModulesError(invalid)
 
 @dataclass(init=False,repr=False)
-class _ModulesMixin(_ModulesHelperMixin):
+class ModulesMixin(_ModulesHelperMixin):
     modules: tuple[Module, ...]
     beacons: list[Beacon]
 
     def __init__(self, *args, modules = None, beacons = None, beacon = None, **kws):
+        """Set modules and beacons for a machine.
+
+        *modules* can either be a list of modules or a single module to fill
+        the machine with the maxium amount of the given module.
+
+        When setting beacons the special string ``counter`` can be used to
+        create a `~factoriocalc.FakeBeacon` that will counter the negative
+        effects of any modules present.
+        """
         super().__init__(*args, **kws)
         self.modules = modules
         if beacon is None and beacons is None:
-            self.beacons = []
+            beacons = []
         elif beacon is None:
-            self.beacons = beacons
+            pass
         elif beacons is None:
-            self.beacons = [beacon]
+            beacons = [beacon]
         else:
             raise ValueError("both 'beacon' and 'beacons' can not be provided at the same time")
+        self.beacons = beacons
 
     def __setattr__(self, prop, val):
         if prop == 'recipe':
@@ -141,7 +155,14 @@ class _ModulesMixin(_ModulesHelperMixin):
             def asBeacon(b):
                 if isinstance(b, Beacon):
                     return b
-                if isinstance(b, str):
+                elif b == 'counter':
+                    from .helper import FakeBeacon
+                    effect = reduce(operator.add, (m.effect for m in self.modules))
+                    return FakeBeacon(speed = -100*effect.speed if effect.speed < 0 else 0,
+                                      productivity = -100*effect.productivity if effect.productivity < 0 else 0,
+                                      energy = -100*effect.consumption if effect.consumption > 0 else 0,
+                                      pollution = -100*effect.pollution if effect.pollution > 0 else 0)
+                elif isinstance(b, str):
                     return UnresolvedBeacon(b)
                 else:
                     raise TypeError('expected Beacon type')
@@ -291,7 +312,7 @@ class UnresolvedBeacon:
     def __init__(self, id):
         self.id = id
 
-class Boiler(_BurnerMixin,CraftingMachine):
+class Boiler(BurnerMixin,CraftingMachine):
     name = "boiler"
     baseEnergyUsage = 1_800_000
     energyDrain = 0
