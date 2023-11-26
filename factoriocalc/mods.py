@@ -8,6 +8,7 @@ So for example to use support for Krastorio 2 you can use any of ``Krastorio
 """
 from __future__ import annotations
 from .import_ import *
+from .core import MachinePrefs
 import re
 
 __all__ = ('krastorio_2', 'space_exploration', 'sek2')
@@ -19,8 +20,14 @@ def krastorio_2(gameInfo, **kwargs):
     alises. Also, ``loader``, ``fast_loader``, and ``express_loader`` refer to the
     Krastorio 2 versions and not the builtin versions.
 
-    `~factoriocalc.produce` will still work in most cases, but special support for Krastorio
-    2 specific recipes has not yet been added.
+    `~factoriocalc.produce` will still work in some cases, but special
+    support for Krastorio 2 specific recipes has not yet been added.
+
+    `presets.MP_EARLY_GAME`, `presets.MP_LATE_GAME`, `presets.MP_MAX_PROD`,
+    and `presets.SPEED_BEACON` are provided.  In addition
+    `presets.MP_MID_LATE_GAME` is provided for use before the three advanced
+    versions of machines beacome available, and `presets.SPEED_BEACON_2`
+    (that uses the singularity beacon) is provided for late game use.
 
     """
     del gameInfo['recipes']['loader']
@@ -34,6 +41,7 @@ def krastorio_2(gameInfo, **kwargs):
         byproducts = ['empty-barrel','stone','sand'],
         craftingHints = vanillaCraftingHints,
         rocketRecipeHints = _krastorio_2_rocket_recipe_hints,
+        presets = _krastorio_2_presets,
         **kwargs
     )
 
@@ -61,6 +69,31 @@ _krastorio_2_rocket_recipe_hints = {
     'rocket-silo::kr-note-1': '',
     'rocket-silo::cyber-potato-equipment': '',
     'rocket-silo::poop': ''}
+
+def _krastorio_2_presets():
+    from . import mch, itm
+    return {
+        'MP_EARLY_GAME': MachinePrefs(mch.AssemblingMachine1(), mch.StoneFurnace(), mch.ChemicalPlant()),
+        #'MP_MID_EARLY_GAME': MachinePrefs(mch.AssemblingMachine2(), mch.SteelFurnace(), mch.ChemicalPlant(), mch.ResearchServer()),
+        'MP_MID_LATE_GAME': MachinePrefs(mch.AssemblingMachine3(), mch.ElectricFurnace(), mch.ChemicalPlant(), mch.QuantumComputer()),
+        'MP_LATE_GAME': MachinePrefs(mch.AdvancedAssemblingMachine(), mch.AdvancedFurnace(), mch.AdvancedChemicalPlant(), mch.QuantumComputer()),
+        'MP_MAX_PROD' : genMaxProd(
+            3,
+            mch.AdvancedAssemblingMachine, 
+            mch.AdvancedFurnace,
+            mch.AdvancedChemicalPlant,
+            mch.OilRefinery,
+            mch.RocketSilo,
+            mch.Centrifuge,
+            mch.ElectrolysisPlant,
+            mch.FuelRefinery,
+            mch.BioLab,
+            mch.Crusher,
+            mch.QuantumComputer,
+        ),
+        'SPEED_BEACON': mch.Beacon(modules=itm.speed_module_3),
+        'SPEED_BEACON_2': mch.SingularityBeacon(modules=itm.speed_module_3),
+    }
 
 def space_exploration(gameInfo, **kwargs):
     """Support for the "Space Exploration" mod.
