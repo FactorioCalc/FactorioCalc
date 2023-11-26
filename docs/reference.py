@@ -167,8 +167,7 @@ Core
    .. py:data:: MP_LATE_GAME
       :value: {fc.presets.MP_LATE_GAME!r}
 
-   .. py:data:: MP_MAX_PROD
-      :value: {fc.presets.MP_MAX_PROD!r}
+   .. autofunction:: MP_MAX_PROD
 
    .. py:data:: SPEED_BEACON
       :value: {fc.presets.SPEED_BEACON!r}

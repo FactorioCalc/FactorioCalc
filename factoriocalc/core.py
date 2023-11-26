@@ -1531,7 +1531,10 @@ class MachinePrefs(tuple):
     def __repr__(self):
         return 'MachinePrefs' + super().__repr__()
     def __new__(cls, *args):
-        return tuple.__new__(cls, args)
+        if len(args) != 1 or isinstance(args[0], Machine):
+            return tuple.__new__(cls, args)
+        else:
+            return tuple.__new__(cls, args[0])
     def __add__(self, other):
         return tuple.__new__(MachinePrefs, tuple.__add__(self, other))
     def __radd__(self, other):
@@ -1542,8 +1545,7 @@ class MachinePrefs(tuple):
     def __mul__(self, num):
         raise NotImplementedError
     __rmul__ = __mul__
-    def withSpeedBeacons(self, mapping):
-        from .presets import SPEED_BEACON
+    def withBeacons(self, beacon, mapping):
         lst = list(self)
         for i, m in enumerate(lst):
             cls = type(m)
@@ -1553,7 +1555,7 @@ class MachinePrefs(tuple):
                 pass
             else:
                 m = copy(m)
-                m.beacons = numBeacons * SPEED_BEACON
+                m.beacons = numBeacons * beacon
                 lst[i] = m
         return MachinePrefs(*lst)
 

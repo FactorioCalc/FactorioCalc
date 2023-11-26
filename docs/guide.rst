@@ -160,7 +160,7 @@ use.  This is done by setting `config.machinePrefs`, which is a python
 we will set it to `~presets.MP_LATE_GAME` in the `presets` module which will use
 the most advanced machines possible for a recipe::
 
-  >>> from presets import *
+  >>> from factoriocalc.presets import *
   >>> config.machinePrefs.set(MP_LATE_GAME)
 
 With that we can simply call a recipe to produce a machine that will use the
@@ -199,13 +199,13 @@ assmebling machines we could just use::
 
 However we most likely want all machines to have the maxium number of
 productivity-3 modules and at least some speed beacons.  To make this easier
-the `~presets.MP_MAX_PROD` preset can used to indicate that we want all machines to
+the `~presets.MP_MAX_PROD` function can used to indicate that we want all machines to
 have to maxium number of productivity-3 modules.  There is no preset for
 beacons as the number the beacons often various.  Instead use the
-`withSpeedBeacons` method to modify the preset by adding `~presets.SPEED_BEACON`'s for
+`withBeacons` method to modify the preset by adding `~presets.SPEED_BEACON`'s for
 specific machines.  For example::
 
-  >>> config.machinePrefs.set(MP_MAX_PROD.withSpeedBeacons({mch.AssemblingMachine3:8}))
+  >>> config.machinePrefs.set(MP_MAX_PROD().withBeacons(SPEED_BEACON, {mch.AssemblingMachine3:8}))
 
 will give all machines the maxium number of productivity-3 modules possble and
 assembling machine 3 with 8 `~presets.SPEED_BEACON`'s.  With `machinePrefs` set
@@ -279,7 +279,7 @@ basic smelting even in the late game so instead let's just change
 `machinePrefs` to that effect::
 
   >>> config.machinePrefs.set([mch.ElectricFurnace(),
-                              *MP_MAX_PROD.withSpeedBeacons({mch.AssemblingMachine3:8})])
+                              *MP_MAX_PROD().withBeacons(SPEED_BEACON, ({mch.AssemblingMachine3:8})])
   >>> ec4 = produce([itm.electronic_circuit @ 30]).factory
   >>> ec4.summary()
   b-electronic-circuit:
@@ -349,7 +349,7 @@ liquefaction.  Since oil produced can be produced from either process you have
 to specify which one to use with the `using` paramater.  For example, to make
 plastic from cruid oil::
 
-  >> config.machinePrefs.set(MP_MAX_PROD.withSpeedBeacons({mch.AssemblingMachine3:8, mch.ChemicalPlant:8, mch.OilRefinery:12}))
+  >> config.machinePrefs.set(MP_MAX_PROD().withBeacons(SPEED_BEACON, ({mch.AssemblingMachine3:8, mch.ChemicalPlant:8, mch.OilRefinery:12}))
   >> plastic1 = produce([itm.plastic_bar@90], using=[rcp.advanced_oil_processing]).factory
   >> plastic1.summary()
   Box:
@@ -420,7 +420,7 @@ arguments to let you fine tune the inputs and outputs.  For example to create
 both electric circuits and advanced circuits we need to explicitly list the
 outputs::
 
-  >>> config.machinePrefs.set(MP_MAX_PROD.withSpeedBeacons({mch.AssemblingMachine3:8, mch.ChemicalPlant:8, mch.OilRefinery:12}))
+  >>> config.machinePrefs.set(MP_MAX_PROD().withBeacons(SPEED_BEACON, ({mch.AssemblingMachine3:8, mch.ChemicalPlant:8, mch.OilRefinery:12}))
   >>> circuits1 = box(rcp.electronic_circuit() + 2*rcp.copper_cable() + 2*rcp.advanced_circuit(),
 		      outputs = [itm.electronic_circuit, itm.advanced_circuit])
   >>> circuits1.summary()	
@@ -518,7 +518,7 @@ and iron plates we could use produce, but let's assume we would rather specify
 the machines used.  We don't know the number of machines we need however, so
 we use ubbounded throttles to let the solver figure it out for use::
 
-  >> config.machinePrefs.set(MP_MAX_PROD.withSpeedBeacons({mch.AssemblingMachine3:8}))
+  >> config.machinePrefs.set(MP_MAX_PROD().withBeacons(SPEED_BEACON, ({mch.AssemblingMachine3:8}))
   >> circuits0 = box(~rcp.electronic_circuit() + ~rcp.copper_cable(),
                      outputs={itm.electronic_circuit@28})
   >> circuits0.summary()
@@ -566,7 +566,7 @@ enough machines to do so we need to take the union of three factories: one
 that produces both optimally, one that produces just plastic, and one that
 produces just rocket fuel.  We can do so with using the `union` function::
 
-  >>> config.machinePrefs.set(MP_MAX_PROD.withSpeedBeacons({mch.AssemblingMachine3:8, mch.ChemicalPlant:8, mch.OilRefinery:12}))
+  >>> config.machinePrefs.set(MP_MAX_PROD().withBeacons(SPEED_BEACON, ({mch.AssemblingMachine3:8, mch.ChemicalPlant:8, mch.OilRefinery:12}))
   >>> both = produce([itm.plastic_bar@90, itm.rocket_fuel@6], using=[rcp.advanced_oil_processing]).factory
   >>> plastic = produce([itm.plastic_bar@90], using=[rcp.advanced_oil_processing]).factory
   >>> rocketFuel = produce([itm.rocket_fuel@6], using=[rcp.advanced_oil_processing]).factory

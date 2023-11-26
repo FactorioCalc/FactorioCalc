@@ -422,18 +422,29 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
 
     return res
 
+def genMaxProd(maxLevel, *machines):
+    from . import itm
+    def maxProd(level = maxLevel, beacon = None, beacons = None):
+        if level == 1:
+            prodModule = itm.productivity_module
+        else:
+            prodModule = getattr(itm, f'productivity_module_{level}')
+        return MachinePrefs(machine(modules = prodModule, beacon = beacon, beacons = beacons) for machine in machines)
+    return maxProd
+
 def vanillaPresets():
     from . import mch, itm
     return {
         'MP_EARLY_GAME': MachinePrefs(mch.AssemblingMachine1(), mch.StoneFurnace()),
         'MP_LATE_GAME': MachinePrefs(mch.AssemblingMachine3(), mch.ElectricFurnace()),
-        'MP_MAX_PROD' : MachinePrefs(
-            mch.AssemblingMachine3(modules=4*[itm.productivity_module_3]),
-            mch.ElectricFurnace(modules=2*[itm.productivity_module_3]),
-            mch.ChemicalPlant(modules=3*[itm.productivity_module_3]),
-            mch.OilRefinery(modules=3*[itm.productivity_module_3]),
-            mch.RocketSilo(modules=4*[itm.productivity_module_3]),
-            mch.Centrifuge(modules=2*[itm.productivity_module_3]),
+        'MP_MAX_PROD' : genMaxProd(
+            3,
+            mch.AssemblingMachine3,
+            mch.ElectricFurnace,
+            mch.ChemicalPlant,
+            mch.OilRefinery,
+            mch.RocketSilo,
+            mch.Centrifuge
         ),
         'SPEED_BEACON': mch.Beacon(modules=[itm.speed_module_3, itm.speed_module_3]),
         'sciencePacks': {itm.automation_science_pack,
@@ -681,4 +692,6 @@ def importGameInfo(gameInfo, *,
     return token
 
 __all__ = ('setGameConfig', 'userRecipesFile', 'importGameInfo',
-           'vanillaResearchHacks', 'vanillaCraftingHints', 'CraftingHint', 'GameInfo', 'toPythonName', 'toClassName')
+           'genMaxProd',
+           'vanillaResearchHacks', 'vanillaCraftingHints',
+           'CraftingHint', 'GameInfo', 'toPythonName', 'toClassName')

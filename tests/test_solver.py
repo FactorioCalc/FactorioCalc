@@ -236,7 +236,7 @@ class SolverTests(unittest.TestCase):
     #  make sure the solver correctly returns SolveRes.UNIQUE and not
     #  SolveRes.OK.
     testPreciseOilStuff = SolverTest(lambda: withSettings(
-        {config.machinePrefs: MP_MAX_PROD.withSpeedBeacons({AssemblingMachine3:8, ChemicalPlant:8, OilRefinery:12})},
+        {config.machinePrefs: MP_MAX_PROD().withBeacons(SPEED_BEACON, {AssemblingMachine3:8, ChemicalPlant:8, OilRefinery:12})},
         lambda: Box('9000/1183'*rcp.plastic_bar()
                     + '1800/77'*rcp.rocket_fuel()
                     + '739040000/142730133'*rcp.advanced_oil_processing()
@@ -251,7 +251,7 @@ class SolverTests2(unittest.TestCase):
     def setUpClass(cls):
         cls.origMachinePrefs = config.machinePrefs.set((
             ElectricFurnace(modules=2*itm.effectivity_module_2),
-            *MP_MAX_PROD.withSpeedBeacons({AssemblingMachine3:8, OilRefinery:12, ChemicalPlant:8})))
+            *MP_MAX_PROD().withBeacons(SPEED_BEACON, {AssemblingMachine3:8, OilRefinery:12, ChemicalPlant:8})))
 
         cb = circuitsBpBook()
         g0 = BlackBox(box(cb.find('green0').convert()[0]), name='green')
