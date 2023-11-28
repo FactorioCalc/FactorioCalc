@@ -819,9 +819,19 @@ class BlackBox(BoxBase):
 def _finalizeInner(m, roundUp, recursive):
     if isinstance(m, Box) and recursive:
         m.finalize(roundUp = roundUp, recursive = True)
+        return m
     elif isinstance(m, Group):
-        finalizeGroup(m, roundUp, recursive)
-    elif isinstance(m, Mul) and isinstance(m.machine, (Machine, BlackBox)):
+        finalizeGroup(m, roundUp = roundUp, recursive = recursive)
+        return m
+
+    if isinstance(m, Machine) and m.unbounded:
+        throttle = m.throttle
+        if throttle == 0: return None
+        m.throttle = 1
+        m.unbounded = False
+        m = Mul(throttle, m)
+
+    if isinstance(m, Mul) and isinstance(m.machine, (Machine, BlackBox)):
         throttle = m.num * m.machine.throttle
         if throttle == 0: return None
         if roundUp:
@@ -830,19 +840,15 @@ def _finalizeInner(m, roundUp, recursive):
         else:
             m.num = throttle
             m.machine.throttle = 1
+        m.unbounded = False
     elif isinstance(m, Mul):
         m0 = _finalizeInner(m.machine, roundUp, recursive)
         if m0 is None: return None
         m.machine = m0
-    elif isinstance(m, Machine) and m.unbounded:
-        throttle = m.throttle
-        if throttle == 0: return None
-        m.throttle = 1
-        m.unbounded = False
-        return Mul(throttle, m)
+
     return m
 
-def finalizeGroup(grp, roundUp = True, recursive = True):
+def finalizeGroup(grp, *, roundUp = True, recursive = True):
     machines = []
     for m in grp:
         m = _finalizeInner(m, roundUp, recursive)
