@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from contextvars import copy_context
 
-from .core import CraftingMachine, Recipe, RecipeComponent
+from .core import CraftingMachine, Recipe, RecipeComponent, Mul
 from . import itm
 from .machine import Beacon
 
-__all__ = ('withSettings','FakeLab','FakeBeacon')
+__all__ = ('withSettings','FakeLab','FakeBeacon','useSpeedBeacons', 'useEffectivityBeacons', 'useBeacons')
 
 def withSettings(settings, fun, *args, **kwargs):
     "helper function to locally set a ContextVar"
@@ -21,7 +21,6 @@ def _withSettings(settings, fun, *args, **kwargs):
 class FakeLab(CraftingMachine):
     pass
 
-@dataclass(init=False,repr=False)
 class FakeBeacon(Beacon):
     moduleInventorySize = 1
     distributionEffectivity = 1
@@ -52,3 +51,48 @@ class FakeBeacon(Beacon):
     def _fmtModulesStr(self, lst):
         lst.append(str(self.modules[0].effect))
 
+def useSpeedBeacons(machine, beacon, *, roundUp=False, stripExisting=True):
+    """Add enough speed beacons to reduce the number of machines needed to one."""
+    from .fracs import div,ceil
+    if beacon.effect().speed <= 0:
+        raise ValueError('provided beacon does not increase speed')
+    num = machine.num
+    machine = machine.machine
+    rate = num * machine.throttle * (1 + machine.bonus().speed)
+    if stripExisting:
+        machine.beacons = []
+    speedIncrease = rate - (1 + machine._effect().speed)
+    numBeacons = div(speedIncrease, beacon.effect().speed)
+    if numBeacons <= 0:
+        machine.throttle = div(rate, 1 + machine.bonus().speed)
+    elif roundUp:
+        numBeacons = ceil(numBeacons)
+        machine.beacons = [*machine.beacons, Mul(numBeacons, beacon)]
+        machine.throttle = div(rate, 1 + machine.bonus().speed)
+    else:
+        machine.throttle = 1
+        machine.beacons = [*machine.beacons, Mul(numBeacons, beacon)]
+    return machine
+
+def useEffectivityBeacons(machine, beacon, roundUp=False):
+    """Add enough effectivity beacons to reduce the energy consumption to the limit of -80%."""
+    from .fracs import frac,div,ceil
+    if isinstance(machine, Mul):
+        return Mul(machine.num, useEffectivityBeacons(machine.machine, beacon, roundUp))
+    if beacon.effect().consumption >= 0:
+        raise ValueError('provided beacon does not decrease energy consumption')
+    neededReduction = machine.bonus().consumption + frac('0.8')
+    numBeacons = div(neededReduction, -beacon.effect().consumption)
+    if numBeacons <= 0:
+        return machine
+    if roundUp:
+        numBeacons = ceil(numBeacons)
+    machine.beacons = [*machine.beacons, Mul(numBeacons, beacon)]
+    return machine
+
+def useBeacons(machine, speedBeacon = None, effectivityBeacon = None, *, roundUp=False, stripExisting=True):
+    if speedBeacon:
+        machine = useSpeedBeacons(machine, speedBeacon, roundUp=roundUp, stripExisting=stripExisting)
+    if effectivityBeacon:
+        machine = useEffectivityBeacons(machine, effectivityBeacon, roundUp=roundUp)
+    return machine

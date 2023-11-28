@@ -4,8 +4,6 @@ from __future__ import annotations
 from dataclasses import dataclass,FrozenInstanceError
 from collections import defaultdict
 from collections.abc import Sequence
-from functools import reduce
-import operator
 
 from .fracs import frac,div,diva,Inf
 from .core import *
@@ -157,7 +155,7 @@ class ModulesMixin(_ModulesHelperMixin):
                     return b
                 elif b == 'counter':
                     from .helper import FakeBeacon
-                    effect = reduce(operator.add, (m.effect for m in self.modules))
+                    effect = sum((m.effect for m in self.modules), Effect())
                     return FakeBeacon(speed = -100*effect.speed if effect.speed < 0 else 0,
                                       productivity = -100*effect.productivity if effect.productivity < 0 else 0,
                                       energy = -100*effect.consumption if effect.consumption > 0 else 0,
@@ -210,11 +208,12 @@ class ModulesMixin(_ModulesHelperMixin):
             obj['beacons'] = [(b.num, b.machine._jsonObj(**kwargs)) for b in self.beacons]
         return obj
 
+    def _effect(self):
+        return (sum((m.effect for m in self.modules), Effect())
+                + sum((b.num*b.machine.effect() for b in self.beacons), Effect()))
+
     def bonus(self):
-        if len(self.modules) == 1 and len(self.beacons) == 0:
-            # special case in case we have a FakeModule
-            return Bonus(self.modules[0].effect)
-        return Bonus(sum([m.effect for m in self.modules],Effect()) + sum([b.num*b.machine.effect() for b in self.beacons],Effect()))
+        return Bonus(self._effect())
 
 @dataclass(init=False,repr=False)
 class Beacon(_ModulesHelperMixin,Machine):
