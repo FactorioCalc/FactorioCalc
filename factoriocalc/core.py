@@ -270,6 +270,23 @@ class MachineMeta(type):
     @property
     def alias(self):
         return self.__name__
+    def __lt__(self, other):
+        if not isinstance(other, MachineMeta):
+            return NotImplemented
+        return (self.order, id(self)) < (other.order, id(other))
+    def __le__(self, other):
+        if not isinstance(other, MachineMeta):
+            return NotImplemented
+        return (self.order, id(self)) <= (other.order, id(other))
+    def __gt__(self, other):
+        if not isinstance(other, MachineMeta):
+            return NotImplemented
+        return (self.order, id(self)) > (other.order, id(other))
+    def __ge__(self, other):
+        if not isinstance(other, MachineMeta):
+            return NotImplemented
+        return (self.order, id(self)) >= (other.order, id(other))
+
 
 @dataclass(init=False,repr=False)
 class Machine(MachineBase, metaclass=MachineMeta):
@@ -589,7 +606,6 @@ class Mul(MachineBase):
 
     def summarize(self):
         return Mul(self.num, self.machine.summarize())
-
 
 @dataclass(repr=False,init=False)
 class Group(Sequence,MachineBase):
