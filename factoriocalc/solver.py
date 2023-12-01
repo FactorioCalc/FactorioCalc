@@ -305,6 +305,12 @@ class Terms(dict):
             self[var] = div(rate, other)
         return self
 
+def _asTerms(terms):
+    if isinstance(terms, Terms):
+        return terms
+    else:
+        return Terms(terms)
+
 def fmt_terms(terms):
     return ' '.join('{}{}'.format('+' if rate == 1 else '-' if rate == -1 else f'{rate:+.6g}*', var) for var, rate in terms)
 
@@ -620,13 +626,20 @@ def _simplify(leq):
             allPositive = len(posVars) == len(eq.terms) and (eq.cond is EQ or eq.cond is LE)
             allNegative = len(posVars) == 0             and (eq.cond is EQ or eq.cond is GE)
             if allPositive or allNegative:
+                # the only possible solution to an allPositive or allNegative
+                # equation is to set all the variables to zero
                 for var in eq.terms.keys():
                     candidates[var] = ZERO
             elif eq.cond is EQ and len(posVars) == 1:
+                # if there is only one positive term then tentatively use
+                # substitution to eliminate that variable, but only if the
+                # substitution is unique
                 var = posVars[0]
                 if var not in candidates:
                     candidates[var] = eq
                 elif candidates[var] is not ZERO:
+                    # if `var` is already in candidates (and not ZERO) than that
+                    # means the substitution is not unique, so mark it as such
                     candidates[var] = None
         for var in list(candidates.keys()):
             if candidates[var] is None:
@@ -634,6 +647,8 @@ def _simplify(leq):
         if not candidates:
             break
         for var, eq in candidates.items():
+            # first rewrite the equation in the form:
+            #   terms = var
             if eq is ZERO:
                 eqs.append(_Equation(None, Terms(), EQ, Term(var,1)))
                 terms = ()
@@ -642,9 +657,10 @@ def _simplify(leq):
                 eq.terms /= factor
                 eq.rhs = Term(var, 1)
                 terms = eq.terms
-            else: # empty eq -- fixme: is this right, why can this happen
+            else: # empty eq - it can happen, see KrastorioTests.testLithiumFactory1
                 eq.rhs = Term(var, 1)
                 terms = eq.terms
+            # then use substitution to eliminate var from all other equations
             for eq2 in eqs:
                 eq2.terms.sub(var, terms)
     return eqs
@@ -733,9 +749,9 @@ class Solver:
         # minimize the amount of extra output
         alsoOutput = [item for item, p in self.leqs.outputPriorities.items() if p <= IGNORE]
         if alsoOutput:
-           also = [OptFun(Terms(self.leqs.outputs[item] for item in alsoOutput).subAll(self.subs).neg(), 'also-output')]
+           also = [OptFun(Terms(self.leqs.outputs[item] for item in alsoOutput).neg(), 'also-output')]
            for item in alsoOutput:
-               also.append(OptFun(Terms(self.leqs.outputs[item]).subAll(self.subs).neg(), item))
+               also.append(OptFun(Terms(self.leqs.outputs[item]).neg(), item))
            objectives.append(also)
 
         ignoredInputs, inputs = {}, {}
@@ -749,7 +765,7 @@ class Solver:
         if ignoredInputs:
             also = [OptFun(defaultdict(dict), 'ignored-inputs')]
             for item, terms in ignoredInputs.items():
-                also.append(OptFun(Terms(terms).subAll(self.subs), item))
+                also.append(OptFun(Terms(terms), item))
                 for term in terms:
                     if term.rate > 0:
                         also[0].terms[term.var] = 1
@@ -758,16 +774,14 @@ class Solver:
         # minimize the amount of input by maximizing the total input flow as
         # input valaues are always negative
         if inputs:
-            also = [OptFun(Terms(inputs.values()).subAll(self.subs), 'inputs')]
+            also = [OptFun(Terms(inputs.values()), 'inputs')]
             for item, terms in inputs.items():
-                also.append(OptFun(Terms(terms).subAll(self.subs), item))
+                also.append(OptFun(Terms(terms), item))
             objectives.append(also)
 
-        for obj in objectives:
-            if len(obj[0]) == 1:
-                obj[:] = [obj[0]]
-
-        self.objectives = objectives
+        self.objectives = [*map(lambda objs: [*map(lambda obj: OptFun(_asTerms(obj.terms).subAll(self.subs), obj.note),
+                                                   objs)],
+                                objectives)]
 
         self.tableau = Tableau(self.eqs, self.objectives)
         return self._result
