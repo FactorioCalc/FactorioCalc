@@ -632,10 +632,10 @@ class Group(Sequence,MachineBase):
             except AttributeError:
                 continue
             haveUnresolved = False
-            for b in beacons:
-                if isinstance(b.machine, Beacon) and b.machine.id is not None:
-                    beaconMap[b.machine.id] = b.machine
-                elif isinstance(b.machine, UnresolvedBeacon):
+            for num,beacon in beacons:
+                if isinstance(beacon, Beacon) and beacon.id is not None:
+                    beaconMap[beacon.id] = beacon
+                elif isinstance(beacon, UnresolvedBeacon):
                     haveUnresolved = True
             if haveUnresolved:
                 unresolved.append(m)

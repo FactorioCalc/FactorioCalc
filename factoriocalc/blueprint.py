@@ -1,4 +1,5 @@
 from __future__ import annotations
+from collections import defaultdict
 from itertools import chain, repeat
 from pathlib import Path
 import math
@@ -106,6 +107,8 @@ class Blueprint:
                     machinesOnGrid.setdefault(x_max, {})[y_min] = m
                     machinesOnGrid.setdefault(x_max, {})[y_max] = m
 
+        machinesById = {}
+        beaconsForMachine = defaultdict(list)
         for beacon in beacons:
             x_min = as_int(beacon.blueprintInfo['position']['x'] - beacon.width/2) - beacon.supplyAreaDistance
             x_max = as_int(beacon.blueprintInfo['position']['x'] + beacon.width/2) + beacon.supplyAreaDistance - 1
@@ -120,8 +123,12 @@ class Blueprint:
                     m = yp.get(y, None)
                     if m is None or id(m) in seen:
                         continue
-                    m.beacons.append(beacon)
+                    machinesById[id(m)] = m
+                    beaconsForMachine[id(m)].append(beacon)
                     seen.add(id(m))
+
+        for m_id, beacons in beaconsForMachine.items():
+            machinesById[m_id].beacons = beacons
 
         return Group(Group(machines), Group(beacons))
 

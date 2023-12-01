@@ -110,7 +110,7 @@ class _ModulesHelperMixin:
 @dataclass(init=False,repr=False)
 class ModulesMixin(_ModulesHelperMixin):
     modules: tuple[Module, ...]
-    beacons: list[Beacon]
+    beacons: tuple
 
     def __init__(self, *args, modules = None, beacons = None, beacon = None, **kws):
         """Set modules and beacons for a machine.
@@ -143,7 +143,7 @@ class ModulesMixin(_ModulesHelperMixin):
             modules = self._fixupModules(val)
             if modules and self.recipe is not None:
                 self._checkModules(self.recipe, modules)
-            val = tuple(modules)
+            val = tuple(sorted(modules))
         elif prop == 'beacon':
             raise AttributeError
         elif prop == 'beacons':
@@ -167,7 +167,10 @@ class ModulesMixin(_ModulesHelperMixin):
             for v in val:
                 if isinstance(v, tuple):
                     num = v[0]
-                    beacon = v[1](*v[2:])
+                    if isinstance(v[1], type) or len(v) > 2:
+                        beacon = v[1](*v[2:])
+                    else:
+                        beacon = v[1]
                 elif isinstance(v, Mul):
                     num = v.num
                     beacon = asBeacon(v.machine)
@@ -175,7 +178,7 @@ class ModulesMixin(_ModulesHelperMixin):
                     num = 1
                     beacon = asBeacon(v)
                 beacons[beacon] += num
-            val = [Mul(num, beacon) for beacon, num in beacons.items()]
+            val = tuple((num, beacon) for beacon, num in sorted(beacons.items()))
         return super().__setattr__(prop, val)
 
     def _extraSortKeys(self):
@@ -184,19 +187,19 @@ class ModulesMixin(_ModulesHelperMixin):
     def _reprParts(self, lst):
         self._fmtModulesRepr('modules=', lst)
         if len(self.beacons) > 0:
-            lst.append('beacons=' + '+'.join(repr(b) for b in self.beacons))
+            lst.append('beacons=' + '+'.join(f'{num!r}*{b!r}' for num,b in self.beacons))
 
     def _strParts(self, lst):
         self._fmtModulesStr(lst)
         if self.beacons:
-            lst.append(' + '.join(str(m.machine) if m.num == 1 else f'{m.num:.3g}x {m.machine}' for m in self.beacons))
+            lst.append(' + '.join(str(b) if num == 1 else f'{num:.3g}x {b}' for num,b in self.beacons))
 
     def _keyParts(self, lst):
-        lst.append(('modules', tuple(sorted(self.modules))))
+        lst.append(('modules', self.modules))
         beacons = defaultdict(lambda: 0)
-        for m in self.beacons:
-            beacons[(m.machine.__class__, tuple(sorted(m.machine.modules)))] += m.num
-        lst.append(('beacons', tuple(sorted((num, cls, modules) for (cls, modules), num in beacons.items()))))
+        for num, b in self.beacons:
+            beacons[(b.__class__, tuple(sorted(b.modules)))] += num
+        lst.append(('beacons', tuple((num, cls, modules) for (cls, modules), num in sorted(beacons.items()))))
 
     def _jsonObj(self, **kwargs):
         obj = super()._jsonObj(**kwargs)
@@ -210,7 +213,7 @@ class ModulesMixin(_ModulesHelperMixin):
 
     def _effect(self):
         return (sum((m.effect for m in self.modules), Effect())
-                + sum((b.num*b.machine.effect() for b in self.beacons), Effect()))
+                + sum((num*b.effect() for num,b in self.beacons), Effect()))
 
     def bonus(self):
         return Bonus(self._effect())
@@ -271,7 +274,7 @@ class Beacon(_ModulesHelperMixin,Machine):
         return super().__delattr__(prop, val)
 
     def _extraSortKeys(self):
-        return (self.modules,)
+        return (self.modules, self.id, id(self.blueprintInfo))
 
     def _reprParts(self, lst):
         if self.id is not None:
@@ -286,7 +289,7 @@ class Beacon(_ModulesHelperMixin,Machine):
         self._fmtModulesStr(lst)
 
     def _keyParts(self, lst):
-        lst.append(('modules', tuple(sorted(self.modules))))
+        lst.append(('modules', self.modules))
 
     def __hash__(self):
         if not self._frozen:
