@@ -908,3 +908,26 @@ unconstrained, but, as of now, it is not comprehensive.  If the hints in
 throttles back to 1 using `~Box.resetThrottle()` then carefully evaluate the
 internal flows (use ``.inner.flows().print()`` to find them) to determine if
 any of them need to marked as unconstrained.
+
+Advanced Beacon Usage
+=====================
+
+In Krastorio 2 you often only need one machine in the late game due to the
+high speed of the advanced machines and the number of singularity beacons you
+can surround it by.  FactorioCalc provides several tools to help with the
+calculations of the number of beacons needed.
+
+The first tool is the creation of a counter beacon to bring the speed of a
+machine with productivity modules back to one.  This change will make it
+easier to determine the number of speed beacons required based on the number
+of machines reported.  To use a counter beacon simpliy specify the string
+``counter`` where ever a beacon is expected.  The special string will create a
+special `FakeBeacon` to counter any negative effects of the modules and bring
+everything back to one.  The easiest way to use a counter beacon is to specify
+the string as part of call to `presets.MP_MAX_PROD` when setting
+`config.machinePrefs`, for example:
+``config.machinePrefs.set(presets.MP_MAX_PROD(beacon='counter'))``
+
+The second tool is the `useSpeedBeacons` function to let FactorioCalc do the
+calculation for you.  The `useSpeedBeacons` function will add enough speed
+beacons to reduce the number of machines needed to one.
