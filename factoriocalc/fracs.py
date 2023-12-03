@@ -19,7 +19,7 @@ allow_nans = ContextVar('fracs.assume_positive_zero', default = False)
 def frac(num = 0, den = None, *, float_conv_method = 'if int'):
     """return a fraction that automatically convertes to an int when applicable
 
-    :param num: an number of any type or string, the string may be an int,
+    :param num: a number of any type or string, the string may be an int,
       decimal, or a fraction of the form 'num/den'.
 
     :param den: denominator of fraction, may be an `int` or `Frac`.  If defined
@@ -137,18 +137,18 @@ class Frac(tuple,Rational):
     replacement.
 
     Unlike Fraction, Frac does not freely mix with floats.  For this reason it is
-    not a numbers.Rational.
+    not a `numbers.Rational`.
 
     Frac operators will return an int if the denominator is 1.  For this
     reason, Frac's shoud be created with the `frac` or `div` function.  Also,
     to avoid unexpected floats the division operator is not supported and
     instead the previous mentioned `div` function should be used.
 
-    Infinity and NaN is supported.  NaN are a special type with a single value.
-    So to test for NaN it is acceptable to use ``x is NaN``.
+    Infinity and NaN is supported.  NaN is a special type with a single value.
+    So to test for NaN, it is acceptable to use ``x is NaN``.
 
     ``hash(Frac)`` is supported, but for speed it is only compatible with
-    itself.  The automatic conversion to integers also mean that
+    itself.  The automatic conversion to integers means that
     ``hash(frac(2)) == hash(2)``.  However, ``hash(frac(1,2)) != hash(0.5)``
     and ``hash(frac(1,2)) != hash(fractions.Fraction(1,2))``
 

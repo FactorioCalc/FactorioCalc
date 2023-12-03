@@ -27,7 +27,8 @@ def krastorio_2(gameInfo, **kwargs):
     and `presets.SPEED_BEACON` are provided.  In addition
     `presets.MP_MID_LATE_GAME` is provided for use before the three advanced
     versions of machines beacome available, and `presets.SPEED_BEACON_2`
-    (that uses the singularity beacon) is provided for late game use.
+    is provided as a shortcut for
+    ``mch.SingularityBeacon(modules=2*itm.speed_module_3)``.
 
     """
     del gameInfo['recipes']['loader']

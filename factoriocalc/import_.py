@@ -48,13 +48,12 @@ def setGameConfig(mode, path = None, includeDisabled=True):
     references to symboles created before calling this function are unlikely
     to work.
 
-    The game configuration is stored in a context varable `config.gameInfo`
-    so, in theory, it should be possible to use different game configurations
-    within the same python program, but this has not been tested.
+    The game configuration is stored in a context varable `config.gameInfo` to
+    make it possible to use different game configurations within the same
+    python program.
 
-    Returns a `contextvars.Token` that can in theory be used to restore the
-    previous configuration by directly setting `config.gameInfo` but again,
-    this has not been tested.
+    Returns a `contextvars.Token` that can be used to restore the previous
+    configuration.
 
     """
     if mode == 'normal':
@@ -584,7 +583,7 @@ def importGameInfo(gameInfo, *,
     *presets*
         A function to create useful presets that live in the `presets` module.
         The function takes no paramaters and is expected to return a `dict`.
-        The `config.gameInfo` context variable is set so the `mch`, `itm`,
+        The `config.gameInfo` context variable is set so `mch`, `itm`,
         `rcp` are now populated.
 
     *extraPasses*
