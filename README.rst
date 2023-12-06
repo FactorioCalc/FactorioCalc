@@ -51,18 +51,20 @@ Create a simple factory that creates electronic circuits from copper and iron pl
 
 Use `produce` to create a factory that produces rocket fuel::
 
-  >>> config.machinePrefs.set(presets.MP_MAX_PROD.withSpeedBeacons({
-          mch.AssemblingMachine3:8, mch.ChemicalPlant:8, mch.OilRefinery:12}))
+  >>> config.machinePrefs.set(presets.MP_MAX_PROD().withBeacons(presets.SPEED_BEACON,
+          {mch.AssemblingMachine3:8, mch.ChemicalPlant:8, mch.OilRefinery:12}))
   >>> rocketFuel = produce([itm.rocket_fuel@6], using=[rcp.advanced_oil_processing]).factory
   >>> rocketFuel.summary()
   b-rocket-fuel:
-      23.4x rocket-fuel: assembling-machine-3  +340% speed +40% prod. +880% energy +40% pollution
-      9.84x solid-fuel-from-light-oil: chemical-plant  +355% speed +30% prod. +800% energy +30% pollution
-      4.65x solid-fuel-from-petroleum-gas: chemical-plant  +355% speed +30% prod. +800% energy +30% pollution
-      2.26x advanced-oil-processing: oil-refinery  +555% speed +30% prod. +1080% energy +30% pollution
-      1.06x heavy-oil-cracking: chemical-plant  +355% speed +30% prod. +800% energy +30% pollution
-    Outputs: rocket-fuel 6/s
+      23.4x rocket_fuel: AssemblingMachine3  +340% speed +40% prod. +880% energy +40% pollution
+      9.84x solid_fuel_from_light_oil: ChemicalPlant  +355% speed +30% prod. +800% energy +30% pollution
+      4.65x solid_fuel_from_petroleum_gas: ChemicalPlant  +355% speed +30% prod. +800% energy +30% pollution
+      2.26x advanced_oil_processing: OilRefinery  +555% speed +30% prod. +1080% energy +30% pollution
+      1.06x heavy_oil_cracking: ChemicalPlant  +355% speed +30% prod. +800% energy +30% pollution
+    Outputs: rocket_fuel 6/s
     Inputs: water -220.004/s, crude_oil -295.803/s
+
+
 
 Installation
 ------------
