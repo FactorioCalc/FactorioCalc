@@ -6,7 +6,8 @@ import numbers
 import operator
 import re
 import math
-from contextvars import ContextVar
+
+from .contextvars_ import ContextVar
 
 __all__ = ['Frac', 'frac', 'div', 'Inf', 'NaN', 'Invalid',
            'frac_from_float_exact', 'frac_from_float_round', 'as_integer_ratio',

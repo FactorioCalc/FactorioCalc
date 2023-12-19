@@ -36,7 +36,7 @@
 
 """
 
-from contextvars import ContextVar as _ContextVar
+from .contextvars_ import ContextVar as _ContextVar
 from .units import DU_SECONDS as _DU_SECONDS,UNIT_SECONDS as _UNIT_SECONDS
 from . import itm as _itm
 

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
-from contextvars import copy_context
 
+from .contextvars_ import copy_context
 from .core import CraftingMachine, Recipe, RecipeComponent, Mul
 from . import itm
 from .machine import Beacon
