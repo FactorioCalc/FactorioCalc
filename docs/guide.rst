@@ -7,7 +7,7 @@ Overview
 ********
 
 This guide is meant to give you an overview of all the important parts of
-FactoriCalc.  It does not spell out all the details for every function
+FactorioCalc.  It does not spell out all the details for every function
 introduced and assumes the examples provided are sufficient.  For complete
 documentation see the API docs.  A decent knowledge of how to play Factorio is
 assumed.
@@ -22,13 +22,13 @@ collected in a simple script.  For this reason it is acceptable to use ``from
 factoricalc import *`` and the rest of the documentation will assume you have
 done so.
 
-For lack of a better term, *factory*, will be used thoughout this document to
+For lack of a better term, *factory*, will be used throughout this document to
 refer to any group of machines that work together to produce one or more
 products.  The term *overall factory* will be used to refer to all the
 factories on the map.
 
 Factoricalc uses exact fractions internally.  For speed a custom fraction
-class is used.  This class does not allow converstion from floats, as 0.12
+class is used.  This class does not allow conversion from floats, as 0.12
 as a float is not 12/100 but really 1080863910568919/9007199254740992, which
 is almost certainly not what was intended.  There are various heuristics
 that can be used to give a better conversion, but for now it is easier to
@@ -55,7 +55,7 @@ internal names but with ``-`` (dashes) converted to ``_`` (underscores).
 Items are in `itm`.  Like the `mch` package, both the `rcp` and `itm` package
 have have a `_find()` function to find an item based on the translated name.
 
-Within FactorioCalc the items a machine produces or consumes is cosidered a
+Within FactorioCalc the items a machine produces or consumes is considered a
 *flow*.  The rate of the flow is positive for items produced and negative
 for items consumed.
 
@@ -86,7 +86,7 @@ We can then get the flows of the group by using ``ec.flows().print()``::
   copper_plate -2.5/s
   electricity -0.775 MW
 
-This is showing us the maxium rates for the group, but there is a problem:
+This is showing us the maximum rates for the group, but there is a problem:
 we are creating copper cables at a rate of 5/s but consuming them at -7.5/s.
 The ``!`` after copper cables indicates a lack of an ingredient.  We can fix
 this by using the correct ratios or by slowing down the machine that creates
@@ -125,7 +125,7 @@ call ``b.flows().print()`` we get::
   copper_plate -2.5/s
   electricity -0.65 MW
 
-Copper-cable is not in the list beacuase it's net flow is now zero.  Boxes,
+Copper-cable is not in the list because it's net flow is now zero.  Boxes,
 unlike groups, do not include internal flows unless the net flow is non-zero.
 An *internal flow* is simply a flow in which there are both producers and
 consumers within the same box.
@@ -146,7 +146,7 @@ it gives us::
     Outputs: electronic_circuit 1.66667/s
     Inputs: iron_plate -1.66667/s, copper_plate -2.5/s
 
-The ``@0.66667`` indiactes that the assembling machine for the
+The ``@0.66667`` indicates that the assembling machine for the
 electronic-circuit is throttled and only running at 2/3 it's capacity.
 
 Modules And Beacons
@@ -169,7 +169,7 @@ we can instead use::
 
   >>> ec2 = 2*rcp.electronic_circuit() + 3*rcp.copper_cable()
 
-Of cource in the late game we are going to want to use productivity-3
+Of course in the late game we are going to want to use productivity-3
 modules with beacons stuffed with speed-3 modules.  You can pass modules and
 beacons to the call above or include them in the `machinePrefs`.
 
@@ -178,7 +178,7 @@ For example, to make electronic circuits with 4 productivity-3 modules and 8
 beacons with speed-3 modules use::
 
   rcp.electronic_circuit(modules=4*itm.productivity_module_3,
-                         beacons=8*Beacon(modules=2*itm.speed_module_3))
+                         beacons=8*mch.Beacon(modules=2*itm.speed_module_3))
 
 When specifying modules you can either provide a list of them (as above) or a
 single module to fill the machine to with as many of that module as possible.
@@ -189,31 +189,31 @@ can become::
    rcp.electronic_circuit(modules=itm.productivity_module_3,
                           beacons=8*SPEED_BEACON)
 
-Specifying the modules and becons configuration for each machine can be
-tedious so as an alternative FactorioCalc lets you set prefered machine
+Specifying the modules and beacons configuration for each machine can be
+tedious so as an alternative FactorioCalc lets you set preferred machine
 configurations as part of `config.machinePrefs`.  If all we cared about is
-assmebling machines we could just use::
+assembling machines we could just use::
 
   >>> config.machinePrefs.set([mch.AssemblingMachine3(modules=itm.productivity_module_3,
                                                       beacons=8*SPEED_BEACON)])
 
-However we most likely want all machines to have the maxium number of
+However we most likely want all machines to have the maximum number of
 productivity-3 modules and at least some speed beacons.  To make this easier
 the `~presets.MP_MAX_PROD` function can used to indicate that we want all machines to
-have to maxium number of productivity-3 modules.  There is no preset for
+have to maximum number of productivity-3 modules.  There is no preset for
 beacons as the number the beacons often various.  Instead use the
 `withBeacons` method to modify the preset by adding `~presets.SPEED_BEACON`'s for
 specific machines.  For example::
 
   >>> config.machinePrefs.set(MP_MAX_PROD().withBeacons(SPEED_BEACON, {mch.AssemblingMachine3:8}))
 
-will give all machines the maxium number of productivity-3 modules possble and
+will give all machines the maximum number of productivity-3 modules possible and
 assembling machine 3 with 8 `~presets.SPEED_BEACON`'s.  With `machinePrefs` set
 we can get an assembling machine 3, with 4 productivity-3 modules, and 8 speed
 beacons that creates electronic circuits by just using
 ``rcp.electronic_circuit()``.
 
-Now lets try and combine electronic circuits with copper cables with maxium
+Now lets try and combine electronic circuits with copper cables with maximum
 productivity.  We could calculate the exact ratios or just guess and let
 the solver do most of the math for use::
 
@@ -228,7 +228,7 @@ the solver do most of the math for use::
     Inputs: iron_plate -10.2667/s, copper_plate -11/s
 
 The `includeMachineFlows` parameter will include the flows of individual
-machine groups in the summary.  The ``~`` after an item in the flows indictates
+machine groups in the summary.  The ``~`` after an item in the flows indicates
 the flow has been adjusted due to throttling.
 
 Looking at the above summary the electronic circuit are throttled at 93%, so
@@ -244,7 +244,7 @@ we can decrease the number of beacons for the electronic circuits::
     Outputs: electronic_circuit 13.65/s
     Inputs: iron_plate -9.75/s, copper_plate -10.4464/s
 
-That is only sligtly better, but instead of not producing enough copper
+That is only slightly better, but instead of not producing enough copper
 cables we are producing more than enough, which is generally a better thing
 to do.
 
@@ -269,7 +269,7 @@ required machines.  For example to produce electronic circuits at 30/s::
     Inputs: iron_ore -17.8571/s, copper_ore -19.1327/s
 
 The `@` operator pairs an item with a rate and returns a tuple.  The
-``.factory`` at the end of produce is necessary beacuse `produce` returns a
+``.factory`` at the end of produce is necessary because `produce` returns a
 class with additional information about the solution it found, but for now we
 only are interested in the result.
 
@@ -303,7 +303,7 @@ iron and copper plates by using the `using` keyword argument::
     Inputs: iron_plate -21.4286/s, copper_plate -22.9592/s
 
 The `using` keyword argument is a list that guides the machine selection
-process: if the element is an item `produce` will attemt to use that item and
+process: if the element is an item `produce` will attempt to use that item and
 then stop once it does, if the element is a recipe than `produce` will
 prefer that recipe over another when there are multiple possibles.
 
@@ -343,11 +343,11 @@ example::
 Oil Processing
 --------------
 
-FactoriCalc includes a simplex solver so it is able to handle complex cases,
-such as producing items from cruid oil using advanced oil processing or coal
+FactorioCalc includes a simplex solver so it is able to handle complex cases,
+such as producing items from crude oil using advanced oil processing or coal
 liquefaction.  Since oil produced can be produced from either process you have
-to specify which one to use with the `using` paramater.  For example, to make
-plastic from cruid oil::
+to specify which one to use with the `using` parameter.  For example, to make
+plastic from crude oil::
 
   >> config.machinePrefs.set(MP_MAX_PROD().withBeacons(SPEED_BEACON, ({mch.AssemblingMachine3:8, mch.ChemicalPlant:8, mch.OilRefinery:12}))
   >> plastic1 = produce([itm.plastic_bar@90], using=[rcp.advanced_oil_processing]).factory
@@ -393,13 +393,13 @@ It is just as easy to create rocket fuel::
 
 In this case there is no light oil cracking but some heavy oil cracking
 as it more efficient to first convert heavy oil to light oil when creating
-soild fuel.  The conversion of petroleum gas to light oil is unavoidable as
+solid fuel.  The conversion of petroleum gas to light oil is unavoidable as
 there is nothing else to do with the gas.
 
 We can just as easily produce plastic and rocket fuel at the same time, which
-will avoid the need to convert petroleum gas to soild fuel, but the entire
+will avoid the need to convert petroleum gas to solid fuel, but the entire
 factory will grind to a halt if both products are not being created at the
-same time.  FactoriCalc can fairly easy let you know what you need to produce
+same time.  FactorioCalc can fairly easy let you know what you need to produce
 either plastic or rocket fuel, or both at the same time.  This will be covered
 in a later section.
 
@@ -410,7 +410,7 @@ Basic Usage
 -----------
 
 A box is a wrapper around a group with additional constraints to limit flows.
-So far we have been letting FactoriCalc determine the constraints
+So far we have been letting FactorioCalc determine the constraints
 automatically.  For example ``Box(rcp.electronic_circuit() +
 rcp.copper_cable())`` will automatically set the external flow of copper
 cables to zero as it is an internal flow.  Sometimes you may want to limit the
@@ -438,7 +438,7 @@ output item are running at there maximum capacity.  If, in the previous
 example we where to reduce numbers of copper cables machines to 1 either the
 electronic circuits or the advanced circuit machines can run at full capacity
 but not both.  To fix this we can use the `priorities` argument to specify
-that a particular output should get priorty over another.  For example::
+that a particular output should get priority over another.  For example::
 
   >>> circuits2 = box(rcp.electronic_circuit() + rcp.copper_cable() + 2*rcp.advanced_circuit(),
                       outputs = [itm.electronic_circuit, itm.advanced_circuit],
@@ -516,7 +516,7 @@ A throttle is marked as unbounded via the ``~`` operator; for example:
 If, for example, we wanted to produce electronic circuits at 28/s from copper
 and iron plates we could use produce, but let's assume we would rather specify
 the machines used.  We don't know the number of machines we need however, so
-we use ubbounded throttles to let the solver figure it out for use::
+we use unbounded throttles to let the solver figure it out for use::
 
   >> config.machinePrefs.set(MP_MAX_PROD().withBeacons(SPEED_BEACON, ({mch.AssemblingMachine3:8}))
   >> circuits0 = box(~rcp.electronic_circuit() + ~rcp.copper_cable(),
@@ -663,7 +663,7 @@ smaller than the priority of `rcp.solid_fuel_from_petroleum_gas`::
 
 And we increased the plastic output but rocket fuel output then suffers.
 
-This experment shows us that we need some circuits to prevent any conversion
+This experiment shows us that we need some circuits to prevent any conversion
 of petroleum gas to solid fuel unless we have an overflow.
 
 Nuclear Processing
@@ -673,7 +673,7 @@ Like oil processing, processing of uranium ore is tricky.  You will eventually
 need to use the Kovarex enrichment process, but you can't overdue it,
 otherwise you will have too much Uranium-235 and not enough Uranium-238.  In
 addition you will also want to dispose of the used fuel cells by reprocessing
-it back into a small amount of Uranium-238.  Fortunately FactoriCalc is up to
+it back into a small amount of Uranium-238.  Fortunately FactorioCalc is up to
 the task.  For example, here is a factory that provides the needs of nuclear
 related produces for a fairly large overall factory::
 
@@ -714,8 +714,8 @@ is a summary of the solved factory::
 Working with Blueprints
 =======================
 
-FactoroCalc provides support for converting a blueprint of a factory into a
-`Group` for further analysis with a few minor limiations.  For example,
+FactorioCalc provides support for converting a blueprint of a factory into a
+`Group` for further analysis with a few minor limitations.  For example,
 furnaces in blueprint will be converted, but since they don't have a fixed
 recipe, you will need to tell the convert function what recipe to use or
 manually set the recipe afterwards.
@@ -743,7 +743,7 @@ beacons the factory used.
 
 We are generally only interested in the first inner group (the one with the
 factory).  We can view it using the `Group.pprint()` methods, which is just a
-nicer formated version of `repr`::
+nicer formatted version of `repr`::
 
   >>> circuits[0].pprint()
   Group(mch.AssemblingMachine3(rcp.electronic_circuit, modules=4*itm.productivity_module_3, beacons=mch.Beacon(2*itm.speed_module_3, blueprintInfo=...)+mch.Beacon(2*itm.speed_module_3, blueprintInfo=...)+mch.Beacon(2*itm.speed_module_3, blueprintInfo=...), blueprintInfo=...),
@@ -811,7 +811,7 @@ Custom Game Configurations
 ==========================
 
 The `setGameConfig` function can be used to change the game configuration from
-*normal* to *expensive*, or load a custon configuration from a JSON file.
+*normal* to *expensive*, or load a custom configuration from a JSON file.
 
 Expensive Mode
 --------------
@@ -820,7 +820,7 @@ To change the game configuration to use *expensive* recipes use
 ``setGameConfig('expensive')`` to switch it back to *normal* mode use,
 ``setGameConfig('normal')``.  Note that any call to `setGameConfig` replaces
 all the symbols in the `itm`, `rcp`, `mch`, and `presets` packages so any non
-symbolic refrences to the old symbols are unlikely to work correctly with the
+symbolic references to the old symbols are unlikely to work correctly with the
 new configuration.
 
 Alternative Configurations and Locale Support
@@ -832,7 +832,8 @@ custom configuration with the translated names in the language you want.
 
 To load a custom configuration, you first need to export the data from Factorio
 in the configuration you want (in this case an alternative language).  To
-export the data use the "Recipe Exporter" (author fac301) mod.  Install it,
+export the data use the `Recipe Exporter
+<https://mods.factorio.com/mod/RecipeExporter>`_ mod.  Install it,
 and load a map with the configuration you want.  Then, from the console run
 the ``dump_recipes`` command.  This command will export the recipes
 and other needed data to the ``script-output/recipes.json`` file.  Then, to
@@ -840,7 +841,7 @@ load the file use::
 
   >>> setGameConfig('custom', userRecipesFile())
 
-`userRecipesFile()` assumes factorio is storing its data in the standard
+`userRecipesFile()` assumes Factorio is storing its data in the standard
 location (``%APPDATA%\Factorio`` for Windows or ``$HOME/.factorio`` for
 Linux).  If this is not the case you will need to provide the correct path.
 
@@ -852,21 +853,21 @@ Mod Support
 -----------
 
 For a simple mod that only adds recipes or makes very simple changes, you can
-load the configution like you would in the previous section by calling
-`setGameConfig` with ``'custom'`` as the first paramater.
+load the configuration like you would in the previous section by calling
+`setGameConfig` with ``'custom'`` as the first parameter.
 
 Overhaul mods will take a little more work.  For basic support you can just
-call `setGameConfig` with the ``'mod'`` as the first paramater.  Unlike ``'custom'``
+call `setGameConfig` with the ``'mod'`` as the first parameter.  Unlike ``'custom'``
 this assumes nothing about the games configuration: the `presets` package will
 be empty, `produce` is unlikely to work for recipes with multiple outputs, and
 although it will be able to derive recipes for rocket launch products the
 names will be mangled.
 
-Currently FactorioCalc has bulitin support for "Space Exploitation",
+Currently FactorioCalc has builtin support for "Space Exploitation",
 "Krastorio 2" and "SEK2" (Space Exploration + Krastorio 2).  A recipe file is
 not provided, however, as any provided is likely to out of date and will not
 match your exact configuration.  To enable support use the name as first
-paramater to `setGameConfig`.  For additional information see the `mods`
+parameter to `setGameConfig`.  For additional information see the `mods`
 module.
 
 Adding Additional Mods
@@ -883,7 +884,7 @@ Advanced Box Usage
 Revisiting Unbounded Throttles
 ------------------------------
 
-Using `produce()` with the Space Exploration mod (if it workes at all) will be a
+Using `produce()` with the Space Exploration mod (if it works at all) will be a
 frustrating experience as there are multiple ways to produce most items.
 Therefor, it is generally easier to select the machines yourself, and let
 the solver determine the number of machines for you.  This is done
@@ -905,9 +906,10 @@ machines unexpectedly).  If this happens the `~Box.unconstrainedHints`
 property may give you hints about what values might need to be marked as
 unconstrained, but, as of now, it is not comprehensive.  If the hints in
 `~Box.unconstrainedHints` fail, then the best thing to do is reset the
-throttles back to 1 using `~Box.resetThrottle()` then carefully evaluate the
-internal flows (use ``.inner.flows().print()`` to find them) to determine if
-any of them need to marked as unconstrained.
+throttles back to 1 using `~Box.resetThrottle()` and use
+`~Box.internalFlows()` to list the internal flows.  Then, carefully evaluate
+the internal flows to determine if any of them need to marked as
+unconstrained.
 
 Advanced Beacon Usage
 =====================
@@ -917,15 +919,14 @@ high speed of the advanced machines and the number of singularity beacons you
 can surround it by.  FactorioCalc provides several tools to help with the
 calculations of the number of beacons needed.
 
-The first tool is the creation of a counter beacon to bring the speed of a
-machine with productivity modules back to one.  This change will make it
-easier to determine the number of speed beacons required based on the number
-of machines reported.  To use a counter beacon simpliy specify the string
-``counter`` where ever a beacon is expected.  The special string will create a
-special `FakeBeacon` to counter any negative effects of the modules and bring
-everything back to one.  The easiest way to use a counter beacon is to specify
-the string as part of call to `presets.MP_MAX_PROD` when setting
-`config.machinePrefs`, for example:
+The first tool is the use of a counter beacon to bring the speed of a machine,
+with productivity modules, back to one.  This will make it easier to determine
+the number of speed beacons required based on the number of machines reported.
+To use a counter beacon simply specify the string ``counter`` where ever a
+beacon is expected.  The special string will create a `FakeBeacon` to counter
+any negative effects of the modules and bring everything back to one.  The
+easiest way to use a counter beacon is to specify the string as part of call
+to `presets.MP_MAX_PROD` when setting `config.machinePrefs`, for example:
 ``config.machinePrefs.set(presets.MP_MAX_PROD(beacon='counter'))``
 
 The second tool is the `useSpeedBeacons` function to let FactorioCalc do the
