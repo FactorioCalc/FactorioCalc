@@ -42,6 +42,7 @@ release = ''
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
+    'myst_nb',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -66,7 +67,7 @@ language = 'en'
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', 'guide0.md', 'guide-clean.md', '*.ipynb']
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None
@@ -103,6 +104,10 @@ html_static_path = ['_static']
 
 html_css_files = [
     'css/custom.css',
+]
+
+html_extra_path = [
+    'guide-nb.ipynb',
 ]
 
 
@@ -199,4 +204,7 @@ autodoc_default_options = {
     'show-inheritance': True,
 }
 
+
+# see https://github.com/executablebooks/MyST-Parser/issues/564
+suppress_warnings = ["myst.xref_missing"]
 

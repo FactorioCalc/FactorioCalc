@@ -1,0 +1,7 @@
+_build/
+reference.rst
+description.rst
+guide.md
+.ipynb_checkpoints/
+circuits-bp.jpg
+

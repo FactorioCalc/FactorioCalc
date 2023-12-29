@@ -11,6 +11,8 @@ PYTHON        = python3
 
 all: html
 
+prep: reference.rst description.rst guide.md guide-nb.ipynb
+
 help:
 	@sphinx-build --version
 	@echo 'supported taregts: clean html dirhtml singlehtml linkcheck'
@@ -19,7 +21,7 @@ clean:
 	rm -f reference.rst
 	@$(SPHINXBUILD) -M clean "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-html dirhtml singlehtml linkcheck: reference.rst description.rst
+html dirhtml singlehtml linkcheck: prep
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 description.rst: description.py ../README.rst
@@ -28,7 +30,16 @@ description.rst: description.py ../README.rst
 reference.rst: reference.py
 	$(PYTHON) reference.py > reference.rst
 
-.PHONY: all help Makefile
+guide.md: guide-proc.py guide0.md
+	$(PYTHON) guide-proc.py > guide.md
+
+guide-nb.ipynb: guide0.md guide-nb.py circuits-bp.jpg
+	$(PYTHON) guide-nb.py > guide-nb.ipynb
+
+circuits-bp.jpg: circuits-bp.png
+	convert circuits-bp.png -interlace JPEG  -quality 65 -sampling-factor 1x1 circuits-bp.jpg
+
+.PHONY: all prep help clean Makefile
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).

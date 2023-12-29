@@ -103,8 +103,8 @@ def space_exploration(gameInfo, **kwargs):
     alises.
 
     Due to complexity of Space Exploration `~factoriocalc.produce`, as it is
-    currently written is unlikely to ever work well.  See :ref:`Revisiting
-    Unbounded Throttles` in the overview guide.
+    currently written is unlikely to ever work well. See
+    :ref:`unbounded-throttles` in the overview guide.
 
     """
     return importGameInfo(
