@@ -1,3 +1,5 @@
+__version__ = '0.2.dev0'
+
 from . import itm, rcp, mch, config, presets
 __all__ = ['itm', 'rcp', 'mch', 'config', 'presets']
 

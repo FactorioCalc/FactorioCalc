@@ -19,9 +19,13 @@ introduced and assumes the examples provided are sufficient.  For complete
 documentation see the [API docs](reference.rst).  A decent knowledge of how
 to play Factorio is assumed.
 
-This guide is also available as a <a href="guide-nb.ipynb">Jupyter notebook</a>.  This
-notebook can be used in your own Jupyter instance, or with [Google
-Colaboratory](https://colab.research.google.com/).
++++ {"tags": ["_intro_p2"]}
+
+This guide is also available as a Jupyter notebook.  You can <a
+href="demo/lab/index.html?path=guide-{VERSION}.ipynb">try the examples yourself</a>, 
+in your browser, thanks to JupyterLite.  Or, you can <a
+href="guide-nb.ipynb">download the notebook</a> and use it with Google
+Colaboratory or your own Jupyter instance.
 
 ```{code-cell}
 :tags: [remove-cell]

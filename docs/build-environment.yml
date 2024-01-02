@@ -1,0 +1,13 @@
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.10
+  - sphinx==7.2.6
+  - sphinx-rtd-theme==2.0.0
+  - myst-nb==1.0.0
+  - build
+  - setuptools
+  - jupyterlab_server
+  - jupyterlite-core >=0.2.0,<0.3.0
+  - jupyterlite-xeus-python >=1.0.0,<2.0.0

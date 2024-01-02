@@ -1,10 +1,16 @@
 import re
 import sys
+import os
 import base64
 from pathlib import Path
 
 import nbformat
 from myst_nb.core.read import read_myst_markdown_notebook
+
+sys.path.insert(0, Path(__file__).parents[1].as_posix())
+import factoriocalc
+
+readthedocs_version = os.environ.get('READTHEDOCS_VERSION', 'devel')
 
 with open('guide0.md', 'r') as f:
     text = f.read()
@@ -25,7 +31,7 @@ text = re.sub(r'^\((.+)\)\=', '<a name="\g<1>"></a>', text, flags = re.MULTILINE
 # pad all headings with '+++' so that they are in there own markdown cell
 text = re.sub(r'\n\n(\#.+)\n\n','\n\n+++\n\n\g<1>\n\n+++\n\n', text)
 
-baseUrl = 'https://factoriocalc.readthedocs.io/en/devel'
+baseUrl = f'https://factoriocalc.readthedocs.io/en/{readthedocs_version}'
 referenceUrl = f'{baseUrl}/reference.html'
 text = re.sub(r'\[(.+?)\]\(reference\.rst(.*?)\)', f'[\g<1>]({referenceUrl}\g<2>)', text)
 
@@ -34,12 +40,28 @@ text = re.sub(r'\[(.+?)\]\(reference\.rst(.*?)\)', f'[\g<1>]({referenceUrl}\g<2>
 nb = read_myst_markdown_notebook(text)
 nb.nbformat_minor = 0
 
-cells = []
+intro_p2 = \
+f"""This is the Jupyter notebook version of the guide for version
+{factoriocalc.__version__} of FactorioCalc.  If FactorioCalc is not
+already available in your Python environment uncomment the line below to
+install it:
+"""
 
+intro_p2_code = f"#%pip install factoriocalc=={factoriocalc.__version__}"
+
+cells = []
 for cell in nb.cells:
+    del cell['id']
     if 'remove-cell' in cell.metadata.get('tags', []):
         continue
-    del cell['id']
+    if '_intro_p2' in cell.metadata.get('tags', []):
+        cell.source = intro_p2
+        cells.append(cell)
+        cell = nbformat.v4.new_code_cell(source=intro_p2_code)
+        del cell['id']
+        cell.metadata['tags'] = ['_intro_p2']
+        cells.append(cell)
+        continue
     if cell.cell_type == 'markdown':
         images = []
         def handle_image(m):
@@ -51,8 +73,6 @@ for cell in nb.cells:
         attachments = {}
     cells.append(cell)
 
-    # inline images as attachments
-    
 nb.cells = cells
 
 nbformat.validate(nb)
