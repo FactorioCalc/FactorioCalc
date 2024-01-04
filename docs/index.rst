@@ -1,7 +1,7 @@
 .. default-role:: py:obj
 
-FactorioCalc
-============
+FactorioCalc |version|
+======================
 
 .. include:: description.rst
 

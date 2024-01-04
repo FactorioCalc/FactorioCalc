@@ -23,7 +23,7 @@ fixed recipe.
 I, the author, find designing my factory symbolically more natural than
 using a spreadsheet and tools like FactorioLab.
 
-Read the docs at https://factoriocalc.readthedocs.io/en/latest/
+Read the docs at https://factoriocalc.readthedocs.io/en/stable/
 
 Examples
 --------

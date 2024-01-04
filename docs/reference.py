@@ -59,7 +59,7 @@ print(f'''.. DO NOT EDIT
    :trim:
 
 `factoriocalc` package
-======================
+================================
 
 .. py:module:: factoriocalc
 
