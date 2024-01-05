@@ -18,20 +18,26 @@ help:
 	@echo 'supported taregts: clean html dirhtml singlehtml linkcheck'
 
 clean:
-	rm -f reference.rst
 	@$(SPHINXBUILD) -M clean "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+	rm -f description.rst reference.rst guide.md
 
 html dirhtml singlehtml linkcheck: prep
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 description.rst: description.py ../README.rst
+	rm -f description.rst
 	$(PYTHON) description.py > description.rst
+	chmod a-w description.rst
 
 reference.rst: reference.py
+	rm -f reference.rst
 	$(PYTHON) reference.py > reference.rst
+	chmod a-w reference.rst
 
 guide.md: guide-proc.py guide0.md
+	rm -f guide.md
 	$(PYTHON) guide-proc.py > guide.md
+	chmod a-w guide.md
 
 guide-nb.ipynb: guide0.md guide-nb.py circuits-bp.jpg
 	$(PYTHON) guide-nb.py > guide-nb.ipynb
