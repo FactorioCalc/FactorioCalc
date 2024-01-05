@@ -73,7 +73,7 @@ class KrastorioTests(unittest.TestCase):
 
     def testIronSteelFactory(self):
         # test blueprint conversion and simplify() method
-        factory = decodeBlueprint(_dir / 'bp-iron-k.txt').convert(recipes={mch.StabilizerChargingStation: rcp.charge_stabilizer})[0].simplify()
+        factory = importBlueprint(_dir / 'bp-iron-k.txt').convert(recipes={mch.StabilizerChargingStation: rcp.charge_stabilizer})[0].simplify()
         # make sure result of simplfy() is correct
         self.assertEqual(factory, self.ironSteelFactory())
         # test conversion to a box with priority given to steel output
@@ -84,13 +84,13 @@ class KrastorioTests(unittest.TestCase):
         self.assertEqual(b.flow(itm.steel_plate).rate(), Frac(7287, 40))
     
     def testLithiumFactory1(self):
-        factory = decodeBlueprint(file='tests/bp-lithium-k.txt').convert(recipes={mch.FluidBurner:rcp.burn_chlorine})[0]
+        factory = importBlueprint(file='tests/bp-lithium-k.txt').convert(recipes={mch.FluidBurner:rcp.burn_chlorine})[0]
         b = box(factory)
         self.assertEqual(b.flow(itm.lithium).rate(), Frac(4464, 125))
         self.assertEqual(b.flow(itm.chlorine_barrel).rate(), 0)
 
     def testLithiumFactory2(self):
-        factory = decodeBlueprint(file='tests/bp-lithium-k.txt').convert(recipes={mch.FluidBurner:rcp.burn_chlorine})[0]
+        factory = importBlueprint(file='tests/bp-lithium-k.txt').convert(recipes={mch.FluidBurner:rcp.burn_chlorine})[0]
         b = box(factory, outputs=[itm.lithium,itm.chlorine_barrel@'p -1'],inputs=[itm.water, itm.mineral_water, itm.empty_barrel])
         self.assertEqual(b.flow(itm.lithium).rate(), Frac(4464, 125))
         self.assertEqual(b.flow(itm.chlorine_barrel).rate(), Frac(125736, 153125))

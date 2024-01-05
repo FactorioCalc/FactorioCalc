@@ -13,7 +13,7 @@ def bpBook():
     p = _dir / 'blueprint-book.txt'
     with open(p) as f:
         bp_str = f.read()
-        _bpBook = decodeBlueprint(bp_str)
+        _bpBook = importBlueprint(bp_str)
     return _bpBook
 
 _circuitsBpBook = None
@@ -24,7 +24,7 @@ def circuitsBpBook():
     p = _dir / 'circuits.txt'
     with open(p) as f:
         bp_str = f.read()
-        _circuitsBpBook = decodeBlueprint(bp_str)
+        _circuitsBpBook = importBlueprint(bp_str)
     return _circuitsBpBook
 
 science3inputs = {itm.lubricant_barrel: None,

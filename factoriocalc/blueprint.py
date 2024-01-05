@@ -8,13 +8,13 @@ from .core import *
 from . import config, machine
 from ._helper import getDefaultFuel
 
-__all__ = ('Blueprint', 'BlueprintBook', 'decodeBlueprint', 'importBlueprint')
+__all__ = ('Blueprint', 'BlueprintBook', 'importBlueprint')
 
 class Blueprint:
     def __init__(self, bp):
         """Create a blueprint from a decoded JSON object.
 
-        See also `decodeBlueprint`.
+        See also `importBlueprint`.
         """
         if 'blueprint' not in bp:
             raise ValueError('expected a blueprint')
@@ -140,7 +140,7 @@ class BlueprintBook:
     def __init__(self, bp):
         """Create a blueprint book from a decoded JSON object.
 
-        See also :py:obj:`decodeBlueprint`.
+        See also :py:obj:`importBlueprint`.
         """
         if 'blueprint_book' not in bp:
             raise ValueError('expected a blueprint book')
@@ -176,8 +176,7 @@ class BlueprintBook:
             for b in bp['blueprint_book']['blueprints']:
                 BlueprintBook._labels(b, lst)
 
-# fixme: rename to importBlueprint
-def decodeBlueprint(arg = None, *, file = None):
+def importBlueprint(arg = None, *, file = None):
     """Decode *arg* to a blueprint or blueprint book.  If *arg* is a `pathlib.Path
     <https://docs.python.org/3/library/pathlib.html>`_ or the *file* argument
     is provided than read the contents from a file, otherwise decode the
@@ -207,4 +206,3 @@ def decodeBlueprint(arg = None, *, file = None):
     else:
         return Blueprint(json)
 
-importBlueprint = decodeBlueprint
