@@ -9,15 +9,19 @@ FactorioCalc |version|
    :caption: Contents
    :maxdepth: 3
 
+   comparison
+
    guide
 
    reference
 
    README <readme>
 
+   ChangeLog
+
 .. toctree::
    :caption: Indices and tables
 
    genindex
 
-   modindex
+

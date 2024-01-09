@@ -334,8 +334,10 @@ class Box(BoxBase):
             A mapping of priorities for the solver.  The key is either a
             recipe or an item.  The value in a number between -100 and 100
             with larger values having a higher priority.  The default priority
-            is 0.  The constant `IGNORE` can be used for the lowest priority
-            (-100) and has special meaning to the solver.
+            for outputs is 0.  The constant `IGNORE` can be used for the
+            lowest priority (-100) and has special meaning to the solver.
+            Input priorites are currently ignored unless the constant `IGNORE`
+            is used.  Recipe priorities are supported, but should be positive.
 
         *allowExtraInputs*
             |nbsp|
@@ -744,7 +746,7 @@ class Box(BoxBase):
         unbounded throttle is 0 the machine is removed.  If *roundUp* is True
         (the default) then also round up multiples of machines (i.e. `Mul`)
         and adjust the throttle to compensate.  If *recursive* is True
-        (default False) than recurse into any inner boxes.
+        (the default) than recurse into any inner boxes.
 
         Returns an instance of `FinalizeResult`.
 

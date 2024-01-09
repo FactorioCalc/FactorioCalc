@@ -35,7 +35,8 @@ def setGameConfig(mode, path = None, includeDisabled=True):
         for currently supported mods.
 
     *path*
-        Path to a JSON file created by the "Recipe Exporter" mod.  Ignored if
+        Path to a JSON file created by the `Recipe Exporter
+        <https://mods.factorio.com/mod/RecipeExporter>`_ mod.  Ignored if
         mode is ``'normal'`` or ``'expensive'``, otherwise it must be
         provided.
 

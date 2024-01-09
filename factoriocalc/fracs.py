@@ -134,7 +134,7 @@ class Frac(tuple,Rational):
     general case the speedup is around 2.  When mixing fractions with
     integers, and especially with special values (i.e. 0, 1 and -1), the
     speedup is significantly higher.  Frac differs in several ways from
-    Fraction and therefore are not intended to be used as a drop in
+    Fraction and therefore is not intended to be used as a drop in
     replacement.
 
     Unlike Fraction, Frac does not freely mix with floats.  For this reason it is

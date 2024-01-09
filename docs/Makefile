@@ -45,7 +45,7 @@ guide-nb.ipynb: guide0.md guide-nb.py circuits-bp.jpg
 circuits-bp.jpg: circuits-bp.png
 	convert circuits-bp.png -interlace JPEG  -quality 65 -sampling-factor 1x1 circuits-bp.jpg
 
-.PHONY: all prep help clean Makefile
+.PHONY: all prep help clean html dirhtml singlehtml linkcheck Makefile
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).

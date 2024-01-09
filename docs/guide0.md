@@ -40,7 +40,8 @@ sys.path.insert(0, os.path.abspath('../'))
 All symbols you need are exported into the main `factoriocalc` namespace so it
 is rare you will need to import from a sub-module.  FactorioCalc is meant to
 be used interactively via a REPL, with details of your overall factory
-collected in a simple script.  For this reason it is acceptable to use ``from
+collected in a simple script, or in a Jupyter notebook.
+For this reason it is acceptable to use ``from
 factoricalc import *`` and the rest of the documentation will assume you have
 done so.
 
@@ -175,6 +176,7 @@ b.summary()
 The ``@0.66667`` indicates that the assembling machine for the
 electronic-circuit is throttled and only running at 2/3 it's capacity.
 
+(modules-and-beacons)=
 ## Modules And Beacons
 
 Having to spell out the type of machine you want each time will get tedious
@@ -223,7 +225,7 @@ rcp.electronic_circuit(modules=itm.productivity_module_3,
 ```
 
 Specifying the modules and beacons configuration for each machine can be
-tedious so as an alternative FactorioCalc lets you set preferred machine
+tedious, so as an alternative FactorioCalc lets you set preferred machine
 configurations as part of `config.machinePrefs`.  If all we cared about is
 assembling machines we could just use:
 
@@ -232,11 +234,11 @@ config.machinePrefs.set([mch.AssemblingMachine3(modules=itm.productivity_module_
                                                 beacons=8*SPEED_BEACON)]);
 ```
 
-However we most likely want all machines to have the maximum number of
+However, we will most likely want all the machines to have the maximum number of
 productivity-3 modules and at least some speed beacons.  To make this easier
 the `~presets.MP_MAX_PROD` function can used to indicate that we want all machines to
 have to maximum number of productivity-3 modules.  There is no preset for
-beacons as the number the beacons often varies.  Instead use the
+beacons, as the number the beacons often varies.  Instead use the
 `~presets.MP_MAX_PROD.withBeacons()` method to modify the preset by adding
 `~presets.SPEED_BEACON`'s for specific machines.  For example:
 
@@ -278,8 +280,10 @@ That is only slightly better, but instead of not producing enough copper
 cables we are producing more than enough, which is generally a better thing
 to do.
 
+(produce)=
 ## Using produce
 
+(produce-usage)=
 ### Basic Usage
 
 In the previous section we manually combined the machines.  It is also
@@ -391,20 +395,23 @@ same time.  FactorioCalc can fairly easy let you know what you need to produce
 either plastic or rocket fuel, or both at the same time.  This will be covered
 in a later section.
 
-## Using Boxes
+(boxes)=
+## More on Boxes
 
+(boxes-usage)=
 ### Basic Usage
 
 A box is a wrapper around a group with additional constraints to limit flows.
 So far we have been letting FactorioCalc determine the constraints
-automatically.  For example ``Box(rcp.electronic_circuit() +
-rcp.copper_cable())`` will automatically set the external flow of copper
+automatically.  For example, ``Box(rcp.electronic_circuit() +
+rcp.copper_cable())``, will automatically set the external flow of copper
 cables to zero as it is an internal flow.  Sometimes you may want to limit the
 external flows or allow an internal flow to become external.  For this reason
 the `Box` constructor, and corresponding `box` function, has a number of
-arguments to let you fine tune the inputs and outputs.  For example to create
-both electric circuits and advanced circuits we need to explicitly list the
-outputs:
+arguments to let you fine tune the inputs and outputs.  For example,
+to create both electric circuits and advanced circuits we need to explicitly
+list the outputs so that the internal flow of electric circuits becomes
+external:
 
 ```{code-cell}
 config.machinePrefs.set(MP_MAX_PROD().withBeacons(SPEED_BEACON, 
@@ -453,7 +460,7 @@ circuits3.summary()
 Boxes can also have a set of constraints associated with it.  Constraints are
 specified via the `constraints` parameters and is a mapping of items to
 values.  When the value is a number than the rate for that item will be at
-least that value; if it is positive than the box will produce at
+least that value: if it is positive than the box will produce at
 least that amount, if it is negative the box will consume at most that
 amount.  For example, to limit the number of iron plates in the previous example
 to just 8/s:
@@ -509,8 +516,8 @@ circuits.summary()
 ```
 
 The result of `~Box.finalize` is similar to `produce`.  As we are only interested
-in the main results, we just extract the `factory` field.  Finalize, like
-produce, can also round up if ``roundUp=True`` is used.
+in the main results, we just extract the `factory` field.  Finalize, unlike
+produce, rounds up by default, to avoid this use ``roundUp=False``.
 
 ### Using union
 
@@ -592,6 +599,7 @@ And we increased the plastic output but rocket fuel output then suffers.
 This experiment shows us that we need some circuits to prevent any conversion
 of petroleum gas to solid fuel unless we have an overflow.
 
+(nuclear-processing)=
 ### Nuclear Processing
 
 Like oil processing, processing of uranium ore is tricky.  You will eventually
@@ -629,6 +637,7 @@ is a summary of the solved factory:
 nuclearStuff.summary()
 ```
 
+(blueprints-overview)=
 ## Working with Blueprints
 
 FactorioCalc provides support for converting a blueprint of a factory into a
@@ -637,6 +646,7 @@ furnaces in blueprint will be converted, but since they don't have a fixed
 recipe, you will need to tell the convert function what recipe to use or
 manually set the recipe afterwards.
 
+(blueprints-example)=
 ### An Example
 
 Here is a fairly simple blueprint to create electronic and advanced circuits
@@ -655,7 +665,7 @@ circuits = importBlueprint(bp).convert()
 ```
 
 `importBlueprint` returns a `Blueprint` object.  The `~Blueprint.convert()`
-method converts the blueprint into a nested group.  The outer group contained
+method converts the blueprint into a nested group.  The outer group contains
 two inner groups. The first inner group is the factory, and the second is the
 beacons the factory used.
 
@@ -706,11 +716,13 @@ Calculator".
 See the [Blueprints](reference.rst#blueprints) section in the reference manual for more advanced
 usages.
 
+(custom-game-config)=
 ## Custom Game Configurations
 
 The `setGameConfig` function can be used to change the game configuration from
 *normal* to *expensive*, or load a custom configuration from a JSON file.
 
+(expensive-mode)=
 ### Expensive Mode
 
 To change the game configuration to use *expensive* recipes use
@@ -720,6 +732,7 @@ all the symbols in the `itm`, `rcp`, `mch`, and `presets` packages so any non
 symbolic references to the old symbols are unlikely to work correctly with the
 new configuration.
 
+(alternative-configs)=
 ### Alternative Configurations and Locale Support
 
 FactorioCalc currently uses the English translation for the `.descr<>` property
@@ -746,6 +759,7 @@ Loading a custom configuration also gives you the option to disable recipes
 that have not been researched yet by passing ``includeDisabled = False`` into
 the call to `setGameConfig`.
 
+(mod-support)=
 ### Mod Support
 
 For a simple mod that only adds recipes or makes very simple changes, you can
@@ -766,13 +780,16 @@ match your exact configuration.  To enable support use the name as first
 parameter to `setGameConfig`.  For additional information see the
 documentation for the [`mods` module](reference.rst#module-factoriocalc.mods).
 
+(adding-mods)=
 ### Adding Additional Mods
 
 To add support for additional mods it is best to look at the source code, in
 particular the files ``factoriocalc/import_.py`` and ``factoriocalc/mod.py``.
 
+(advanced-usage)=
 ## Advanced Usage
 
+(unconstrained-flows)=
 ### Unconstrained Flows
 
 In Space Exploration many recipes create byproducts, and other recipes may
@@ -793,6 +810,7 @@ throttles back to 1 using `~Box.resetThrottle()` and use
 the internal flows to determine if any of them need to marked as
 unconstrained.
 
+(advanced-beacon-usage)=
 ### Advanced Beacon Usage
 
 In Krastorio 2 you often only need one machine in the late game due to the

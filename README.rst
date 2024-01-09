@@ -3,22 +3,25 @@
 FactorioCalc Readme
 ===================
 
-FactorioCalc is a python module to help you symbolically plan your factory for
+FactorioCalc is a Python module to help you symbolically plan your factory for
 Factorio.
 
-With FactorioCalc you can either: specify the machines individually and ask it
-what the resulting inputs and outputs are, specify what you want and call
-`produce` to determine the machines needed, or any combination of the two.  It
-contains a custom simplex solver so `produce` has the same power of online
-calculators such as `FactorioLab <https://factoriolab.github.io/>`_, but gives
-you more controller over the process.
+With FactorioCalc you can:
 
-FactorioCalc can also analyses most blueprint and determine what they produce.
-Unlike in game tools, such as `Max Rate Calculator
-<https://mods.factorio.com/mod/MaxRateCalculator>`_, it will take into account
-that some machines may not be running 100% of the time.  However, at the
-moment the it can't analyses blueprint with furnaces due to the lack of a
-fixed recipe.
+* Symbolically express your exact machine configuration and ask it what the
+  resulting inputs and outputs is.
+
+* Import a blueprint and determine what it produces.
+
+* Specify the recipes you want to use and let FactorioCalc determine the exact
+  number of machines to produce a given output.
+
+* Specify what you want, and let FactorioCalc determine both the recipes and
+  the number of machines required.
+
+FactorioCalc has supports for using custom recipe data and mods.  The
+companion mod, `Recipe Exporter
+<https://mods.factorio.com/mod/RecipeExporter>`_, provides the recipe data.
 
 I, the author, find designing my factory symbolically more natural than
 using a spreadsheet and tools like FactorioLab.
@@ -77,7 +80,8 @@ Status
 ------
 
 FactorioCalc has been used by the author to help produce a factory that
-produces around 2k science packs per minute.  The calculations, in terms of
+produces around 2k science packs per minute.  It has also been used to help
+beat both Space Exploration and Krastorio 2.  The calculations, in terms of
 the rate of items produced and consumed, should be accurate (which includes
 tricky cases such as the Kovarex enrichment process).  The solver, in nearly
 all cases, should produce optimal results in terms of materials used.  The API
