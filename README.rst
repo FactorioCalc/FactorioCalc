@@ -14,14 +14,21 @@ With FactorioCalc you can:
 * Import a blueprint and determine what it produces.
 
 * Specify the recipes you want to use and let FactorioCalc determine the exact
-  number of machines to produce a given output.
+  number of machines needed.
 
 * Specify what you want, and let FactorioCalc determine both the recipes and
   the number of machines required.
 
+* Combine factories, which were created using any of the above methods, to
+  create a larger factory.
+
 FactorioCalc has supports for using custom recipe data and mods.  The
 companion mod, `Recipe Exporter
 <https://mods.factorio.com/mod/RecipeExporter>`_, provides the recipe data.
+
+FactorioCalc contains a custom simplex solver so it can easily handle complex
+cases that involve recipes with more than one output, such as oil and uranium
+processing.
 
 I, the author, find designing my factory symbolically more natural than
 using a spreadsheet and tools like FactorioLab.
@@ -40,10 +47,10 @@ Create a simple factory that creates electronic circuits from copper and iron pl
   >>> config.machinePrefs.set(presets.MP_LATE_GAME)
   >>> circuits = 2*rcp.electronic_circuit() + 3*rcp.copper_cable()
   >>> circuits.summary()
-     2x electronic-circuit: assembling-machine-3:
-           electronic-circuit 5/s, copper-cable -15/s, iron-plate -5/s, electricity -0.775 MW
-     3x copper-cable: assembling-machine-3:
-           copper-cable 15/s, copper-plate -7.5/s, electricity -1.1625 MW
+      2x electronic_circuit: AssemblingMachine3:
+            electronic_circuit 5/s, iron_plate -5/s, copper_cable -15/s, electricity -0.775 MW
+      3x copper_cable: AssemblingMachine3:
+            copper_cable 15/s, copper_plate -7.5/s, electricity -1.1625 MW
   >>> circuits.flows().print()
   electronic_circuit 5/s
   copper_cable 0/s (15/s - 15/s)
@@ -72,7 +79,7 @@ Use `produce` to create a factory that produces rocket fuel::
 Installation
 ------------
 
-FactorioCalc is available on PyPi so you can install it using pip::
+FactorioCalc is available on PyPI so you can install it using pip::
 
   pip3 install factoriocalc
 
