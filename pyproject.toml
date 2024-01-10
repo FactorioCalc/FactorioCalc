@@ -20,8 +20,8 @@ classifiers = [
 dynamic = ["version"]
 
 [project.urls]
-"Homepage" = "https://github.com/kevina/factoriocalc"
-"Bug Tracker" = "https://github.com/kevina/factoriocalc/issues"
+"Homepage" = "https://github.com/FactorioCalc/FactorioCalc"
+"Bug Tracker" = "https://github.com/FactorioCalc/FactorioCalc/issues"
 
 [tool.setuptools]
 packages = ["factoriocalc"]
