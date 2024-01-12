@@ -25,15 +25,19 @@ text = re.sub(r'```\{eval-rst\}.+?\n```', r'', text, flags = re.DOTALL)
 # `~package.symbol` => `symbol`
 text = re.sub(r'(?<!\`)`~.+?\.([^`.]+)\`', r'`\g<1>`', text)
 
-# (target)= => <a name="target"></a>
-text = re.sub(r'^\((.+)\)\=', '<a name="\g<1>"></a>', text, flags = re.MULTILINE)
-
-# pad all headings with '+++' so that they are in there own markdown cell
-text = re.sub(r'\n\n(\#.+)\n\n','\n\n+++\n\n\g<1>\n\n+++\n\n', text)
-
 baseUrl = f'https://factoriocalc.readthedocs.io/en/{readthedocs_version}'
 referenceUrl = f'{baseUrl}/reference.html'
 text = re.sub(r'\[(.+?)\]\(reference\.rst(.*?)\)', f'[\g<1>]({referenceUrl}\g<2>)', text)
+
+# pad all headings with '+++' so that they are in there own markdown cell
+text = re.sub(r'\n\n(\(.+?\)=\n)?(\#.+)\n\n','\n\n+++\n\n\g<1>\g<2>\n\n+++\n\n', text)
+n = 1
+while n > 0:
+    text,n = re.subn(r'\+\+\+\n\n(\(.+?\)=\n)?(\#.+)\n\n(?!\+\+\+)','+++\n\n\g<1>\g<2>\n\n+++\n\n', text)
+
+
+# (target)= => <a name="target"></a>
+text = re.sub(r'^\((.+)\)\=', '<a name="\g<1>"></a>', text, flags = re.MULTILINE)
 
 # convert myst markdown file to notebook
 
