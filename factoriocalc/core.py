@@ -152,7 +152,7 @@ def _rate(r):
         elif r.endswith('/m'):
             return frac(r[:-2],60)
         elif r.endswith('/h'):
-            return frac(r[:-2],360)
+            return frac(r[:-2],3600)
     return frac(r)
 
 class Item(Ingredient):
