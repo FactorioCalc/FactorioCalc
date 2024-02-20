@@ -61,7 +61,7 @@ class Blueprint:
 
         def as_int(x):
             if not x.is_integer():
-                raise ValeuError
+                raise ValueError
             return int(x)
 
         machines = []
@@ -95,25 +95,35 @@ class Blueprint:
             if isinstance(m, machine.Beacon):
                 m._frozen = True
                 beacons.append(m)
-            elif m :
+                continue
+            if m:
                 machines.append(m)
-                if hasattr(m, 'beacons'):
-                    x_min = as_int(m.blueprintInfo['position']['x'] - m.width/2)
-                    x_max = as_int(m.blueprintInfo['position']['x'] + m.width/2) - 1
-                    y_min = as_int(m.blueprintInfo['position']['y'] - m.height/2)
-                    y_max = as_int(m.blueprintInfo['position']['y'] + m.height/2) - 1
+            if m and hasattr(m, 'beacons'):
+                position = m.blueprintInfo['position']
+                try:
+                    x_min = as_int(position['x'] - m.width/2)
+                    x_max = as_int(position['x'] + m.width/2) - 1
+                    y_min = as_int(position['y'] - m.height/2)
+                    y_max = as_int(position['y'] + m.height/2) - 1
                     machinesOnGrid.setdefault(x_min, {})[y_min] = m
                     machinesOnGrid.setdefault(x_min, {})[y_max] = m
                     machinesOnGrid.setdefault(x_max, {})[y_min] = m
                     machinesOnGrid.setdefault(x_max, {})[y_max] = m
+                except ValueError as exc:
+                    raise ValueError(f"Invalid position for {m.name}: ({position['x']}, {position['y']})") from exc
 
         machinesById = {}
         beaconsForMachine = defaultdict(list)
         for beacon in beacons:
-            x_min = as_int(beacon.blueprintInfo['position']['x'] - beacon.width/2) - beacon.supplyAreaDistance
-            x_max = as_int(beacon.blueprintInfo['position']['x'] + beacon.width/2) + beacon.supplyAreaDistance - 1
-            y_min = as_int(beacon.blueprintInfo['position']['y'] - beacon.height/2) - beacon.supplyAreaDistance
-            y_max = as_int(beacon.blueprintInfo['position']['y'] + beacon.height/2) + beacon.supplyAreaDistance - 1
+            position = beacon.blueprintInfo['position']
+            try:
+                x_min = as_int(position['x'] - beacon.width/2) - beacon.supplyAreaDistance
+                x_max = as_int(position['x'] + beacon.width/2) + beacon.supplyAreaDistance - 1
+                y_min = as_int(position['y'] - beacon.height/2) - beacon.supplyAreaDistance
+                y_max = as_int(position['y'] + beacon.height/2) + beacon.supplyAreaDistance - 1
+            except ValueError as exc:
+                raise ValueError(f"Invalid position for {beacon.name}: ({position['x']}, {position['y']})") from exc
+                
             seen = set()
             for x in range(x_min, x_max + 1):
                 yp = machinesOnGrid.get(x, None)
