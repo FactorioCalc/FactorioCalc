@@ -1146,10 +1146,13 @@ class Flows:
     def items(self):
         """Returns ``self.byItem.keys()``"""
         return self.byItem.keys()
-    def print(self, out = None, prefix = '  '):
+    def print(self, out = None, prefix = '  ', sortKey = None):
         if out is None:
             out = sys.stdout
-        for flow in self.byItem.values():
+        flows = self.byItem.values()
+        if sortKey:
+            flows = sorted(flows, key=sortKey)
+        for flow in flows:
             if not self._showFlow(flow): continue
             flow.print(out, prefix)
         if self.state:
