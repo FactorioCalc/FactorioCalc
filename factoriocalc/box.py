@@ -791,6 +791,7 @@ class BlackBox(BoxBase):
     _fallbackName = '<black box>'
     def __init__(self, box, *, name = None):
         self.throttle = 1
+        self.unbounded = False
         self._inner = box
         self.name = name if name is not None else self._inner.name
 
@@ -817,6 +818,11 @@ class BlackBox(BoxBase):
 
     def resetThrottle(self):
         self.throttle = 1
+
+    def __invert__(self):
+        # fixme: should likely make a copy ...
+        self.unbounded = True
+        return self
 
 def _finalizeInner(m, roundUp, recursive):
     if isinstance(m, Box) and recursive:
