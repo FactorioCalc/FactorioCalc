@@ -324,6 +324,10 @@ class Machine(MachineBase, metaclass=MachineMeta):
     def resetThrottle(self):
         self.throttle = 1
 
+    def solve(self):
+        self.throttle = 1
+        return None
+
     def __invert__(self):
         # fixme: should likely make a copy ...
         self.unbounded = True
@@ -589,6 +593,9 @@ class Mul(MachineBase):
 
     def resetThrottle(self):
         self.machine.resetThrottle()
+
+    def solve(self):
+        return self.machine.solve()
 
     def _flows(self, throttle, _includeInner):
         return self.machine._flows(throttle, _includeInner) * self.num
@@ -950,6 +957,9 @@ class Group(Sequence,MachineBase):
     def resetThrottle(self):
         for m in self.flatten():
             m.resetThrottle()
+
+    def solve(self):
+        return [m.solve() for m in self.flatten()]
 
     def find(self, *,
              input = None, output = None, recipe = None, machine = None,
