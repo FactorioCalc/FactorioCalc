@@ -91,6 +91,9 @@ def useEffectivityBeacons(machine, beacon, roundUp=False):
     return machine
 
 def useBeacons(machine, speedBeacon = None, effectivityBeacon = None, *, roundUp=False, stripExisting=True):
+    """Add enough speed beacons to reduce the number of machines needed to one
+    and then enough effectivity beacons to bring the energy consumption to the
+    limit of -80%."""
     if speedBeacon:
         machine = useSpeedBeacons(machine, speedBeacon, roundUp=roundUp, stripExisting=stripExisting)
     if effectivityBeacon:
