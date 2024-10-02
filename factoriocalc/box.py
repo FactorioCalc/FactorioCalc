@@ -331,8 +331,8 @@ class Box(BoxBase):
             ``Equal(itm.uranium_fuel_cell, (-1, itm.used_up_uranium_fuel_cell))``
 
         *priorities*
-            A mapping of priorities for the solver.  The key is either a
-            recipe or an item.  The value in a number between -100 and 100
+            A mapping of priorities for the solver.  The key is either an
+            item or a recipe.  The value in a number between -100 and 100
             with larger values having a higher priority.  The default priority
             for outputs is 0.  The constant `IGNORE` can be used for the
             lowest priority (-100) and has special meaning to the solver.
