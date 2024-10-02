@@ -1213,7 +1213,6 @@ class Flows:
 def _mergeFlows(f, *args):
     tally = {}
     for flows in args:
-        print('.')
         for flow in flows:
             tally[flow.item] = f(tally.get(flow.item, 0), flow.rate())
     res = _MutableFlows()
