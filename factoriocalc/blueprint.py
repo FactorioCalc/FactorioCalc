@@ -65,7 +65,7 @@ class Blueprint:
             return int(x)
 
         machines = []
-        machinesOnGrid = {}
+        machinesOnGrid = defaultdict(list)
         beacons = []
 
         for v in self.raw['blueprint']['entities']:
@@ -105,10 +105,7 @@ class Blueprint:
                     x_max = as_int(position['x'] + m.width/2) - 1
                     y_min = as_int(position['y'] - m.height/2)
                     y_max = as_int(position['y'] + m.height/2) - 1
-                    machinesOnGrid.setdefault(x_min, {})[y_min] = m
-                    machinesOnGrid.setdefault(x_min, {})[y_max] = m
-                    machinesOnGrid.setdefault(x_max, {})[y_min] = m
-                    machinesOnGrid.setdefault(x_max, {})[y_max] = m
+                    machinesOnGrid[(x_min, x_max)].append((y_min, y_max, m))
                 except ValueError as exc:
                     raise ValueError(f"Invalid position for {m.name}: ({position['x']}, {position['y']})") from exc
 
@@ -117,28 +114,24 @@ class Blueprint:
         for beacon in beacons:
             position = beacon.blueprintInfo['position']
             try:
-                x_min = as_int(position['x'] - beacon.width/2) - beacon.supplyAreaDistance
-                x_max = as_int(position['x'] + beacon.width/2) + beacon.supplyAreaDistance - 1
-                y_min = as_int(position['y'] - beacon.height/2) - beacon.supplyAreaDistance
-                y_max = as_int(position['y'] + beacon.height/2) + beacon.supplyAreaDistance - 1
+                b_x_min = as_int(position['x'] - beacon.width/2) - beacon.supplyAreaDistance
+                b_x_max = as_int(position['x'] + beacon.width/2) + beacon.supplyAreaDistance - 1
+                b_y_min = as_int(position['y'] - beacon.height/2) - beacon.supplyAreaDistance
+                b_y_max = as_int(position['y'] + beacon.height/2) + beacon.supplyAreaDistance - 1
             except ValueError as exc:
                 raise ValueError(f"Invalid position for {beacon.name}: ({position['x']}, {position['y']})") from exc
-                
-            seen = set()
-            for x in range(x_min, x_max + 1):
-                yp = machinesOnGrid.get(x, None)
-                if yp is None:
-                    continue
-                for y in range(y_min,y_max + 1):
-                    m = yp.get(y, None)
-                    if m is None or id(m) in seen:
-                        continue
-                    machinesById[id(m)] = m
-                    beaconsForMachine[id(m)].append(beacon)
-                    seen.add(id(m))
 
-        for m_id, beacons in beaconsForMachine.items():
-            machinesById[m_id].beacons = beacons
+            for (m_x_min, m_x_max), yp in machinesOnGrid.items():
+                if b_x_min <= m_x_max and m_x_min <= b_x_max:
+                    for m_y_min, m_y_max, m in yp:
+                        if b_y_min <= m_y_max and m_y_min <= b_y_max:
+                            machinesById[id(m)] = m
+                            beaconsForMachine[id(m)].append(beacon)
+
+        for m_id, m_beacons in beaconsForMachine.items():
+            machinesById[m_id].beacons = m_beacons
+
+        b = Group(beacons)
 
         return Group(Group(machines), Group(beacons))
 
