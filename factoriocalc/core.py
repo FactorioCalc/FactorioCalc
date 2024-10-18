@@ -1015,9 +1015,11 @@ class Group(Sequence,MachineBase):
                 res.append(m)
         return Group(res)
 
-def _unitForItem(item):
+def _unitForItem(item, displayUnit = None):
     from . import config
-    for cls, unit in config.displayUnit.get():
+    if displayUnit is None:
+        displayUnit = config.displayUnit.get()
+    for cls, unit in displayUnit:
         if cls is None or isinstance(item, cls):
             return unit
     raise ValueError
@@ -1086,20 +1088,27 @@ class Flow(NamedTuple):
         return s
     def netFlow(self):
         return OneWayFlow(self.item, self.rate(), self.annotations())
-    def __str__(self):
+    def __str__(self, *, altUnit = None):
         unit = _unitForItem(self.item)
         s = '{}{} '.format(self.item, self.annotations())
-        s += '{}'.format(_fmt_rate(self.item, self.rate(), unit))
+        rate = self.rate()
+        s += '{}'.format(_fmt_rate(self.item, rate, unit))
         if self.rateIn > 0 and self.rateOut > 0:
             s += ' ({}'.format(_fmt_rate(self.item, self.rateOut - self.rateSelf, unit))
             s += ' - {}'.format(_fmt_rate(self.item, self.rateIn - self.rateSelf, unit))
             if self.rateSelf > 0:
                 s += ', {} self'.format(_fmt_rate(self.item, self.rateSelf, unit))
             s += ')'
+        if altUnit is not None and rate != 0:
+            unit2 = _unitForItem(self.item, altUnit)
+            if unit2 != unit:
+                s += '; {}'.format(_fmt_rate(self.item, rate, unit2))
         return s
-    def print(self, out = None, prefix = ''):
+    def print(self, out = None, prefix = '', altUnit = None):
         out.write(prefix)
-        out.write(str(self))
+        out.write(self.__str__(altUnit = altUnit))
+        if altUnit:
+            pass
         out.write('\n')
     def __repr__(self):
         return '<{}>'.format(self.__str__())
@@ -1161,7 +1170,7 @@ class Flows:
     def items(self):
         """Returns ``self.byItem.keys()``"""
         return self.byItem.keys()
-    def print(self, out = None, prefix = '  ', sortKey = None):
+    def print(self, out = None, prefix = '  ', *, sortKey = None, altUnit = None):
         if out is None:
             out = sys.stdout
         flows = self.byItem.values()
@@ -1169,7 +1178,7 @@ class Flows:
             flows = sorted(flows, key=sortKey)
         for flow in flows:
             if not self._showFlow(flow): continue
-            flow.print(out, prefix)
+            flow.print(out, prefix, altUnit = altUnit)
         if self.state:
             out.write(f'{prefix}{self.state.name}\n')
     __getitem__ = flow
