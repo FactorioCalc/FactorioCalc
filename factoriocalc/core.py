@@ -1502,8 +1502,10 @@ class Recipe(Immutable):
                 and self.byproducts == other.byproducts
                 and self.time == other.time
                 and self.order == other.order)
+
     def produce(self, machinePrefs = Default, fuel = None, machine = None,
-                modules = (), beacons = (), beacon = Default, rate = None):
+                modules = (), beacons = (), beacon = Default, rate = None,
+                inputRate = None):
         if beacon is None:
             beacons = []
         elif beacon is not Default:
@@ -1563,11 +1565,15 @@ class Recipe(Immutable):
             if len(self.products) != 1:
                 raise ValueError('can not specify rate for "{self.alias}" as it produces more than one product')
             m = Mul(div(frac(rate), m.flow(self.products[0].item).rate()), m)
+        if inputRate is not None:
+            if len(self.inputs) != 1:
+                raise ValueError('can not specify input rate for "{self.alias}" as it consumes more than one product')
+            m = Mul(div(frac(-inputRate), m.flow(self.inputs[0].item).rate()), m)
         return m
     def __call__(self, machinePrefs = Default, fuel = Default, machine = None,
-                 modules = Default, beacon = Default, beacons = Default, rate = None):
+                 modules = Default, beacon = Default, beacons = Default, rate = None, inputRate = None):
         return self.produce(machinePrefs = machinePrefs, fuel = fuel, machine = machine,
-                            modules = modules, beacons = beacons, beacon = beacon, rate = rate)
+                            modules = modules, beacons = beacons, beacon = beacon, rate = rate, inputRate = inputRate)
 
 class InvalidModulesError(ValueError):
     def __init__(self, m):
