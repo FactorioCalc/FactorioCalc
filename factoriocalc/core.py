@@ -961,8 +961,8 @@ class Group(Sequence,MachineBase):
     def solve(self):
         return [m.solve() for m in self.flatten()]
 
-    def find(self, *,
-             input = None, output = None, recipe = None, machine = None,
+    def find(self, recipe = None, *,
+             input = None, output = None, machine = None,
              inputs = (), outputs = (), recipes = (), machines = ()):
         if input is not None:
             if inputs:
