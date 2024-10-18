@@ -1,8 +1,9 @@
 from dataclasses import dataclass
+from copy import copy
 
 from .contextvars_ import copy_context
 from .core import CraftingMachine, Recipe, RecipeComponent, Mul
-from . import itm
+from . import itm, fracs
 from .machine import Beacon
 
 __all__ = ('withSettings','FakeLab','FakeBeacon','useSpeedBeacons', 'useEffectivityBeacons', 'useBeacons')
@@ -51,28 +52,41 @@ class FakeBeacon(Beacon):
     def _fmtModulesStr(self, lst):
         lst.append(str(self.modules[0].effect))
 
-def useSpeedBeacons(machine, beacon, *, roundUp=False, stripExisting=True):
-    """Add enough speed beacons to reduce the number of machines needed to one."""
+def useSpeedBeacons(machine, beacon, *, num=1, max=fracs.Inf, roundUp=False, stripExisting=True):
+    """Add enough speed beacons to reduce the number of machines needed to *num*.
+
+    If *max* is specified use up to that number of beacons.  If more beacons
+    are needed, increase the number of machines so that no more than *max*
+    beacons are used per machine.
+
+    """
     from .fracs import div,ceil
     if beacon.effect().speed <= 0:
         raise ValueError('provided beacon does not increase speed')
-    num = machine.num
-    machine = machine.machine
-    rate = num * machine.throttle * (1 + machine.bonus().speed)
+    m = copy(machine.machine)
+    m.unbounded = False
+    throttle = 1 if m.throttle < 1 else m.throttle
+    rate = div(machine.num * throttle * (1 + m.bonus().speed), num)
     if stripExisting:
-        machine.beacons = []
-    speedIncrease = rate - (1 + machine._effect().speed)
+        m.beacons = []
+    speedIncrease = rate - (1 + m._effect().speed)
     numBeacons = div(speedIncrease, beacon.effect().speed)
     if numBeacons <= 0:
-        machine.throttle = div(rate, 1 + machine.bonus().speed)
+        m.throttle = div(rate, 1 + m.bonus().speed)
+    elif numBeacons > max:
+        n = ceil(div(rate, 1 + m._effect().speed + max*beacon.effect().speed))
+        return useSpeedBeacons(machine, beacon, num=n, roundUp=roundUp, stripExisting=stripExisting)
     elif roundUp:
         numBeacons = ceil(numBeacons)
-        machine.beacons = [*machine.beacons, Mul(numBeacons, beacon)]
-        machine.throttle = div(rate, 1 + machine.bonus().speed)
+        m.beacons = [*m.beacons, Mul(numBeacons, beacon)]
+        m.throttle = div(rate, 1 + m.bonus().speed)
     else:
-        machine.throttle = 1
-        machine.beacons = [*machine.beacons, Mul(numBeacons, beacon)]
-    return machine
+        m.throttle = 1
+        m.beacons = [*m.beacons, Mul(numBeacons, beacon)]
+    if num == 1:
+        return m
+    else:
+        return Mul(num, m)
 
 def useEffectivityBeacons(machine, beacon, roundUp=False):
     """Add enough effectivity beacons to reduce the energy consumption to the limit of -80%."""
