@@ -733,8 +733,33 @@ class Box(BoxBase):
             res.byItem[flow.item] = flow
         return res
 
-    def find(self, **kwargs):
-        return self.inner.find(**kwargs)
+    def bottlenecks(self):
+        candidates = []
+        for m in self.inner:
+            try:
+                throttle = m.machine.throttle
+            except AttributeError:
+                continue
+            if throttle == 1:
+                candidates.append(m)
+        result = []
+        for m1 in candidates:
+            throttling = []
+            for item in m1.outputs:
+                for m2 in self.inner.find(input = item):
+                    try:
+                        throttle = m2.machine.throttle
+                    except AttributeError:
+                        continue
+                    if throttle < 1:
+                        throttling.append(m2)
+            if throttling:
+                result.append([m1, *throttling])
+        return result
+                    
+
+    def find(self, *args, **kwargs):
+        return self.inner.find(*args, **kwargs)
 
     def resetThrottle(self):
         self.inner.resetThrottle()
