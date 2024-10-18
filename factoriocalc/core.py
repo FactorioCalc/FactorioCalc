@@ -382,6 +382,21 @@ class Machine(MachineBase, metaclass=MachineMeta):
         prefix = '~' if self.unbounded else ''
         return '{}{}({})'.format(prefix, name, ', '.join(parts))
 
+    # def altRepr(self, simplify = False):
+    #     if self.recipe:
+    #         recipe = repr(self.recipe)
+    #     else:
+    #         return repr(self)
+    #     parts = []
+    #     parts.append(f'machine={self._name()}')
+    #     if not simplify and self.throttle != 1:
+    #         parts.append(f'throttle={self.throttle!r}')
+    #     self._reprParts(parts)
+    #     if not simplify and self.blueprintInfo is not None:
+    #         parts.append(f'blueprintInfo=...')
+    #     prefix = '~' if self.unbounded else ''
+    #     return '{}{}({})'.format(prefix, recipe, ', '.join(parts))
+
     def _name(self):
         return f'mch.{type(self).__name__}'
 
