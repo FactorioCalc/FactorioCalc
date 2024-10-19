@@ -8,6 +8,8 @@ Changes from 0.2 to 0.2.1 (Oct 19, 2024)
 
 * Various bug fixes and enhancements.
 
+* Don't generate JupyterLite version of the guide.  The normal Jupyter
+  notebook version is still available.
 
 Changes from 0.0.1 to 0.2 (Jan 9, 2024)
 ---------------------------------------

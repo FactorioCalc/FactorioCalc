@@ -21,11 +21,10 @@ to play Factorio is assumed.
 
 +++ {"tags": ["_intro_p2"]}
 
-This guide is also available as a Jupyter notebook.  You can <a
-href="demo/lab/index.html?path=guide-{VERSION}.ipynb">try the examples yourself</a>, 
-in your browser, thanks to JupyterLite.  Or, you can <a
-href="guide-nb.ipynb">download the notebook</a> and use it with Google
-Colaboratory or your own Jupyter instance.
+This guide is also available as a <a href="guide-nb.ipynb">Jupyter notebook</a>
+for use in Google Colaboratory or your own Jupyter instance.
+A older version of this guide (0.2.0) is also available with JupyterLite
+so that you can <a href="https://factoriocalc.readthedocs.io/en/v0.2.0/demo/lab/index.html?path=guide-0.2.0.ipynb">try the examples yourself</a>.
 
 ```{code-cell}
 :tags: [remove-cell]
