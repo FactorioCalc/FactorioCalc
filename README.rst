@@ -87,12 +87,13 @@ Status
 ------
 
 FactorioCalc has been used by the author to help produce a factory that
-produces around 2k science packs per minute.  It has also been used to help
-beat both Space Exploration and Krastorio 2.  The calculations, in terms of
-the rate of items produced and consumed, should be accurate (which includes
-tricky cases such as the Kovarex enrichment process).  The solver, in nearly
-all cases, should produce optimal results in terms of materials used.  The API
-is subject to change but the core functionality *should be* stable.
+produces around 2k science packs per minute, beat Space Exploration, beat
+Krastorio 2, and create a Krastorio 2 factory that produces 3k science packs
+per minute.  The calculations, in terms of the rate of items produced and
+consumed, should be accurate (which includes tricky cases such as the Kovarex
+enrichment process).  The solver, in nearly all cases, should produce optimal
+results in terms of materials used.  The API is subject to change but the core
+functionality *should be* stable.
 
 Possible Bugs
 .............

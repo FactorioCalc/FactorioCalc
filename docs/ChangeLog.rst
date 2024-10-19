@@ -3,8 +3,14 @@
 ChangeLog
 =========
 
-Changes from 0.0.1 to 0.2
--------------------------
+Changes from 0.2 to 0.2.1 (Oct 19, 2024)
+----------------------------------------
+
+* Various bug fixes and enhancements.
+
+
+Changes from 0.0.1 to 0.2 (Jan 9, 2024)
+---------------------------------------
 
 * Removed unbounded boxes and replaced them with unbounded throttles.
 
@@ -16,3 +22,7 @@ Changes from 0.0.1 to 0.2
 
 * Numerious other changes.
 
+Version 0.0.1 (Jan 21, 2023)
+----------------------------
+
+* Initial Release
