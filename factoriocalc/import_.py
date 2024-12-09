@@ -3,11 +3,13 @@ import json
 from pathlib import Path
 from . import data,machine
 from .machine import Category
-from .fracs import frac, frac_from_float_round
+from .fracs import frac, frac_from_float_round, div
+from math import trunc
 from .core import *
 from .data import CraftingHint,GameInfo
 from ._helper import toPythonName,toClassName
 from collections import defaultdict
+from itertools import repeat
 import os
 
 _dir = Path(__file__).parent.resolve()
@@ -101,10 +103,16 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
     categories = {}
     disabledRecipes = set()
 
+    gameVersion = gameInfo.get('game_version', '1.1')
+    if gameVersion == '1.1':
+        qualityNames = [None]
+    else:
+        qualityNames = gameInfo['quality_names']
+
     groups = gameInfo['groups']
 
-    def getOrderKey(d):
-        return (groups[d['group']]['order'],groups[d['subgroup']]['order'],d['order'])
+    def getOrderKey(d, qualityIdx):
+        return (groups[d['group']]['order'],groups[d['subgroup']]['order'],d['order'],qualityIdx)
 
     def addItem(item, descr = ''):
         name = item.name
@@ -113,18 +121,38 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
         if descr:
             translatedNames[f'itm {item.name}'] = descr
 
-    def lookupItem(name):
-        try:
-            return itmByName[name]
-        except KeyError:
-            pass
-        pythonName = toPythonName(name)
-        try:
-            d = gameInfo['items'][name]
-            item = Item(name, getOrderKey(d), d['stack_size'], fuelValue=d['fuel_value'], fuelCategory=d.get('fuel_category',''))
-        except KeyError:
+    def lookupItem(name, quality = None, qualityIdx = 0):
+        if quality is None or quality == 'normal':
+            assert qualityIdx == 0
+            nameWithQuality = name
+        else:
+            assert qualityIdx > 0
+            nameWithQuality = f"{quality}-{name}"
+        item = itmByName.get(nameWithQuality, None)
+        if item:
+            return item
+        fluid = itmByName.get(name, None)
+        if fluid and isinstance(fluid, Fluid):
+            return fluid
+        #pythonName = toPythonName(name)
+        d = gameInfo['items'].get(name, None)
+        if d:
+            if qualityIdx == 0:
+                itemInOtherQualities = []
+            else:
+                baseItem = itmByName[name]
+                itemInOtherQualities = baseItem.itemInOtherQualities
+            item = Item(nameWithQuality,
+                        order=getOrderKey(d,qualityIdx),
+                        stackSize=d['stack_size'], weight=frac(d.get('weight',0), float_conv_method = 'round'),
+                        quality=quality, qualityIdx=qualityIdx, itemInOtherQualities=itemInOtherQualities,
+                        fuelValue=d['fuel_value'], fuelCategory=d.get('fuel_category',''))
+            topad = qualityIdx - len(itemInOtherQualities) + 1
+            itemInOtherQualities.extend(repeat(None,topad))
+            itemInOtherQualities[qualityIdx] = item
+        else:
             d = gameInfo['fluids'][name]
-            item = Fluid(name, getOrderKey(d))
+            item = Fluid(name, getOrderKey(d,0))
         descr = d.get('translated_name', '')
         addItem(item, descr)
         return item
@@ -173,169 +201,235 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
                     again = True
 
     # import machines
-    for k,v in gameInfo['entities'].items():
+    for _,v in gameInfo['entities'].items():
         if 'hidden' in v.get('flags',[]): continue
-        clsName = toClassName(v['name'])
-        bases = []
-        module_inventory_size = v.get('module_inventory_size', 0)
-        if module_inventory_size > 0 and v['type'] != 'beacon':
-            bases.append(machine.ModulesMixin)
-        energy_source = v.get('energy_source', None)
-        if energy_source == 'burner':
-            bases.append(machine.BurnerMixin)
-        elif energy_source == 'electric':
-            bases.append(machine.ElectricMixin)
-        isCraftingMachine = False
-        if v['type'] == 'assembling-machine':
-            isCraftingMachine = True
-            bases.append(machine.AssemblingMachine)
-        elif v['type'] == 'furnace':
-            isCraftingMachine = True
-            bases.append(machine.Furnace)
-        elif v['type'] == 'rocket-silo':
-            isCraftingMachine = True
-            bases.append(machine.RocketSilo)
-        elif v['type'] == 'beacon':
-            bases.append(machine.Beacon)
-        else:
-            existing = getattr(machine, clsName, None)
-            if existing is not None:
-                cls = existing
-                #cls = type(clsName, (existing,), {})
-                #cls.__module__ = mch
-                mchByName[cls.name] = cls
-            continue
-        dict = {'name': v['name'],
-                'type': v['type'],
-                'order': getOrderKey(v),
-                'group': v['group'],
-                'subgroup': v['group'],
-                'width': frac(v['width']),
-                'height': frac(v['height'])}
-        cls = type(clsName, tuple(bases), dict)
-        cls.__module__ = mch
-        if energy_source is not None:
-            cls.baseEnergyUsage = frac(v['energy_consumption'], float_conv_method = 'round')
-            cls.energyDrain = frac(v['drain'], float_conv_method = 'round')
-            cls.pollution = frac(v['pollution'], float_conv_method = 'round')
-        if isCraftingMachine:
-            cls.craftingSpeed = frac(v['crafting_speed'], float_conv_method = 'round')
-            for c in v['crafting_categories']:
-                if c in categories:
-                    categories[c].members.append(cls)
+        for q in qualityNames:
+            if q is None or q == 'normal':
+                name = v['name']
+                clsName = toClassName(v['name'])
+            else:
+                name = f"{q}-{v['name']}"
+                clsName = q.title()+toClassName(v['name'])
+            bases = []
+            module_inventory_size = v.get('module_inventory_size', 0)
+            if module_inventory_size > 0 and v['type'] != 'beacon':
+                bases.append(machine.ModulesMixin)
+            energy_source = v.get('energy_source', None)
+            if energy_source == 'burner':
+                bases.append(machine.BurnerMixin)
+            elif energy_source == 'electric':
+                bases.append(machine.ElectricMixin)
+            isCraftingMachine = False
+            if v['type'] == 'assembling-machine':
+                isCraftingMachine = True
+                bases.append(machine.AssemblingMachine)
+            elif v['type'] == 'furnace':
+                isCraftingMachine = True
+                bases.append(machine.Furnace)
+            elif v['type'] == 'rocket-silo':
+                isCraftingMachine = True
+                bases.append(machine.RocketSilo)
+            elif v['type'] == 'beacon':
+                bases.append(machine.Beacon)
+            else:
+                existing = getattr(machine, clsName, None)
+                if existing is not None:
+                    cls = existing
+                    #cls = type(clsName, (existing,), {})
+                    #cls.__module__ = mch
+                    mchByName[cls.name] = cls
+                continue
+            dict = {'name': name,
+                    'type': v['type'],
+                    'order': getOrderKey(v,q),
+                    'group': v['group'],
+                    'subgroup': v['group'],
+                    'width': frac(v['width']),
+                    'height': frac(v['height']),
+                    'gameVersion': gameVersion,
+                    'quality': q}
+            cls = type(clsName, tuple(bases), dict)
+            cls.__module__ = mch
+            if energy_source is not None:
+                cls.baseEnergyUsage = frac(v['energy_consumption'], float_conv_method = 'round')
+                cls.energyDrain = frac(v['drain'], float_conv_method = 'round')
+                try:
+                    cls.pollution = frac(v['pollution'], float_conv_method = 'round')
+                except KeyError:
+                    cls.pollution = 0
+            if isCraftingMachine:
+                if q is None:
+                    cls.craftingSpeed = frac(v['crafting_speed'], float_conv_method = 'round')
                 else:
-                    categories[c] = Category(c, [cls])
-            cls.craftingCategories = {categories[c] for c in v['crafting_categories']}
-        if module_inventory_size > 0:
-            cls.moduleInventorySize = module_inventory_size
-            cls.allowdEffects = v['allowed_effects']
-        if 'fixed_recipe' in v:
-            fixedRecipes.append((cls, v['fixed_recipe']))
-        if v['type'] == 'beacon':
-            cls.distributionEffectivity = frac(v['distribution_effectivity'], float_conv_method = 'round')
-            cls.supplyAreaDistance = frac(v['supply_area_distance'], float_conv_method = 'round')
-            cls.__hash__ = machine.Beacon.__hash__
-        if v['type'] == 'rocket-silo':
-            cls.rocketPartsRequired = v['rocket_parts_required']
-            rocketSilos.append(cls)
-        mchByName[cls.name] = cls
-        descr = v.get('translated_name','')
-        if descr:
-            translatedNames[f'mch {cls.name}'] = descr
+                    cls.craftingSpeed = frac(v['crafting_speed'][q], float_conv_method = 'round')
+                effectReceiver = v.get('effect_receiver', None)
+                baseEffect = effectReceiver.get('base_effect', None) if effectReceiver else None
+                if baseEffect:
+                    # fixme: do this properly
+                    cls.baseEffect = Effect(productivity = frac_from_float_round(baseEffect['productivity'], precision = 6))
+                else:
+                    cls.baseEffect = Effect()
+                for c in v['crafting_categories']:
+                    if c in categories:
+                        categories[c].members.append(cls)
+                    else:
+                        categories[c] = Category(c, [cls])
+                cls.craftingCategories = {categories[c] for c in v['crafting_categories']}
+            if module_inventory_size > 0:
+                cls.moduleInventorySize = module_inventory_size
+                cls.allowdEffects = v['allowed_effects']
+            if 'fixed_recipe' in v:
+                fixedRecipes.append((cls, v['fixed_recipe']))
+            if v['type'] == 'beacon':
+                distributionEffectivity = frac(v['distribution_effectivity'], float_conv_method = 'round')
+                if q is None:
+                    cls.distributionEffectivity = distributionEffectivity
+                else:
+                    qualityBonus = frac(v['distribution_effectivity_bonus_per_quality_level'], float_conv_method = 'round')
+                    level = gameInfo['quality'][q]['level']
+                    cls.distributionEffectivity = distributionEffectivity + level * qualityBonus
+                if q is None:
+                    cls.supplyAreaDistance = frac(v['supply_area_distance'], float_conv_method = 'round')
+                else:
+                    cls.supplyAreaDistance = frac(v['supply_area_distance'][q], float_conv_method = 'round')
+                cls.baseEffect = Effect()
+                cls.__hash__ = machine.Beacon.__hash__
+            if v['type'] == 'rocket-silo':
+                cls.rocketPartsRequired = v['rocket_parts_required']
+                rocketSilos.append(cls)
+            mchByName[cls.name] = cls
+            descr = v.get('translated_name','')
+            if descr:
+                translatedNames[f'mch {cls.name}'] = descr
 
     # import modules
     for k,v in gameInfo['items'].items():
         if v['type'] != 'module': continue
         pythonName = toPythonName(k)
-        def get(what):
-            return frac_from_float_round(v['module_effects'].get(what, {'bonus': 0})['bonus'], precision = 6)
-        e = Effect(speed = get('speed'),
-                   productivity = get('productivity'),
-                   consumption = get('consumption'),
-                   pollution = get('pollution'))
+        if gameVersion == '1.1':
+            def get(what):
+                return frac_from_float_round(v['module_effects'].get(what, {'bonus': 0})['bonus'], precision = 6)
+            e = Effect(speed = get('speed'),
+                       productivity = get('productivity'),
+                       consumption = get('consumption'),
+                       pollution = get('pollution'))
+        else:
+            def get(what):
+                return frac_from_float_round(v['module_effects'].get(what, 0), precision = 6)
+            e = Effect(speed = get('speed'),
+                       productivity = get('productivity'),
+                       consumption = get('consumption'),
+                       pollution = get('pollution'),
+                       quality = div(get('quality'),10))
+            
         limitation = v.get('limitations', None)
         if not limitation:
             limitation = None
         if limitation is not None:
             limitation = set(limitation)
-        item = Module(k, getOrderKey(v), v['stack_size'], e, limitation)
-        addItem(item, v.get('translated_name',''))
-
+        itemInOtherQualities = []
+        for q in qualityNames:
+            if q is None or q == 'normal':
+                name = k
+                level = 0
+            else:
+                name = f'{q}-{k}'
+                level = gameInfo['quality'][q]['level']
+            def qualityAdj(base,precision):
+                return div(trunc(precision*base*(1+level*frac(3,10))),precision)
+            adjEffect = Effect(speed = qualityAdj(e.speed, 100) if e.speed > 0 else e.speed,
+                               productivity = qualityAdj(e.productivity, 100) if e.productivity > 0 else e.productivity,
+                               consumption = qualityAdj(e.consumption, 100) if e.consumption < 0 else e.consumption,
+                               pollution = qualityAdj(e.pollution, 100) if e.pollution < 0 else e.pollution,
+                               quality = qualityAdj(e.quality, 1000) if e.quality > 0 else e.quality)
+            item = Module(name, order = getOrderKey(v,q),
+                          stackSize = v['stack_size'], weight = frac(v.get('weight',0), float_conv_method='round'),
+                          quality = q, qualityIdx = len(itemInOtherQualities), itemInOtherQualities = itemInOtherQualities,
+                          effect = adjEffect, limitation = limitation)
+            itemInOtherQualities.append(item)            
+            addItem(item, v.get('translated_name',''))
+            
     # import recipes
-    for (k,v) in gameInfo['recipes'].items():
+    for _,v in gameInfo['recipes'].items():
         if not (includeDisabled or v.get('enabled', False)):
             continue
-        def toRecipeComponent(d, isProduct):
-            try:
-                num = d['amount']*d.get('probability',1)
-            except KeyError:
-                num = d.get('probability',1) * (d['amount_max'] + d['amount_min']) / 2
-            if type(num) is float:
-                num = frac(num, float_conv_method = 'round')
-            if isProduct:
-                catalyst = d.get('catalyst_amount', 0)
+        for i, q in enumerate(qualityNames):
+            if q is None or q == 'normal':
+                recipeName = v['name']
             else:
-                catalyst = 0
-            return RecipeComponent(item=lookupItem(d['name']), num = num, catalyst = catalyst)
-        def toRecipe(d):
-            inputs = tuple(toRecipeComponent(rc, False) for rc in d['ingredients'])
-            products = []
-            byproducts = []
-            for product in d['products']:
-                rc = toRecipeComponent(product, True)
+                recipeName = f"{q}-{v['name']}"
+            def toRecipeComponent(d, isProduct):
                 try:
-                    amount = product['amount']
+                    num = d['amount']*d.get('probability',1)
                 except KeyError:
-                    amount = product['amount_max']
-                catalyst = rc.catalyst
-                if catalyst == 0:
-                    for rc0 in inputs:
-                        if rc0.item == rc.item:
-                            catalyst = rc0.num
-                if amount - catalyst > 0:
-                    products.append(rc)
+                    num = d.get('probability',1) * (d['amount_max'] + d['amount_min']) / 2
+                num += d.get('extra_count_fraction',0)
+                if type(num) is float:
+                    num = frac(num, float_conv_method = 'round')
+                if isProduct:
+                    catalyst = d.get('catalyst_amount', 0)
                 else:
-                    byproducts.append(rc)
-            if not products:
-                products = byproducts
+                    catalyst = 0
+                return RecipeComponent(item=lookupItem(d['name'], q, i), num = num, catalyst = catalyst)
+            def toRecipe(d):
+                inputs = tuple(toRecipeComponent(rc, False) for rc in d['ingredients'])
+                products = []
                 byproducts = []
-            if len(products) > 1:
-                products_, byproducts_ = [], []
-                if 'main_product' in d:
-                    for o in products:
-                        if o.item.name == d['main_product']['name']:
-                            products_.append(o)
-                        else:
-                            byproducts_.append(o)
-                    assert(len(products_) == 1)
-                else:
-                    for o in products:
-                        if o.item.name in commonByproducts:
-                            byproducts_.append(o)
-                        else:
-                            products_.append(o)
-                    if len(products_) == 0:
-                        byproductNames = {rc.item.name for rc in byproducts_}
-                        newProducts = set()
-                        for o in byproducts_:
-                            name = o.item.name
-                            if byproductPriority[name] & byproductNames:
-                                newProducts |= byproductPriority[name] & byproductNames
-                        if len(newProducts) == 0:
-                            logger(f"{d['name']}: unable to determine main produce from byproducts {byproductNames}")
-                        else:
-                            products_ = tuple(rc for rc in byproducts_ if rc.item.name in newProducts)
-                            byproducts_ = tuple(rc for rc in byproducts_ if rc.item.name not in newProducts)
-                if len(products_) > 0:
-                    products = products_
-                    byproducts += byproducts_
-            time = frac(d.get('energy', 0.5), float_conv_method = 'round')
-            order = getOrderKey(v)
-            return Recipe(v['name'],categories.get(v['category'], None),inputs,products,byproducts,time,order)
-        recipe = toRecipe(v)
-        addRecipe(recipe, v.get('translated_name', ''))
-        if not v.get('enabled', False):
-            disabledRecipes.add(v['name'])
+                for product in d['products']:
+                    rc = toRecipeComponent(product, True)
+                    try:
+                        amount = product['amount']
+                    except KeyError:
+                        amount = product['amount_max']
+                    catalyst = rc.catalyst
+                    if catalyst == 0:
+                        for rc0 in inputs:
+                            if rc0.item == rc.item:
+                                catalyst = rc0.num
+                    if amount - catalyst > 0:
+                        products.append(rc)
+                    else:
+                        byproducts.append(rc)
+                if not products:
+                    products = byproducts
+                    byproducts = []
+                if len(products) > 1:
+                    products_, byproducts_ = [], []
+                    if 'main_product' in d:
+                        for o in products:
+                            if o.item.baseItem.name == d['main_product']['name']:
+                                products_.append(o)
+                            else:
+                                byproducts_.append(o)
+                        assert(len(products_) == 1)
+                    else:
+                        for o in products:
+                            if o.item.name in commonByproducts:
+                                byproducts_.append(o)
+                            else:
+                                products_.append(o)
+                        if len(products_) == 0:
+                            byproductNames = {rc.item.name for rc in byproducts_}
+                            newProducts = set()
+                            for o in byproducts_:
+                                name = o.item.name
+                                if byproductPriority[name] & byproductNames:
+                                    newProducts |= byproductPriority[name] & byproductNames
+                            if len(newProducts) == 0:
+                                logger(f"{d['name']}: unable to determine main produce from byproducts {byproductNames}")
+                            else:
+                                products_ = tuple(rc for rc in byproducts_ if rc.item.name in newProducts)
+                                byproducts_ = tuple(rc for rc in byproducts_ if rc.item.name not in newProducts)
+                    if len(products_) > 0:
+                        products = products_
+                        byproducts += byproducts_
+                time = frac(d.get('energy', 0.5), float_conv_method = 'round')
+                order = getOrderKey(v,q)
+                return Recipe(recipeName,q,categories.get(v['category'], None),inputs,products,byproducts,time,order)
+            recipe = toRecipe(v)
+            addRecipe(recipe, v.get('translated_name', ''))
+            if not v.get('enabled', False):
+                disabledRecipes.add(recipeName)
 
     for cls, recipeName in fixedRecipes:
         try:
@@ -379,6 +473,7 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
                 raise ValueError(f"expected one of 'skip', 'default' or '' for rocketRecipeHints['{name}'] but got '{useHint}'")
             recipe = rocketSilo.Recipe(
                 name = name,
+                quality = None,
                 category = categories['rocket-building'],
                 origRecipe = recipe,
                 order = item.order,
@@ -403,6 +498,7 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
 
     steam = Recipe(
         name = 'steam',
+        quality = None,
         category = Category('Boiler', [mchByName['boiler']]),
         inputs = (RecipeComponent(60, 0, lookupItem('water')),),
         products = (RecipeComponent(60, 0, lookupItem('steam')),),
@@ -412,12 +508,16 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
     addRecipe(steam)
 
     res = data.GameInfo(
+        gameVersion = gameVersion,
+        emptyBarrel = itmByName['empty-barrel'] if gameVersion == '1.1' else itmByName['barrel'],
         rcpByName = rcpByName,
         itmByName = itmByName,
         mchByName = mchByName,
         translatedNames = translatedNames,
         disabledRecipes = disabledRecipes,
         rocketSiloDefaultProduct = rocketSiloDefaultProduct,
+        qualityLevels = qualityNames,
+        maxQualityIdx = len(qualityNames) - 1,
     )
 
     return res
@@ -476,6 +576,7 @@ def vanillaResearchHacks(gi):
         from . import helper
         item = addItem(Research, name, order)
         recipe = Recipe(name = name,
+                        quality = None,
                         category = Category('FakeLab', [FakeLab]),
                         inputs = (RecipeComponent(1, 0, i) for i in sorted(inputs, key = lambda k: k.order)),
                         products = (RecipeComponent(1, 0, item),),
@@ -489,11 +590,13 @@ def vanillaResearchHacks(gi):
     addResearch('_combined_research', 'zz2', gi.presets['sciencePacks'])
 
 def vanillaCraftingHints():
-    from . import rcpByName, itm
+    from . import rcpByName, itm, config
     craftingHints = {}
 
+    emptyBarrel = config.gameInfo.get().emptyBarrel
+
     for r in rcpByName.values():
-        if any(item == itm.empty_barrel for _, _, item in r.outputs) and len(r.outputs) > 1:
+        if any(item == emptyBarrel for _, _, item in r.outputs) and len(r.outputs) > 1:
             craftingHints[r.name] = CraftingHint(priority = IGNORE)
 
     craftingHints['advanced-oil-processing'] = CraftingHint(also=['light-oil-cracking','heavy-oil-cracking'])

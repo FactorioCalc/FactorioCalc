@@ -32,6 +32,15 @@ class BoxBase(MachineBase):
     def recipe(self):
         return None
 
+    def _flowItems(self, inputs, outputs):
+        for item in self.inputs:
+            inputs.add(item)
+        for item in self.outputs:
+            outputs.add(item)
+        for item in self.unconstrained:
+            inputs.add(item)
+            outputs.add(item)
+
     def _sortKey(self):
         return (3,)
 
@@ -430,14 +439,14 @@ class Box(BoxBase):
             self.inputs[item] = None
             self.priorities[item] = IGNORE
 
-        for item, rate in Box.Outputs(outputTouchups, priorities).items():
+        for item, rate in Box.Outputs(outputTouchups, self.priorities).items():
             if rate is None:
                 self.outputs[item] = None
             else:
                 self.outputs[item] = rate
                 outputRates[item] = rate
 
-        for item, rate in Box.Inputs(inputTouchups, priorities).items():
+        for item, rate in Box.Inputs(inputTouchups, self.priorities).items():
             if rate is None:
                 self.inputs[item] = None
             else:

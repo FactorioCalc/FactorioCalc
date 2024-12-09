@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass,FrozenInstanceError
 from collections import defaultdict
 from collections.abc import Sequence
+from math import sqrt,trunc
 
 from .fracs import frac,div,diva,Inf
 from .core import *
@@ -42,9 +43,10 @@ class BurnerMixin:
         return obj
 
     def __setattr__(self, prop, val):
-        if prop == 'fuel':
-            if val is not None and val.fuelCategory != 'chemical':
-                raise ValueError(f'invalid item for fuel: {val}')
+        #FIXME NOW: Fix check for nutrients etc
+        #if prop == 'fuel':
+        #    if val is not None and val.fuelCategory != 'chemical':
+        #        raise ValueError(f'invalid item for fuel: {val}')
         super().__setattr__(prop, val)
 
     def _calc_flows(self, throttle):
@@ -212,11 +214,22 @@ class ModulesMixin(_ModulesHelperMixin):
         return obj
 
     def _effect(self):
-        return (sum((m.effect for m in self.modules), Effect())
-                + sum((num*b.effect() for num,b in self.beacons), Effect()))
-
+        if self.gameVersion == '1.1':
+            return (sum((m.effect for m in self.modules), Effect())
+                    + sum((num*b.effect() for num,b in self.beacons), Effect()))
+        else:
+            moduleEffect = sum((m.effect for m in self.modules), Effect())
+            numBeacons = 0
+            beaconEffect = Effect()
+            for num, beacon in self.beacons:
+                numBeacons += num
+                beaconEffect += num*beacon.effect()
+            if numBeacons > 0:
+                beaconEffect = beaconEffect * frac(1/sqrt(numBeacons),float_conv_method='exact')
+            return moduleEffect + beaconEffect
+                
     def bonus(self):
-        return Bonus(self._effect())
+        return super().bonus() + Bonus(self._effect())
 
 @dataclass(init=False,repr=False)
 class Beacon(_ModulesHelperMixin,Machine):
@@ -334,8 +347,8 @@ class Furnace(CraftingMachine):
 class RocketSilo(CraftingMachine):
     class Recipe(Recipe):
         __slots__ = ('origRecipe', 'cargo')
-        def __init__(self, name, category, origRecipe, inputs, products, byproducts, time, order, cargo):
-            super().__init__(name, category, inputs, products, byproducts, time, order)
+        def __init__(self, name, quality, category, origRecipe, inputs, products, byproducts, time, order, cargo):
+            super().__init__(name, quality, category, inputs, products, byproducts, time, order)
             object.__setattr__(self, 'origRecipe', origRecipe)
             object.__setattr__(self, 'cargo', cargo)
 
@@ -343,7 +356,9 @@ class RocketSilo(CraftingMachine):
 
     def _calc_flows(self, throttle):
         recipe = self.recipe
-        cargo = recipe.cargo
+        cargo = getattr(recipe, 'cargo', None)
+        if cargo is None:
+            return super()._calc_flows(throttle)
         b = self.bonus()
         time = diva(recipe.time, self.craftingSpeed, 1 + b.speed, 1 + b.productivity) + self.delay
         flows = _MutableFlows()

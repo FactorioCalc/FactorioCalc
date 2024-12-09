@@ -23,12 +23,14 @@ class Objs:
 
 @_dc.dataclass
 class GameInfo:
+    gameVersion: string
     rcp: Objs = _dc.field(default_factory = Objs)
     rcpByName: dict = None
     itm: Objs = _dc.field(default_factory = Objs)
     itmByName: dict = None
     mch: Objs = _dc.field(default_factory = Objs)
     mchByName: dict = None
+    emptyBarrel: Item = None
     presets: dict = None
     recipesThatMake: dict = None
     recipesThatUse: dict = None
@@ -37,6 +39,9 @@ class GameInfo:
     translatedNames: dict = None
     aliases: dict = _dc.field(default_factory = dict)
     disabledRecipes: set = _dc.field(default_factory = set)
+    qualityLevels: list[str] =  _dc.field(default_factory = list)
+    maxQualityIdx: int = 0
+    recipeProductivityBonus: dict = _dc.field(default_factory = dict)
 
     @_dc.dataclass
     class Modules:

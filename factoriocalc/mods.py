@@ -94,6 +94,12 @@ def _krastorio_2_presets():
         ),
         'SPEED_BEACON': mch.Beacon(modules=itm.speed_module_3),
         'SPEED_BEACON_2': mch.SingularityBeacon(modules=itm.speed_module_3),
+        'advTechCards': {itm.production_science_pack,
+                         itm.utility_science_pack,
+                         itm.space_science_pack,
+                         itm.matter_tech_card,
+                         itm.advanced_tech_card,
+                         itm.singularity_tech_card}
     }
 
 def space_exploration(gameInfo, **kwargs):

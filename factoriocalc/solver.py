@@ -86,7 +86,7 @@ from typing import NamedTuple
 from dataclasses import dataclass,field
 import sys
 
-from . import itm
+from . import itm,config
 from .fracs import Inf,NaN,frac,div,isfinite
 from .ordenum import OrdEnum
 from .core import *
@@ -443,7 +443,7 @@ class LinearEqSystem:
             machines[idx] = None
 
         for m in machines:
-            if m is None: continue
+            if m is None: continue # was a box, will handle latter
             (key, name) = varInfo(m)
             unbounded = getattr(m.machine, 'unbounded', False)
             suffix = 'm' if unbounded else 't'
@@ -503,13 +503,15 @@ class LinearEqSystem:
 
         ###
 
+        emptyBarrel = config.gameInfo.get().emptyBarrel
+
         for (var, grp) in byVar.items():
             for flow in grp.flows:
                 if flow.item in box.priorities and flow.item in box.outputs:
                     outputPriorities[flow.item] = box.priorities[flow.item]
                 elif flow.item in box.priorities and flow.item in box.inputs:
                     inputPriorities[flow.item] = box.priorities[flow.item]
-                elif flow.item in box.outputs and box.outputs[flow.item] is None and flow.item != itm.empty_barrel:
+                elif flow.item in box.outputs and box.outputs[flow.item] is None and flow.item != emptyBarrel:
                     outputPriorities[flow.item] = 0
 
         byId = {}

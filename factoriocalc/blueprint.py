@@ -10,6 +10,12 @@ from ._helper import getDefaultFuel
 
 __all__ = ('Blueprint', 'BlueprintBook', 'importBlueprint')
 
+def _getNameWithQuality(name, quality):
+    if quality is None or quality == 'normal':
+        return name
+    else:
+        return f'{quality}-{name}'
+
 class Blueprint:
     def __init__(self, bp):
         """Create a blueprint from a decoded JSON object.
@@ -68,9 +74,12 @@ class Blueprint:
         machinesOnGrid = defaultdict(list)
         beacons = []
 
+        version = self.raw['blueprint']['version']
+        VERSION2_BP = 562949954273281
+
         for v in self.raw['blueprint']['entities']:
             try:
-                cls = mchByName[v['name']]
+                cls = mchByName[_getNameWithQuality(v['name'], v.get('quality', None))]
             except KeyError:
                 continue
             if issubclass(cls, machine.Beacon):
@@ -83,7 +92,7 @@ class Blueprint:
                 if m.recipe is None:
                     m.recipe = m.defaultProduct()
             elif 'recipe' in v:
-                m.recipe = recipeMap[v['recipe']]
+                m.recipe = recipeMap[_getNameWithQuality(v['recipe'], v.get('recipe_quality', None))]
             else:
                 r = recipeForMachine(m)
                 if r:
@@ -91,7 +100,16 @@ class Blueprint:
             if hasattr(m, 'fuel'):
                 m.fuel = burnerFuel
             if 'items' in v:
-                m.modules = [*chain.from_iterable(repeat(itmByName[item], num) for item, num in v['items'].items())]
+                if version < VERSION2_BP:
+                    m.modules = [*chain.from_iterable(repeat(itmByName[item], num) for item, num in v['items'].items())]
+                else:
+                    modules = []
+                    for item in v['items']:
+                        module = itmByName[_getNameWithQuality(item['id']['name'], item['id'].get('quality', None))]
+                        # fixme: is this right
+                        num = len(item['items']['in_inventory'])
+                        modules += repeat(module, num)
+                    m.modules = modules
             if isinstance(m, machine.Beacon):
                 m._frozen = True
                 beacons.append(m)

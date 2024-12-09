@@ -27,6 +27,25 @@ def wagonsPerMinute(*args):
     else:
         raise ValueError('usage: wagonsPerMinute(flow) or waginsPerMinute(item, rate)')
 
+def rocketsPerUnit(item, rate, conv):
+    from .fracs import div
+    if item.weight == 0:
+        return 0
+    perRocket = div(1000000 , item.weight)
+    if perRocket < 1:
+        return 0
+    return div(conv * rate, perRocket)
+
+def rocketsPerMinute(*args):
+    if len(args) == 1:
+        flow = args[0]
+        return rocketsPerUnit(flow.item, flow.rate(), 60)
+    elif len(args) == 2:
+        return rocketsPerUnit(args[0], args[1], 60)
+    else:
+        raise ValueError('usage: rocketsPerMinute(flow) or waginsPerMinute(item, rate)')
+
+
 UNIT_SECONDS        = Unit('s', '/',  1)
 UNIT_MINUTES        = Unit('m', '/',  60)
 UNIT_HOURS          = Unit('h',  '/', 3600)
@@ -37,6 +56,7 @@ UNIT_MEGAWATT       = Unit('MW', ' ', 1)
 UNIT_STACKS_PER_SEC = Unit('s/s', ' ', lambda item, rate: _div(rate,item.stackSize))
 UNIT_STACKS_PER_MIN = Unit('s/m', ' ', lambda item, rate: 60*_div(rate,item.stackSize))
 UNIT_WAGONS_PER_MIN = Unit('w/m', ' ', wagonsPerMinute)
+UNIT_ROCKETS_PER_MIN = Unit('r/m', ' ', rocketsPerMinute)
 
 DU_SECONDS =  ((_Electricity, UNIT_MEGAWATT), (None, UNIT_SECONDS))
 DU_MINUTES =  ((_Electricity, UNIT_MEGAWATT), (None, UNIT_MINUTES))
@@ -47,5 +67,6 @@ DU_TRANSFER_BELTS = ((_Item, UNIT_TRANSFER_BELTS), (_Electricity, UNIT_MEGAWATT)
 DU_STACKS_PER_SEC = ((_Item, UNIT_STACKS_PER_SEC), (_Electricity, UNIT_MEGAWATT), (None, UNIT_SECONDS))
 DU_STACKS_PER_MIN = ((_Item, UNIT_STACKS_PER_MIN), (_Electricity, UNIT_MEGAWATT), (None, UNIT_SECONDS))
 DU_WAGONS_PER_MIN = ((_Electricity, UNIT_MEGAWATT), (None, UNIT_WAGONS_PER_MIN))
+DU_ROCKETS_PER_MIN = ((_Item, UNIT_ROCKETS_PER_MIN), (_Electricity, UNIT_MEGAWATT), (None, UNIT_MINUTES))
 
 __all__ = [sym for sym in globals() if not sym.startswith('_') and sym not in ('annotations')]

@@ -101,6 +101,10 @@ class Ingredient(Immutable):
     def descr(self):
         from .config import gameInfo
         return gameInfo.get().translatedNames.get(f'itm {self.name}', self.name)
+    @property
+    def baseItem(self):
+        "normal quality item"
+        return self
     def __str__(self):
         return self.alias
     def __repr__(self):
@@ -156,16 +160,29 @@ def _rate(r):
     return frac(r)
 
 class Item(Ingredient):
-    __slots__ = ('stackSize', 'fuelValue', 'fuelCategory')
-    def __init__(self, name, order, stackSize, fuelValue = 0, fuelCategory = ''):
+    __slots__ = ('stackSize', 'weight', 'quality', 'qualityIdx', 'itemInOtherQualities', 'fuelValue', 'fuelCategory')
+    def __init__(self, name, *, order, stackSize, weight,
+                 quality, qualityIdx, itemInOtherQualities,
+                 fuelValue = 0, fuelCategory = ''):
         super().__init__(name, order)
         object.__setattr__(self, 'stackSize', stackSize)
+        object.__setattr__(self, 'weight', weight)
         object.__setattr__(self, 'fuelValue', fuelValue)
         object.__setattr__(self, 'fuelCategory', fuelCategory)
+        object.__setattr__(self, 'quality', quality)
+        object.__setattr__(self, 'qualityIdx', qualityIdx)
+        object.__setattr__(self, 'itemInOtherQualities', itemInOtherQualities)
+    @property
+    def baseItem(self):
+        return self.itemInOtherQualities[0]
+    @property
+    def allQualities(self):
+        from .config import gameInfo
+        gi = gameInfo.get()
+        return self.itemInOtherQualities[0:gi.maxQualityIdx+1]
 
 class Fluid(Ingredient):
     __slots__ = ()
-    pass
 
 class Research(Ingredient):
     __slots__ = ()
@@ -177,8 +194,11 @@ class Electricity(Ingredient):
 
 class Module(Item):
     __slots__ = ('effect','limitation')
-    def __init__(self,name,order,stackSize,effect,limitation=None,limitationBlacklist=None):
-        super().__init__(name,order,stackSize)
+    def __init__(self, name, *, order, stackSize, weight,
+                 quality, qualityIdx,  itemInOtherQualities,
+                 effect, limitation=None, limitationBlacklist=None):
+        super().__init__(name, order = order, stackSize = stackSize, weight = weight,
+                         quality = quality, qualityIdx = qualityIdx, itemInOtherQualities = itemInOtherQualities)
         object.__setattr__(self, 'effect', effect)
         object.__setattr__(self, 'limitation', limitation)
     def _jsonObj(self):
@@ -213,11 +233,15 @@ class MachineBase:
     def _flows(self, throttle, _includeInner):
         raise NotImplementedError
 
-    def flows(self, throttle = None, includeInner = True):
-        return self._flows(throttle, includeInner)
+    def flows(self, *items, throttle = None, includeInner = True):
+        flows = self._flows(throttle, includeInner)
+        if items:
+            return flows.filter(items = items)
+        else:
+            return flows
 
-    def flow(self, item, throttle = None):
-        return self.flows(throttle).flow(item)
+    def flow(self, item, *, throttle = None, includeInner = True):
+        return self.flows(throttle = throttle, includeInner = includeInner).flow(item)
 
     def __mul__(self, fac):
         return Mul(self,fac)
@@ -450,19 +474,26 @@ class Machine(MachineBase, metaclass=MachineMeta):
 
     @property
     def inputs(self):
-        return {flow.item: None for flow in self.flows(1) if flow.rate() < 0 and flow.item is not itm.electricity}
+        return {flow.item: None for flow in self.flows(throttle=1) if flow.rate() < 0 and flow.item is not itm.electricity}
 
     @property
     def outputs(self):
-        return {flow.item: None for flow in self.flows(1) if flow.rate() > 0}
+        return {flow.item: None for flow in self.flows(throttle=1) if flow.rate() > 0}
+
+    def _flowItems(self, inputs, outputs):
+        for flow in self.flows(1):
+            if flow.rate() < 0 and flow.item is not itm.electricity:
+                inputs.add(flow.item)
+            elif flow.rate() > 0:
+                outputs.add(flow.item)
 
     @property
     def products(self):
-        return {flow.item: None for flow in self.flows(1).products()}
+        return {flow.item: None for flow in self.flows(throttle=1).products()}
 
     @property
     def byproducts(self):
-        return {flow.item: None for flow in self.flows(1).byproducts()}
+        return {flow.item: None for flow in self.flows(throttle=1).byproducts()}
 
     def _calc_flows(self, throttle):
         return _MutableFlows()
@@ -485,13 +516,13 @@ class Machine(MachineBase, metaclass=MachineMeta):
             self.__flows = res
         return res
 
-    def bonus(self) -> Bonus:
-        return Bonus()
-
     def energyUsage(self, throttle):
         if throttle is None:
             throttle = self.throttle
         return self.energyDrain + throttle * self.baseEnergyUsage * (1 + self.bonus().consumption)
+
+    def bonus(self) -> Bonus:
+        return Bonus()
 
 def _toRecipe(val):
     if val is None or isinstance(val, Recipe):
@@ -509,6 +540,7 @@ class CraftingMachine(Machine):
     recipe: Recipe = None
     name = 'crafting-machine'
     craftingSpeed = 1
+    baseEffect = None
     baseEnergyUsage = 0
     energyDrain = 0
     pollution = 0
@@ -524,6 +556,8 @@ class CraftingMachine(Machine):
         super().__setattr__(prop, val)
 
     def _calc_flows(self, throttle):
+        from .config import gameInfo
+        gi = gameInfo.get()
         flows = _MutableFlows()
         if self.recipe is None: return flows
         inOut = defaultdict(lambda: [RecipeComponent(0,0,None), RecipeComponent(0,0,None)])
@@ -533,13 +567,44 @@ class CraftingMachine(Machine):
             inOut[rc.item][1] = rc
         b = self.bonus()
         time = diva(self.recipe.time, self.craftingSpeed, 1 + b.speed)
+        products = set(rc.item for rc in self.recipe.products)
+        outputs = set(rc.item for rc in self.recipe.outputs)
         for item, (in_, out_) in inOut.items():
             rateIn = div(in_.num, time)
             bonusOut = out_.product() * b.productivity
             rateOut = div(out_.num + bonusOut, time)
-            flows.addFlow(item, rateIn = throttle*rateIn, rateOut = throttle*rateOut, adjusted = throttle != 1)
+            if b.quality > 0 and item in outputs and isinstance(item, Item) and item.qualityIdx < gi.maxQualityIdx:
+                flows.addFlow(item, rateIn = throttle*rateIn, adjusted = throttle != 1)
+                def addFlow(_item, _rateOut):
+                    flows.addFlow(_item, rateOut = throttle*_rateOut, adjusted = throttle != 1)
+                nextQualityRate = rateOut*b.quality
+                # add the base item, but at a reduced rate
+                addFlow(item, rateOut - nextQualityRate)
+
+                otherQualities = item.allQualities[item.qualityIdx+1:]
+                # add the next level quality tier
+                rateOut = nextQualityRate
+                nextQualityRate = div(nextQualityRate, 10)
+                addFlow(otherQualities[0], rateOut - nextQualityRate)
+
+                # add the higher level quality tiers (if any)
+                for higherQualityItem in otherQualities[1:]:
+                    rateOut = nextQualityRate
+                    nextQualityRate = div(nextQualityRate, 10)
+                    addFlow(higherQualityItem, rateOut - nextQualityRate)
+
+                # add the rest of the final quality tier
+                addFlow(otherQualities[-1], nextQualityRate)
+            else:
+                flows.addFlow(item, rateIn = throttle*rateIn, rateOut = throttle*rateOut, adjusted = throttle != 1)
         flows._byproducts = tuple(rc.item for rc in self.recipe.byproducts)
         return flows
+
+    def bonus(self) -> Bonus:
+        from .config import gameInfo
+        gi = gameInfo.get()
+        prodBonus = gi.recipeProductivityBonus.get(self.recipe, 0)
+        return Bonus(self.baseEffect + Effect(productivity = prodBonus))
 
 @dataclass(repr=False)
 class Mul(MachineBase):
@@ -593,6 +658,9 @@ class Mul(MachineBase):
     @property
     def outputs(self):
         return self.machine.outputs
+
+    def _flowItems(self, inputs, outputs):
+        return self.machine._flowItems(inputs, outputs)
 
     @property
     def products(self):
@@ -956,6 +1024,29 @@ class Group(Sequence,MachineBase):
         res.state = state
         return NetFlows(res)
 
+    def _flowItems(self, inputs, outputs):
+        for m in self.flatten():
+            m._flowItems(inputs, outputs)
+
+    def connections(self):
+        conns = {}
+        def getConnForItem(item):
+            conn = conns.get(item, None)
+            if conn is None:
+                conn = Connection(item)
+                conns[item] = conn
+            return conn
+            
+        for m in self.flatten():
+            inputs = set()
+            outputs = set()
+            m._flowItems(inputs, outputs)
+            for item in inputs:
+                getConnForItem(item).inputs.append(m)
+            for item in outputs: 
+                getConnForItem(item).outputs.append(m)
+        return conns
+
     def setThrottle(self, throttle, filter = lambda _: True):
         for m in self.flatten():
             if filter(m.machine):
@@ -976,9 +1067,9 @@ class Group(Sequence,MachineBase):
     def solve(self):
         return [m.solve() for m in self.flatten()]
 
-    def find(self, recipe = None, *,
-             input = None, output = None, machine = None,
-             inputs = (), outputs = (), recipes = (), machines = ()):
+    def find(self, *recipes,
+             input = None, output = None, machine = None, recipe = None,
+             inputs = (), outputs = (), machines = ()):
         if input is not None:
             if inputs:
                 raise ValueError('both input and inputs can not be defined')
@@ -1004,7 +1095,7 @@ class Group(Sequence,MachineBase):
         else:
             machines = tuple(machines)
         res = []
-        for m in self.machines:
+        for m in self.flatten():
             if not inputs.isdisjoint(m.inputs):
                 res.append(m)
             elif not outputs.isdisjoint(m.outputs):
@@ -1332,11 +1423,23 @@ class NetFlows(Flows):
    def lackof(self):
        return [f for f in self if '!' in f.annotations()]
 
+class Connection:
+    __slots__ = ('item', 'inputs', 'outputs')
+    def __init__(self, item):
+        self.item = item
+        self.inputs = []
+        self.outputs = []
+    def flow(self):
+        return Flow(self.item,
+                    sum(m.flow(self.item, includeInner = False).rateOut for m in self.outputs),
+                    sum(m.flow(self.item, includeInner = False).rateIn for m in self.inputs))
+
 class _Effect(NamedTuple):
     speed: Rational = 0
     productivity: Rational = 0
     consumption: Rational = 0 # energy used
     pollution: Rational = 0
+    quality: Rational = 0
 
     def __str__(self):
         parts = []
@@ -1348,6 +1451,8 @@ class _Effect(NamedTuple):
             parts.append('{:+.0%} energy'.format(self.consumption))
         if self.pollution != 0:
             parts.append('{:+.0%} pollution'.format(self.pollution))
+        if self.quality != 0:
+            parts.append('{:+.1%} quality'.format(self.quality))
         return ' '.join(parts)
 
     def __repr__(self):
@@ -1360,34 +1465,30 @@ class _Effect(NamedTuple):
         if type(self) is not type(other):
             raise TypeError
         return _Effect.__new__(type(self),
-                                  self.speed + other.speed,
-                                  self.productivity + other.productivity,
-                                  self.consumption + other.consumption,
-                                  self.pollution + other.pollution)
+                               self.speed + other.speed,
+                               self.productivity + other.productivity,
+                               self.consumption + other.consumption,
+                               self.pollution + other.pollution,
+                               self.quality + other.quality)
 
-    def __mul__(self, n):
+    def _mul(self, n):
         return _Effect.__new__(type(self),
-                                  self.speed*n,
-                                  self.productivity*n,
-                                  self.consumption*n,
-                                  self.pollution*n)
+                               self.speed*n,
+                               self.productivity*n,
+                               self.consumption*n,
+                               self.pollution*n,
+                               self.quality*n)
 
-    def __rmul__(self, n):
-        return _Effect.__new__(type(self),
-                                  self.speed*n,
-                                  self.productivity*n,
-                                  self.consumption*n,
-                                  self.pollution*n)
+    __mul__ = _mul
+    __rmul__ = _mul
 
-    def __truediv__(self, n):
-        return _Effect.__new__(type(self),
-                                  div(self.speed, n),
-                                  div(self.productivity, n),
-                                  div(self.consumption, n),
-                                  div(self.pollution, n))
+    def __truediv__(self,other):
+        return self*div(1,other)
 
 class Effect(_Effect):
     pass
+
+CraftingMachine.baseEffect = Effect()
 
 class Bonus(_Effect):
     def __new__(cls, *args, **kwargs):
@@ -1401,7 +1502,7 @@ class Bonus(_Effect):
                 speed = other.speed if other.speed > frac(-4, 5) else frac(-4, 5)
                 consumption =  other.consumption if other.consumption > frac(-4, 5) else frac(-4, 5)
                 pollution = other.pollution if other.pollution > frac(-4, 5) else frac(-4, 5)
-                return _Effect.__new__(cls, speed, other.productivity, consumption, pollution)
+                return _Effect.__new__(cls, speed, other.productivity, consumption, pollution, other.quality)
         else:
             return _Effect.__new__(cls, *args, **kwargs)
 
@@ -1423,9 +1524,10 @@ class Recipe(Immutable):
     """A recipe to produce something.
 
     """
-    __slots__ = ('name', 'category', 'inputs', 'products', 'byproducts', 'time', 'order')
-    def __init__(self, name, category, inputs, products, byproducts, time, order):
+    __slots__ = ('name', 'quality', 'category', 'inputs', 'products', 'byproducts', 'time', 'order', '_sortKey')
+    def __init__(self, name, quality, category, inputs, products, byproducts, time, order):
         object.__setattr__(self, 'name', name)
+        object.__setattr__(self, 'quality', quality)
         object.__setattr__(self, 'category', category)
         object.__setattr__(self, 'inputs', tuple(inputs))
         object.__setattr__(self, 'products', tuple(products))
@@ -1524,6 +1626,8 @@ class Recipe(Immutable):
             if machine is None:
                 machines = self.category.members
                 machines = [m for m in machines if not hasattr(m, 'fixedRecipe') or m.fixedRecipe is self.origRecipe]
+                if len(machines) > 1:
+                    machines = [m for m in machines if m.quality is None or m.quality == 'normal']
                 if len(machines) == 1:
                     candidates.append(machines[0]())
                 elif len(machines) == 0:
@@ -1557,9 +1661,9 @@ class Recipe(Immutable):
         if beacons is not Default:
             m.beacons = beacons
         if hasattr(m, 'fuel'):
-            if fuel is Default:
+            if fuel is Default and m.fuel is None:
                 m.fuel = config.defaultFuel.get()
-            else:
+            elif fuel is not Default:
                 m.fuel = fuel
         if rate is not None:
             if len(self.products) != 1:
@@ -1568,7 +1672,7 @@ class Recipe(Immutable):
         if inputRate is not None:
             if len(self.inputs) != 1:
                 raise ValueError('can not specify input rate for "{self.alias}" as it consumes more than one product')
-            m = Mul(div(frac(-inputRate), m.flow(self.inputs[0].item).rate()), m)
+            m = Mul(div(-frac(inputRate), m.flow(self.inputs[0].item).rate()), m)
         return m
     def __call__(self, machinePrefs = Default, fuel = Default, machine = None,
                  modules = Default, beacon = Default, beacons = Default, rate = None, inputRate = None):
