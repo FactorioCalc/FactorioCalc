@@ -365,7 +365,7 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
                     num = d.get('probability',1) * (d['amount_max'] + d['amount_min']) / 2
                 num += d.get('extra_count_fraction',0)
                 if type(num) is float:
-                    num = frac(num, float_conv_method = 'round')
+                    num = frac_from_float_round(num, precision = 9)
                 if isProduct:
                     catalyst = d.get('catalyst_amount', 0)
                 else:
