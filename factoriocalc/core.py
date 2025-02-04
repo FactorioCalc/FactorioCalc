@@ -713,7 +713,9 @@ class Group(Sequence,MachineBase):
             self.machines = list(machines)
         beaconMap = {}
         unresolved = []
-        for m in self.machines:
+        for i, m in enumerate(self.machines):
+            if isinstance(m, Sequence) and not isinstance(m, Group):
+                m = self.machines[i] = Group(m)
             if isinstance(m.machine, Beacon) and m.machine.id is not None:
                 beaconMap[b.id] = b
                 continue
@@ -784,6 +786,12 @@ class Group(Sequence,MachineBase):
 
     def __add__(self, other):
         return Group(*self,other)
+
+    def __invert__(self):
+        # fixme: this only works since a copy is not made
+        for r in self:
+            r.unbounded = True
+        return self
 
     def print(self, out = None, prefix = ''):
         if out is None:
@@ -1141,6 +1149,10 @@ class OneWayFlow(NamedTuple):
     annotations: str = ''
     def __str__(self):
         return '{}{} {}'.format(self.item, self.annotations, _fmt_rate(self.item, self.rate, _unitForItem(self.item)))
+    def print(self, out = None, prefix = '', altUnit = None):
+        out.write(prefix)
+        out.write(self.__str__())
+        out.write('\n')
     def __neg__(self):
         return OneWayFlow(self.item, -self.rate, self.annotations)
     def __repr__(self):
@@ -1232,6 +1244,13 @@ class Flows:
     Individual flows are stored as a `dict` in the `byItem` field.
     """
     __slots__ = ('byItem', '_byproducts', 'state')
+    def __init__(self, flows = (), byproducts = (), state = None):
+        self.byItem = {}
+        for flow in flows:
+            self.byItem[flow.item] = flow
+        self._byproducts = tuple(byproducts)
+        self.state = state
+            
     # self.byItem and self._byproducts and self.state are expected to be defined
     def flow(self, item):
         """Returns the flow for *item* or an empty flow if item not in `byItem`."""

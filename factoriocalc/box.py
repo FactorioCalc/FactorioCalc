@@ -152,6 +152,8 @@ class Box(BoxBase):
                     item, rate = v.item, v.rate
                 elif isinstance(v, Flow):
                     item, rate = v.item, abs(v.rate())
+                elif isinstance(v, RecipeComponent):
+                    item, rate = v.item, None
                 else:
                     item, rate = v, None
                 try:
@@ -669,6 +671,7 @@ class Box(BoxBase):
             else:
                 res.byItem[item] = Flow(item, rateIn = -flow.rate() * throttle, underflow = underflow, annotation = annotation)
         res.byItem[itm.electricity] = orig[itm.electricity]
+        res._byproducts = tuple(self.byproducts)
         if not _includeInner and not state.ok():
             res.byItem.clear()
         res.state = state
