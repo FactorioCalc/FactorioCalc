@@ -1,8 +1,6 @@
 import factoriocalc
 from factoriocalc import *
-from factoriocalc.presets import *
 from factoriocalc.solver import SolveRes
-from factoriocalc.mch import AssemblingMachine3,ElectricFurnace,ChemicalPlant,OilRefinery,Centrifuge,Boiler
 from contextlib import redirect_stdout
 import io
 import unittest
@@ -10,8 +8,11 @@ import os
 import importlib
 from types import MethodType
 from typing import Callable
-from .common import *
 from copy import copy, deepcopy
+
+from .common import *
+from factoriocalc.presets import *
+from factoriocalc.mch import AssemblingMachine3,ElectricFurnace,ChemicalPlant,OilRefinery,Centrifuge,Boiler
 
 def _fromBlueprint(name, burnerFuel = None, **boxParams):
     grp = bpBook().find(name).convert(burnerFuel = burnerFuel)[0]

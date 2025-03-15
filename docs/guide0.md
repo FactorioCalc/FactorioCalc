@@ -46,6 +46,7 @@ done so.
 
 ```{code-cell}
 from factoriocalc import *
+setGameConfig('v1.1');
 ```
 
 For lack of a better term, *factory*, will be used throughout this document to

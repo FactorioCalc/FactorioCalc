@@ -30,8 +30,9 @@ def setGameConfig(mode, path = None, includeDisabled=True):
     """Changes the game configuration.
 
     *mode*
-        One of: ``'normal'`` for normal gameplay; ``'expansive'`` for the
-        expensive gameplay mode; ``'custom'`` for vanilla gameplay but using a
+        One of: ``'v2.0'`` for Factorio 2.0; ``'v2.0-sa'`` for Factorio Space
+        Age; ``'v1.1'`` for Factorio 1.1; ``'v.1.1-expansive'`` for expansive
+        mode in Factorio 1.1; ``'custom'`` for vanilla gameplay but using a
         custom configuration; ``'mod'`` for overhaul mods; or a string
         specifying a custom mod with builtin support.  See the `mods` module
         for currently supported mods.
@@ -59,12 +60,18 @@ def setGameConfig(mode, path = None, includeDisabled=True):
     configuration.
 
     """
-    if mode == 'normal':
+    if mode == 'v1.1':
         importFun = vanillaImport
-        path = _dir / 'game-info-normal.json'
-    elif mode == 'expensive':
+        path = _dir / 'game-info-v_1_1-normal.json'
+    elif mode == 'v1.1-expensive':
         importFun = vanillaImport
-        path = _dir / 'game-info-expensive.json'
+        path = _dir / 'game-info-v_1_1-expensive.json'
+    elif mode == 'v2.0':
+        importFun = vanillaImport
+        path = _dir / 'game-info-v_2_0.json'
+    elif mode == 'v2.0-sa':
+        importFun = vanillaImport
+        path = _dir / 'game-info-v_2_0-sa.json'
     elif mode == 'custom':
         importFun = vanillaImport
     elif mode == 'mod':

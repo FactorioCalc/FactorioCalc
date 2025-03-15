@@ -9,6 +9,8 @@ BUILDDIR      = _build
 
 PYTHON        = python3
 
+.DELETE_ON_ERROR:
+
 all: html
 
 prep: reference.rst description.rst guide.md guide-nb.ipynb

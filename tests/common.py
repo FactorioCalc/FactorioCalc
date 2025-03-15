@@ -2,6 +2,7 @@ from pathlib import Path
 from collections import defaultdict
 
 from factoriocalc import *
+setGameConfig('v1.1')
 
 _dir = Path(__file__).parent.resolve()
 

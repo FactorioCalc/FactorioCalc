@@ -15,20 +15,31 @@ from . import data as _data
 
 def _find(toFind):
     from .config import gameInfo
-    return gameInfo.get().mch._find(toFind)
+    gi = gameInfo.get(None)
+    if gi is None:
+        raise RuntimeError("config.gameInfo not defined: call setGameInfo first")
+    return gi.mch._find(toFind)
+
 _find.__doc__ = _data.Objs._find.__doc__
 
 def __getattr__(name):
     from .config import gameInfo
-    obj = gameInfo.get().mch
+    gi = gameInfo.get(None)
+    if gi is None:
+        raise RuntimeError("config.gameInfo not defined: call setGameInfo first")
+
+    if name == '__all__':
+        return tuple(gi.mch.__dict__.keys())
+
     try:
-        return obj.__dict__[name]
+        return gi.mch.__dict__[name]
     except KeyError:
-        if name == '__all__':
-            return tuple(obj.__dict__.keys())
         raise AttributeError(f"current 'mch' object has no attribute '{name}'") from None
 
 def __dir__():
     from .config import gameInfo
-    return ['_find', '__all__', *gameInfo.get().mch.__dict__.keys()]
-
+    try:
+        symbols = gameInfo.get().mch.__dict__.keys()
+    except LookupError:
+        symbols = ()
+    return ['_find', '__all__', *symbols]

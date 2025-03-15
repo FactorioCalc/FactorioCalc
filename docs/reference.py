@@ -3,6 +3,7 @@ import sys
 sys.path.insert(0, os.path.abspath('../'))
 
 import factoriocalc as fc
+fc.setGameConfig('v1.1')
 import types
 import pdb
 
@@ -167,7 +168,7 @@ Core
    .. py:data:: MP_LATE_GAME
       :value: {fc.presets.MP_LATE_GAME!r}
 
-   .. autofunction:: MP_MAX_PROD
+   .. py:function:: MP_MAX_PROD(level=3, beacon=None, beacons=None)
 
    .. py:data:: SPEED_BEACON
       :value: {fc.presets.SPEED_BEACON!r}

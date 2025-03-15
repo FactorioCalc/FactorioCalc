@@ -54,6 +54,5 @@ _extraSymbols = ['Constraint', 'Term']
 from . import import_
 from .import_ import *
 __all__ += ['setGameConfig', 'userRecipesFile']
-setGameConfig('normal')
 
 from . import mods
