@@ -3,11 +3,10 @@ from dataclasses import dataclass,field
 from collections import defaultdict
 from typing import NamedTuple
 from itertools import chain
-# from numbers import Rational
 from collections.abc import Sequence,Iterator,Mapping
 from enum import Enum
 from .ordenum import OrdEnum
-from .fracs import Frac,frac,Inf,div,diva,isfinite,isnan,isinf
+from .fracs import Frac,frac,Inf,div,diva,isfinite,isnan,isinf,Rational
 from copy import copy
 import sys
 from . import itm, rcp
@@ -102,8 +101,7 @@ class Ingredient(Immutable):
         from .config import gameInfo
         return gameInfo.get().translatedNames.get(f'itm {self.name}', self.name)
     @property
-    def baseItem(self):
-        "normal quality item"
+    def normalQuality(self):
         return self
     def __str__(self):
         return self.alias
@@ -160,9 +158,9 @@ def _rate(r):
     return frac(r)
 
 class Item(Ingredient):
-    __slots__ = ('stackSize', 'weight', 'quality', 'qualityIdx', 'itemInOtherQualities', 'fuelValue', 'fuelCategory')
+    __slots__ = ('stackSize', 'weight', 'quality', 'qualityIdx', '_otherQualities', 'fuelValue', 'fuelCategory')
     def __init__(self, name, *, order, stackSize, weight,
-                 quality, qualityIdx, itemInOtherQualities,
+                 quality, qualityIdx, _otherQualities,
                  fuelValue = 0, fuelCategory = ''):
         super().__init__(name, order)
         object.__setattr__(self, 'stackSize', stackSize)
@@ -171,15 +169,15 @@ class Item(Ingredient):
         object.__setattr__(self, 'fuelCategory', fuelCategory)
         object.__setattr__(self, 'quality', quality)
         object.__setattr__(self, 'qualityIdx', qualityIdx)
-        object.__setattr__(self, 'itemInOtherQualities', itemInOtherQualities)
+        object.__setattr__(self, '_otherQualities', _otherQualities)
     @property
-    def baseItem(self):
-        return self.itemInOtherQualities[0]
+    def normalQuality(self):
+        return self._otherQualities[0]
     @property
     def allQualities(self):
         from .config import gameInfo
         gi = gameInfo.get()
-        return self.itemInOtherQualities[0:gi.maxQualityIdx+1]
+        return self._otherQualities[0:gi.maxQualityIdx+1]
 
 class Fluid(Ingredient):
     __slots__ = ()
@@ -195,10 +193,10 @@ class Electricity(Ingredient):
 class Module(Item):
     __slots__ = ('effect','limitation')
     def __init__(self, name, *, order, stackSize, weight,
-                 quality, qualityIdx,  itemInOtherQualities,
+                 quality, qualityIdx,  _otherQualities,
                  effect, limitation=None, limitationBlacklist=None):
         super().__init__(name, order = order, stackSize = stackSize, weight = weight,
-                         quality = quality, qualityIdx = qualityIdx, itemInOtherQualities = itemInOtherQualities)
+                         quality = quality, qualityIdx = qualityIdx, _otherQualities = _otherQualities)
         object.__setattr__(self, 'effect', effect)
         object.__setattr__(self, 'limitation', limitation)
     def _jsonObj(self):
@@ -603,8 +601,8 @@ class CraftingMachine(Machine):
     def bonus(self) -> Bonus:
         from .config import gameInfo
         gi = gameInfo.get()
-        prodBonus = gi.recipeProductivityBonus.get(self.recipe, 0)
-        return Bonus(self.baseEffect + Effect(productivity = prodBonus))
+        prodBonus = 0 if self.recipe is None else gi.recipeProductivityBonus.get(self.recipe.origRecipe._otherQualities[0], 0)
+        return (self.baseEffect + Effect(productivity = prodBonus)).asBonus()
 
 @dataclass(repr=False)
 class Mul(MachineBase):
@@ -979,9 +977,9 @@ class Group(Sequence,MachineBase):
                 byMachine = {}
                 for m in val:
                     num += m.num
-                    x = byMachine.setdefault(type(m.machine), {'num': 0, 'bonus': Bonus(), 'throttle': 0})
+                    x = byMachine.setdefault(type(m.machine), {'num': 0, 'bonus': Effect(), 'throttle': 0})
                     x['num'] += m.num
-                    x['bonus'] += m.num*m.machine.bonus()
+                    x['bonus'] += m.num*m.machine.bonus().asEffect()
                     x['throttle'] += m.num*m.machine.throttle
                 g = Group(val)
                 unbounded = num == 1 and len(val) == 1 and getattr(val[0].machine, 'unbounded', False)
@@ -1478,8 +1476,12 @@ class _Effect(NamedTuple):
         return f'<{type(self).__name__}: {str(self)}>'
 
     def __bool__(self):
-        return self.speed != 0 or self.productivity != 0 or self.consumption != 0 or self.pollution != 0
+        return self.speed != 0 or self.productivity != 0 or self.consumption != 0 or self.pollution != 0 or self.quality != 0
 
+class Effect(_Effect):
+    def asBonus(self):
+        return Bonus(*self)
+    
     def __add__(self, other):
         if type(self) is not type(other):
             raise TypeError
@@ -1502,28 +1504,20 @@ class _Effect(NamedTuple):
     __rmul__ = _mul
 
     def __truediv__(self,other):
-        return self*div(1,other)
-
-class Effect(_Effect):
-    pass
+        return self._mul(div(1,other))
 
 CraftingMachine.baseEffect = Effect()
 
 class Bonus(_Effect):
-    def __new__(cls, *args, **kwargs):
-        if len(args) <= 1 and len(kwargs) == 0:
-            if len(args) == 0:
-                return _Effect.__new__(cls)
-            other = args[0]
-            if type(other) is Bonus:
-                return other
-            elif type(other) is Effect:
-                speed = other.speed if other.speed > frac(-4, 5) else frac(-4, 5)
-                consumption =  other.consumption if other.consumption > frac(-4, 5) else frac(-4, 5)
-                pollution = other.pollution if other.pollution > frac(-4, 5) else frac(-4, 5)
-                return _Effect.__new__(cls, speed, other.productivity, consumption, pollution, other.quality)
-        else:
-            return _Effect.__new__(cls, *args, **kwargs)
+    def __new__(cls, speed = 0 , productivity = 0, consumption = 0, pollution = 0, quality = 0):
+        assert(isinstance(speed, Rational))
+        if speed < frac(-4, 5): speed = frac(-4, 5)
+        if consumption < frac(-4, 5): consumption = frac(-4, 5)
+        if pollution < frac(-4, 5): pollution = frac(-4, 5)
+        if productivity > 3: productivity = 3
+        return _Effect.__new__(cls, speed, productivity, consumption, pollution, quality)
+    def asEffect(self):
+        return Effect(*self)
 
 class RecipeComponent(NamedTuple):
     num: Rational
@@ -1549,11 +1543,16 @@ class Recipe(Immutable):
     """A recipe to produce something.
 
     """
-    __slots__ = ('name', 'quality', 'category', 'inputs', 'products', 'byproducts', 'time', 'allowedEffects',
+    __slots__ = ('name', 'quality', 'qualityIdx', '_otherQualities',
+                 'category', 'inputs', 'products', 'byproducts', 'time', 'allowedEffects',
                  'order', '_sortKey')
-    def __init__(self, name, quality, category, inputs, products, byproducts, time, allowedEffects, order):
+    def __init__(self, name, quality, qualityIdx, _otherQualities,
+                 category, inputs, products, byproducts, time, allowedEffects,
+                 order):
         object.__setattr__(self, 'name', name)
         object.__setattr__(self, 'quality', quality)
+        object.__setattr__(self, 'qualityIdx', qualityIdx)
+        object.__setattr__(self, '_otherQualities', _otherQualities)
         object.__setattr__(self, 'category', category)
         object.__setattr__(self, 'inputs', tuple(inputs))
         object.__setattr__(self, 'products', tuple(products))
@@ -1562,6 +1561,14 @@ class Recipe(Immutable):
         object.__setattr__(self, 'allowedEffects', allowedEffects)
         object.__setattr__(self, 'order', order)
         object.__setattr__(self, '_sortKey', (order, id(self)))
+    @property
+    def normalQuality(self):
+        return self._otherQualities[0]
+    @property
+    def allQualities(self):
+        from .config import gameInfo
+        gi = gameInfo.get()
+        return self._otherQualities[0:gi.maxQualityIdx+1]
     @property
     def alias(self):
         from .config import gameInfo

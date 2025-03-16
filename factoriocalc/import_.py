@@ -145,18 +145,18 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
         d = gameInfo['items'].get(name, None)
         if d:
             if qualityIdx == 0:
-                itemInOtherQualities = []
+                _otherQualities = []
             else:
                 baseItem = itmByName[name]
-                itemInOtherQualities = baseItem.itemInOtherQualities
+                _otherQualities = baseItem._otherQualities
             item = Item(nameWithQuality,
                         order=getOrderKey(d,qualityIdx),
                         stackSize=d['stack_size'], weight=frac(d.get('weight',0), float_conv_method = 'round'),
-                        quality=quality, qualityIdx=qualityIdx, itemInOtherQualities=itemInOtherQualities,
+                        quality=quality, qualityIdx=qualityIdx, _otherQualities=_otherQualities,
                         fuelValue=d['fuel_value'], fuelCategory=d.get('fuel_category',''))
-            topad = qualityIdx - len(itemInOtherQualities) + 1
-            itemInOtherQualities.extend(repeat(None,topad))
-            itemInOtherQualities[qualityIdx] = item
+            topad = qualityIdx - len(_otherQualities) + 1
+            _otherQualities.extend(repeat(None,topad))
+            _otherQualities[qualityIdx] = item
         else:
             d = gameInfo['fluids'][name]
             item = Fluid(name, getOrderKey(d,0))
@@ -334,7 +334,7 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
             limitation = None
         if limitation is not None:
             limitation = set(limitation)
-        itemInOtherQualities = []
+        _otherQualities = []
         for q in qualityNames:
             if q is None or q == 'normal':
                 name = k
@@ -351,15 +351,16 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
                                quality = qualityAdj(e.quality, 1000) if e.quality > 0 else e.quality)
             item = Module(name, order = getOrderKey(v,q),
                           stackSize = v['stack_size'], weight = frac(v.get('weight',0), float_conv_method='round'),
-                          quality = q, qualityIdx = len(itemInOtherQualities), itemInOtherQualities = itemInOtherQualities,
+                          quality = q, qualityIdx = len(_otherQualities), _otherQualities = _otherQualities,
                           effect = adjEffect, limitation = limitation)
-            itemInOtherQualities.append(item)            
+            _otherQualities.append(item)            
             addItem(item, v.get('translated_name',''))
             
     # import recipes
     for _,v in gameInfo['recipes'].items():
         if not (includeDisabled or v.get('enabled', False)):
             continue
+        _otherQualities = [*repeat(None,len(qualityNames))]
         for i, q in enumerate(qualityNames):
             if q is None or q == 'normal':
                 recipeName = v['name']
@@ -380,63 +381,63 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
                 else:
                     catalyst = 0
                 return RecipeComponent(item=lookupItem(d['name'], q, i), num = num, catalyst = catalyst)
-            def toRecipe(d):
-                inputs = tuple(toRecipeComponent(rc, False) for rc in d['ingredients'])
-                products = []
+            inputs = tuple(toRecipeComponent(rc, False) for rc in v['ingredients'])
+            products = []
+            byproducts = []
+            for product in v['products']:
+                rc = toRecipeComponent(product, True)
+                try:
+                    amount = product['amount']
+                except KeyError:
+                    amount = product['amount_max']
+                catalyst = rc.catalyst
+                if catalyst == 0:
+                    for rc0 in inputs:
+                        if rc0.item == rc.item:
+                            catalyst = rc0.num
+                if amount - catalyst > 0:
+                    products.append(rc)
+                else:
+                    byproducts.append(rc)
+            if not products:
+                products = byproducts
                 byproducts = []
-                for product in d['products']:
-                    rc = toRecipeComponent(product, True)
-                    try:
-                        amount = product['amount']
-                    except KeyError:
-                        amount = product['amount_max']
-                    catalyst = rc.catalyst
-                    if catalyst == 0:
-                        for rc0 in inputs:
-                            if rc0.item == rc.item:
-                                catalyst = rc0.num
-                    if amount - catalyst > 0:
-                        products.append(rc)
-                    else:
-                        byproducts.append(rc)
-                if not products:
-                    products = byproducts
-                    byproducts = []
-                if len(products) > 1:
-                    products_, byproducts_ = [], []
-                    if 'main_product' in d:
-                        for o in products:
-                            if o.item.baseItem.name == d['main_product']['name']:
-                                products_.append(o)
-                            else:
-                                byproducts_.append(o)
-                        assert(len(products_) == 1)
-                    else:
-                        for o in products:
-                            if o.item.name in commonByproducts:
-                                byproducts_.append(o)
-                            else:
-                                products_.append(o)
-                        if len(products_) == 0:
-                            byproductNames = {rc.item.name for rc in byproducts_}
-                            newProducts = set()
-                            for o in byproducts_:
-                                name = o.item.name
-                                if byproductPriority[name] & byproductNames:
-                                    newProducts |= byproductPriority[name] & byproductNames
-                            if len(newProducts) == 0:
-                                logger(f"{d['name']}: unable to determine main produce from byproducts {byproductNames}")
-                            else:
-                                products_ = tuple(rc for rc in byproducts_ if rc.item.name in newProducts)
-                                byproducts_ = tuple(rc for rc in byproducts_ if rc.item.name not in newProducts)
-                    if len(products_) > 0:
-                        products = products_
-                        byproducts += byproducts_
-                time = frac(d.get('energy', 0.5), float_conv_method = 'round')
-                allowedEffects = AllowedEffects(**d.get('allowed_effects', {}))
-                order = getOrderKey(v,q)
-                return Recipe(recipeName,q,categories.get(v['category'], None),inputs,products,byproducts,time,allowedEffects,order)
-            recipe = toRecipe(v)
+            if len(products) > 1:
+                products_, byproducts_ = [], []
+                if 'main_product' in d:
+                    for o in products:
+                        if o.item.baseItem.name == d['main_product']['name']:
+                            products_.append(o)
+                        else:
+                            byproducts_.append(o)
+                    assert(len(products_) == 1)
+                else:
+                    for o in products:
+                        if o.item.name in commonByproducts:
+                            byproducts_.append(o)
+                        else:
+                            products_.append(o)
+                    if len(products_) == 0:
+                        byproductNames = {rc.item.name for rc in byproducts_}
+                        newProducts = set()
+                        for o in byproducts_:
+                            name = o.item.name
+                            if byproductPriority[name] & byproductNames:
+                                newProducts |= byproductPriority[name] & byproductNames
+                        if len(newProducts) == 0:
+                            logger(f"{d['name']}: unable to determine main produce from byproducts {byproductNames}")
+                        else:
+                            products_ = tuple(rc for rc in byproducts_ if rc.item.name in newProducts)
+                            byproducts_ = tuple(rc for rc in byproducts_ if rc.item.name not in newProducts)
+                if len(products_) > 0:
+                    products = products_
+                    byproducts += byproducts_
+            time = frac(v.get('energy', 0.5), float_conv_method = 'round')
+            allowedEffects = AllowedEffects(**v.get('allowed_effects', {}))
+            order = getOrderKey(v,q)
+            recipe = Recipe(recipeName,q,i,_otherQualities,
+                            categories.get(v['category'], None),inputs,products,byproducts,time,allowedEffects,order)
+            _otherQualities[i] = recipe
             addRecipe(recipe, v.get('translated_name', ''))
             if not v.get('enabled', False):
                 disabledRecipes.add(recipeName)
@@ -483,7 +484,6 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
                 raise ValueError(f"expected one of 'skip', 'default' or '' for rocketRecipeHints['{name}'] but got '{useHint}'")
             recipe = rocketSilo.Recipe(
                 name = name,
-                quality = None,
                 category = categories['rocket-building'],
                 origRecipe = recipe,
                 order = item.order,
@@ -510,6 +510,8 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
     steam = Recipe(
         name = 'steam',
         quality = None,
+        qualityIdx = 0,
+        _otherQualities = [None],
         category = Category('Boiler', [mchByName['boiler']]),
         inputs = (RecipeComponent(60, 0, lookupItem('water')),),
         products = (RecipeComponent(60, 0, lookupItem('steam')),),
@@ -517,6 +519,7 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
         time = 1,
         allowedEffects = AllowedEffects(),
         order = ('','',''))
+    steam._otherQualities[0] = steam
     addRecipe(steam)
 
     res = data.GameInfo(
@@ -589,6 +592,8 @@ def vanillaResearchHacks(gi):
         item = addItem(Research, name, order)
         recipe = Recipe(name = name,
                         quality = None,
+                        qualityIdx = 0,
+                        _otherQualities = [None],
                         category = Category('FakeLab', [FakeLab]),
                         inputs = (RecipeComponent(1, 0, i) for i in sorted(inputs, key = lambda k: k.order)),
                         products = (RecipeComponent(1, 0, item),),
@@ -596,6 +601,7 @@ def vanillaResearchHacks(gi):
                         time = 1,
                         allowedEffects = AllowedEffects(),
                         order = order)
+        recipe._otherQualities[0] = recipe
         addRecipe(recipe)
 
     addResearch('_production_research', 'zz0', gi.presets['sciencePacks'] - {gi.itm.military_science_pack})

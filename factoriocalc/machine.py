@@ -236,7 +236,7 @@ class ModulesMixin(_ModulesHelperMixin):
             return moduleEffect + beaconEffect
                 
     def bonus(self):
-        return super().bonus() + Bonus(self._effect())
+        return (super().bonus().asEffect() + self._effect()).asBonus()
 
 @dataclass(init=False,repr=False)
 class Beacon(_ModulesHelperMixin,Machine):
@@ -354,10 +354,11 @@ class Furnace(CraftingMachine):
 class RocketSilo(CraftingMachine):
     class Recipe(Recipe):
         __slots__ = ('origRecipe', 'cargo')
-        def __init__(self, name, quality, category, origRecipe, inputs, products, byproducts, time, allowedEffects, order, cargo):
-            super().__init__(name, quality, category, inputs, products, byproducts, time, allowedEffects, order)
+        def __init__(self, name, category, origRecipe, inputs, products, byproducts, time, allowedEffects, order, cargo):
+            super().__init__(name, None, 0, [None], category, inputs, products, byproducts, time, allowedEffects, order)
             object.__setattr__(self, 'origRecipe', origRecipe)
             object.__setattr__(self, 'cargo', cargo)
+            self._otherQualities[0] = self
 
     delay = frac(2420 + 13, 60)
 
