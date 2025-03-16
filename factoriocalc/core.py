@@ -16,7 +16,7 @@ __all__ = ('Default',
            'Ingredient', 'Item', 'Fluid', 'Research', 'Electricity', 'Module',
            'MachineBase', 'Machine', 'CraftingMachine', 'Mul', 'Group',
            'Flow', 'OneWayFlow', 'FlowsState', 'Flows', 'SimpleFlows', 'NetFlows', 'Effect', 'Bonus',
-           'Recipe', 'RecipeComponent', 'IGNORE', 'InvalidModulesError',
+           'AllowedEffects', 'Recipe', 'RecipeComponent', 'IGNORE', 'InvalidModulesError',
            'maxInputs', 'MachinePrefs',
            )
 
@@ -1538,13 +1538,20 @@ class RecipeComponent(NamedTuple):
         else:
             return f'{self.num:g} ({self.product():g}) {self.item}'.format(float(self.num), self.item)
 
+class AllowedEffects(NamedTuple):
+    speed: bool = True
+    productivity: bool = True
+    consumption: bool = True # energy used
+    pollution: bool = True
+    quality: bool = True
 
 class Recipe(Immutable):
     """A recipe to produce something.
 
     """
-    __slots__ = ('name', 'quality', 'category', 'inputs', 'products', 'byproducts', 'time', 'order', '_sortKey')
-    def __init__(self, name, quality, category, inputs, products, byproducts, time, order):
+    __slots__ = ('name', 'quality', 'category', 'inputs', 'products', 'byproducts', 'time', 'allowedEffects',
+                 'order', '_sortKey')
+    def __init__(self, name, quality, category, inputs, products, byproducts, time, allowedEffects, order):
         object.__setattr__(self, 'name', name)
         object.__setattr__(self, 'quality', quality)
         object.__setattr__(self, 'category', category)
@@ -1552,6 +1559,7 @@ class Recipe(Immutable):
         object.__setattr__(self, 'products', tuple(products))
         object.__setattr__(self, 'byproducts', tuple(byproducts))
         object.__setattr__(self, 'time', time)
+        object.__setattr__(self, 'allowedEffects', allowedEffects)
         object.__setattr__(self, 'order', order)
         object.__setattr__(self, '_sortKey', (order, id(self)))
     @property

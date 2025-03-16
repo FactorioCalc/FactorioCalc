@@ -374,7 +374,9 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
                 if type(num) is float:
                     num = frac_from_float_round(num, precision = 9)
                 if isProduct:
-                    catalyst = d.get('catalyst_amount', 0)
+                    catalyst = d.get('catalyst_amount', None)
+                    if catalyst is None:
+                        catalyst = d.get('ignored_by_productivity', 0)
                 else:
                     catalyst = 0
                 return RecipeComponent(item=lookupItem(d['name'], q, i), num = num, catalyst = catalyst)
@@ -431,8 +433,9 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
                         products = products_
                         byproducts += byproducts_
                 time = frac(d.get('energy', 0.5), float_conv_method = 'round')
+                allowedEffects = AllowedEffects(**d.get('allowed_effects', {}))
                 order = getOrderKey(v,q)
-                return Recipe(recipeName,q,categories.get(v['category'], None),inputs,products,byproducts,time,order)
+                return Recipe(recipeName,q,categories.get(v['category'], None),inputs,products,byproducts,time,allowedEffects,order)
             recipe = toRecipe(v)
             addRecipe(recipe, v.get('translated_name', ''))
             if not v.get('enabled', False):
@@ -489,6 +492,7 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
                                             catalyst = 0,
                                             item = item),),
                 byproducts = (),
+                allowedEffects = AllowedEffects(),
                 time = rocket_parts_time,
                 cargo = RecipeComponent(num=1, catalyst=0, item=lookupItem(k)),
             )
@@ -511,6 +515,7 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
         products = (RecipeComponent(60, 0, lookupItem('steam')),),
         byproducts = (),
         time = 1,
+        allowedEffects = AllowedEffects(),
         order = ('','',''))
     addRecipe(steam)
 
@@ -589,6 +594,7 @@ def vanillaResearchHacks(gi):
                         products = (RecipeComponent(1, 0, item),),
                         byproducts = (),
                         time = 1,
+                        allowedEffects = AllowedEffects(),
                         order = order)
         addRecipe(recipe)
 

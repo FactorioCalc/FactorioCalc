@@ -99,6 +99,13 @@ class _ModulesHelperMixin:
     def _checkModules(self, recipe, modules):
         invalid = set()
         for m in modules:
+            if (m.effect.speed != 0 and not recipe.allowedEffects.speed
+                  or m.effect.productivity != 0 and not recipe.allowedEffects.productivity
+                  or m.effect.consumption != 0 and not recipe.allowedEffects.consumption
+                  or m.effect.pollution != 0 and not recipe.allowedEffects.pollution
+                  or m.effect.quality != 0 and not recipe.allowedEffects.quality):
+                invalid.add(m)
+                continue
             if m.limitation is None: continue
             if recipe.name in m.limitation: continue
             try:
@@ -347,8 +354,8 @@ class Furnace(CraftingMachine):
 class RocketSilo(CraftingMachine):
     class Recipe(Recipe):
         __slots__ = ('origRecipe', 'cargo')
-        def __init__(self, name, quality, category, origRecipe, inputs, products, byproducts, time, order, cargo):
-            super().__init__(name, quality, category, inputs, products, byproducts, time, order)
+        def __init__(self, name, quality, category, origRecipe, inputs, products, byproducts, time, allowedEffects, order, cargo):
+            super().__init__(name, quality, category, inputs, products, byproducts, time, allowedEffects, order)
             object.__setattr__(self, 'origRecipe', origRecipe)
             object.__setattr__(self, 'cargo', cargo)
 
