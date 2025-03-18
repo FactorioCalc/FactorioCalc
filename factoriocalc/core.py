@@ -520,7 +520,10 @@ class Machine(MachineBase, metaclass=MachineMeta):
         return self.energyDrain + throttle * self.baseEnergyUsage * (1 + self.bonus().consumption)
 
     def bonus(self) -> Bonus:
-        return Bonus()
+        return self._bonus(Effect())
+
+    def _bonus(self, extraEffect) -> Bonus:
+        return extraEffect.asBonus()
 
 def _toRecipe(val):
     if val is None or isinstance(val, Recipe):
@@ -598,11 +601,13 @@ class CraftingMachine(Machine):
         flows._byproducts = tuple(rc.item for rc in self.recipe.byproducts)
         return flows
 
-    def bonus(self) -> Bonus:
+    def _bonus(self, extraEffect) -> Bonus:
         from .config import gameInfo
         gi = gameInfo.get()
         prodBonus = 0 if self.recipe is None else gi.recipeProductivityBonus.get(self.recipe.origRecipe._otherQualities[0], 0)
-        return (self.baseEffect + Effect(productivity = prodBonus)).asBonus()
+        effect = self.baseEffect + Effect(productivity = prodBonus) + extraEffect
+        maxProductivity = 3 if self.recipe is None else self.recipe.origRecipe.maxProductivity
+        return effect.asBonus(maxProductivity)
 
 @dataclass(repr=False)
 class Mul(MachineBase):
@@ -1479,8 +1484,8 @@ class _Effect(NamedTuple):
         return self.speed != 0 or self.productivity != 0 or self.consumption != 0 or self.pollution != 0 or self.quality != 0
 
 class Effect(_Effect):
-    def asBonus(self):
-        return Bonus(*self)
+    def asBonus(self, maxProductivity = 3):
+        return Bonus(*self, maxProductivity)
     
     def __add__(self, other):
         if type(self) is not type(other):
@@ -1509,12 +1514,12 @@ class Effect(_Effect):
 CraftingMachine.baseEffect = Effect()
 
 class Bonus(_Effect):
-    def __new__(cls, speed = 0 , productivity = 0, consumption = 0, pollution = 0, quality = 0):
+    def __new__(cls, speed = 0 , productivity = 0, consumption = 0, pollution = 0, quality = 0, maxProductivity = 3):
         assert(isinstance(speed, Rational))
         if speed < frac(-4, 5): speed = frac(-4, 5)
         if consumption < frac(-4, 5): consumption = frac(-4, 5)
         if pollution < frac(-4, 5): pollution = frac(-4, 5)
-        if productivity > 3: productivity = 3
+        if productivity > maxProductivity: productivity = maxProductivity
         return _Effect.__new__(cls, speed, productivity, consumption, pollution, quality)
     def asEffect(self):
         return Effect(*self)
@@ -1544,10 +1549,12 @@ class Recipe(Immutable):
 
     """
     __slots__ = ('name', 'quality', 'qualityIdx', '_otherQualities',
-                 'category', 'inputs', 'products', 'byproducts', 'time', 'allowedEffects',
+                 'category', 'inputs', 'products', 'byproducts', 'time',
+                 'allowedEffects', 'maxProductivity',
                  'order', '_sortKey')
     def __init__(self, name, quality, qualityIdx, _otherQualities,
-                 category, inputs, products, byproducts, time, allowedEffects,
+                 category, inputs, products, byproducts, time,
+                 allowedEffects, maxProductivity,
                  order):
         object.__setattr__(self, 'name', name)
         object.__setattr__(self, 'quality', quality)
@@ -1559,6 +1566,7 @@ class Recipe(Immutable):
         object.__setattr__(self, 'byproducts', tuple(byproducts))
         object.__setattr__(self, 'time', time)
         object.__setattr__(self, 'allowedEffects', allowedEffects)
+        object.__setattr__(self, 'maxProductivity', maxProductivity)
         object.__setattr__(self, 'order', order)
         object.__setattr__(self, '_sortKey', (order, id(self)))
     @property

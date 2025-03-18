@@ -236,7 +236,7 @@ class ModulesMixin(_ModulesHelperMixin):
             return moduleEffect + beaconEffect
                 
     def bonus(self):
-        return (super().bonus().asEffect() + self._effect()).asBonus()
+        return self._bonus(self._effect())
 
 @dataclass(init=False,repr=False)
 class Beacon(_ModulesHelperMixin,Machine):
@@ -354,8 +354,9 @@ class Furnace(CraftingMachine):
 class RocketSilo(CraftingMachine):
     class Recipe(Recipe):
         __slots__ = ('origRecipe', 'cargo')
-        def __init__(self, name, category, origRecipe, inputs, products, byproducts, time, allowedEffects, order, cargo):
-            super().__init__(name, None, 0, [None], category, inputs, products, byproducts, time, allowedEffects, order)
+        def __init__(self, name, category, origRecipe, inputs, products, byproducts, time, allowedEffects, maxProductivity, order, cargo):
+            super().__init__(name, None, 0, [None], category, inputs, products, byproducts, time,
+                             allowedEffects, maxProductivity, order)
             object.__setattr__(self, 'origRecipe', origRecipe)
             object.__setattr__(self, 'cargo', cargo)
             self._otherQualities[0] = self

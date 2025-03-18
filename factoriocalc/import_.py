@@ -26,7 +26,7 @@ def userRecipesFile():
     else:
         return None
 
-def setGameConfig(mode, path = None, includeDisabled=True):
+def setGameConfig(mode, path=None, includeDisabled=True, importBonuses=None):
     """Changes the game configuration.
 
     *mode*
@@ -47,6 +47,10 @@ def setGameConfig(mode, path = None, includeDisabled=True):
         If false, skip recipes marked as disabled.  Disabled recipes include
         those that are not yet researched.
 
+    *importBonuses*
+        Import recipe productivity bonuses if true.  If `None` than only
+        import bonuses if a path is also specifed.
+
     Note that changing the game configuration creates a new set of symbols in
     the `itm`, `rcp`, `mch`, and `presets` modules.  Any non-symbolic
     references to symboles created before calling this function are unlikely
@@ -60,6 +64,9 @@ def setGameConfig(mode, path = None, includeDisabled=True):
     configuration.
 
     """
+    if importBonuses is None:
+        importBonuses = False if path is None else True
+
     if mode == 'v1.1':
         importFun = vanillaImport
         path = _dir / 'game-info-v_1_1-normal.json'
@@ -87,7 +94,8 @@ def setGameConfig(mode, path = None, includeDisabled=True):
         gameInfo = json.load(f)
 
     return importFun(gameInfo,
-                     includeDisabled = includeDisabled)
+                     includeDisabled = includeDisabled,
+                     importBonuses = importBonuses)
 
 def vanillaImport(gameInfo, **kwargs):
     return importGameInfo(gameInfo,
@@ -100,7 +108,8 @@ def vanillaImport(gameInfo, **kwargs):
 def basicImport(gameInfo, **kwargs):
     return importGameInfo(gameInfo, **kwargs)
 
-def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHints, logger):
+def _importGameInfo(gameInfo, includeDisabled, importBonuses,
+                    commonByproducts_, rocketRecipeHints, logger):
     from . import mch
 
     rcpByName, itmByName, mchByName = {}, {}, {}
@@ -357,6 +366,7 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
             addItem(item, v.get('translated_name',''))
             
     # import recipes
+    productivityBonuses = {}
     for _,v in gameInfo['recipes'].items():
         if not (includeDisabled or v.get('enabled', False)):
             continue
@@ -434,13 +444,20 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
                     byproducts += byproducts_
             time = frac(v.get('energy', 0.5), float_conv_method = 'round')
             allowedEffects = AllowedEffects(**v.get('allowed_effects', {}))
+            maxProductivity = frac_from_float_round(v.get('maximum_productivity', 3), precision = 6)
             order = getOrderKey(v,q)
             recipe = Recipe(recipeName,q,i,_otherQualities,
-                            categories.get(v['category'], None),inputs,products,byproducts,time,allowedEffects,order)
+                            categories.get(v['category'], None),inputs,products,byproducts,time,
+                            allowedEffects,maxProductivity,order)
             _otherQualities[i] = recipe
             addRecipe(recipe, v.get('translated_name', ''))
             if not v.get('enabled', False):
                 disabledRecipes.add(recipeName)
+
+        if importBonuses is True:
+            bonus = frac_from_float_round(v.get('productivity_bonus', 0), precision = 6)
+            if bonus != 0:
+                productivityBonuses[_otherQualities[0]] = bonus
 
     for cls, recipeName in fixedRecipes:
         try:
@@ -493,6 +510,7 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
                                             item = item),),
                 byproducts = (),
                 allowedEffects = AllowedEffects(),
+                maxProductivity = 3,
                 time = rocket_parts_time,
                 cargo = RecipeComponent(num=1, catalyst=0, item=lookupItem(k)),
             )
@@ -518,6 +536,7 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
         byproducts = (),
         time = 1,
         allowedEffects = AllowedEffects(),
+        maxProductivity = 3,
         order = ('','',''))
     steam._otherQualities[0] = steam
     addRecipe(steam)
@@ -533,6 +552,7 @@ def _importGameInfo(gameInfo, includeDisabled, commonByproducts_, rocketRecipeHi
         rocketSiloDefaultProduct = rocketSiloDefaultProduct,
         qualityLevels = qualityNames,
         maxQualityIdx = len(qualityNames) - 1,
+        recipeProductivityBonus = productivityBonuses
     )
 
     return res
@@ -600,6 +620,7 @@ def vanillaResearchHacks(gi):
                         byproducts = (),
                         time = 1,
                         allowedEffects = AllowedEffects(),
+                        maxProductivity = 3,
                         order = order)
         recipe._otherQualities[0] = recipe
         addRecipe(recipe)
@@ -681,6 +702,7 @@ class AliasConflicts(ValueError):
 
 def importGameInfo(gameInfo, *,
                    includeDisabled = True,
+                   importBonuses = False,
                    preAliasPasses = (),
                    nameTouchups = None,
                    presets = None,
@@ -698,6 +720,10 @@ def importGameInfo(gameInfo, *,
     *includeDisabled*
         If false, skip recipes marked as disabled.  Disabled recipes include
         those that are not yet researched.
+
+    *importBonuses*
+        Import recipe productivity bonuses if true.  If `None` than only
+        import bonuses if a path is also specifed.
 
     *nameTouchups*
         A function to transform internal names before they are
@@ -787,7 +813,7 @@ def importGameInfo(gameInfo, *,
     else:
         d = gameInfo
 
-    res = _importGameInfo(d, includeDisabled, set(byproducts), rocketRecipeHints, logger)
+    res = _importGameInfo(d, includeDisabled, importBonuses, set(byproducts), rocketRecipeHints, logger)
 
     for p in preAliasPasses:
         p(res)
