@@ -763,7 +763,10 @@ class Group(Sequence,MachineBase):
         return iter(self.machines)
 
     def __getitem__(self, idx):
-        return self.machines[idx]
+        if isinstance(idx, slice):
+            return Group(self.machines[idx])
+        else:
+            return self.machines[idx]
 
     def __len__(self):
         return len(self.machines)
@@ -946,7 +949,9 @@ class Group(Sequence,MachineBase):
                 byRecipe[grpNum] = m
                 grpNum += 1
             elif m.machine.recipe:
-                byRecipe[m.machine.recipe].append(m)
+                r = m.machine.recipe
+                b = m.machine.bonus()
+                byRecipe[(r,b.productivity,b.quality)].append(m)
             else:
                 byRecipe[type(m.machine)].append(m)
         prevIsGroup = False
@@ -975,7 +980,7 @@ class Group(Sequence,MachineBase):
                             out.write('\n')
                     else:
                         out.write('\n')
-            elif isinstance(key, Recipe):
+            elif isinstance(key, tuple) and isinstance(key[0], Recipe):
                 if (prevIsGroup and includeMachineFlows):
                     out.write('{}\n'.format(prefix))
                 num = 0
@@ -989,9 +994,9 @@ class Group(Sequence,MachineBase):
                 g = Group(val)
                 unbounded = num == 1 and len(val) == 1 and getattr(val[0].machine, 'unbounded', False)
                 if unbounded:
-                    out.write('{}({: >3.3g}x){}: '.format(prefix, val[0].machine.throttle, key.alias))
+                    out.write('{}({: >3.3g}x){}: '.format(prefix, val[0].machine.throttle, key[0].alias))
                 else:
-                    out.write('{}{: >4.3g}x {}: '.format(prefix, num, key.alias))
+                    out.write('{}{: >4.3g}x {}: '.format(prefix, num, key[0].alias))
                 pos = 0
                 for k, v in byMachine.items():
                     if v['num'] ==  0:
@@ -1520,6 +1525,12 @@ class Bonus(_Effect):
         if consumption < frac(-4, 5): consumption = frac(-4, 5)
         if pollution < frac(-4, 5): pollution = frac(-4, 5)
         if productivity > maxProductivity: productivity = maxProductivity
+        # negative productivity is a weird special case that can't happen in normal gameplay
+        if productivity < 0: productivity = 0
+        # negative qualities can happen as an effect, but as a bonus it makes no sense
+        if quality < 0: quality = 0
+        # qualities larger than one make no sense
+        if quality > 1: quality = 1
         return _Effect.__new__(cls, speed, productivity, consumption, pollution, quality)
     def asEffect(self):
         return Effect(*self)
@@ -1576,7 +1587,7 @@ class Recipe(Immutable):
     def allQualities(self):
         from .config import gameInfo
         gi = gameInfo.get()
-        return self._otherQualities[0:gi.maxQualityIdx+1]
+        return Recipes(self._otherQualities[0:gi.maxQualityIdx+1])
     @property
     def alias(self):
         from .config import gameInfo
@@ -1637,9 +1648,11 @@ class Recipe(Immutable):
         customRecipes[self.name] = self
         return f'{self.name} custom'
     def eqv(self, other):
-        """Returns true if other is equivalent to self and not just the same object."""
+        """Returns true if other is equivalent to self."""
         return (type(self) == type(other)
                 and self.name == other.name
+                and self.quality == other.quality
+                and self.qualityIdx == other.qualityIdx
                 and self.category == other.category
                 and self.inputs == other.inputs
                 and self.products == other.products
@@ -1720,6 +1733,35 @@ class Recipe(Immutable):
                  modules = Default, beacon = Default, beacons = Default, rate = None, inputRate = None):
         return self.produce(machinePrefs = machinePrefs, fuel = fuel, machine = machine,
                             modules = modules, beacons = beacons, beacon = beacon, rate = rate, inputRate = inputRate)
+
+class Recipes(Sequence):
+    __slots__ = ('lst')
+
+    def __init__(self, *recipes):
+        if len(recipes) == 1 and isinstance(recipes[0], Sequence):
+            self.lst = list(recipes[0])
+        elif len(recipes) == 1 and isinstance(recipes[0], Iterator):
+            self.lst = list(recipes[0])
+        else:
+            self.lst = list(recipes)
+
+    def __iter__(self):
+        return iter(self.lst)
+
+    def __getitem__(self, idx):
+        if isinstance(idx, slice):
+            return Recipes(self.lst[idx])
+        else:
+            return self.lst[idx]
+
+    def __len__(self):
+        return len(self.lst)
+
+    def __repr__(self):
+        return 'Recipes(' + ', '.join(repr(m) for m in self) + ')'
+
+    def __call__(self, *args, **kwargs):
+        return Group(r(*args, **kwargs) for r in self)
 
 class InvalidModulesError(ValueError):
     def __init__(self, m):

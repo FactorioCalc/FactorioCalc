@@ -414,13 +414,26 @@ class LinearEqSystem:
             m = m.machine
             if isinstance(m, BlackBox):
                 return ((id(box), id(m)), 'BOX' if m.name is None else m.name)
-            elif m.recipe is not None:
-                if hasattr(m, 'fuel'):
-                    return ((id(box), m.recipe, m.fuel), f'{m.recipe.alias}_u_{m.fuel}')
-                else:
-                    return ((id(box), m.recipe), m.recipe.alias)
-            else:
+            if m.recipe is None:
                 return (None, 'unknown')
+            name = m.recipe.alias
+            b = m.bonus()
+            productivity = b.productivity
+            if productivity > 0:
+                productivity = int(productivity*100)
+                name = f'{name}_p{productivity:02d}'
+            else:
+                productivity = None
+            quality = b.quality
+            if quality > 0:
+                quality = int(quality*1000)
+                name = f'{name}_q{quality:03d}'
+            else:
+                quality = None
+            if hasattr(m, 'fuel'):
+                return ((id(box), m.recipe, productivity, quality, m.fuel), f'{name}_u_{m.fuel}')
+            else:
+                return ((id(box), m.recipe, productivity, quality), name)
 
         tally = _tally
         if tally is None:
@@ -514,14 +527,27 @@ class LinearEqSystem:
                 elif flow.item in box.outputs and box.outputs[flow.item] is None and flow.item != emptyBarrel:
                     outputPriorities[flow.item] = 0
 
+        byRecipe = {}
+        for var in byVar:
+            if var.id is None: continue
+            byRecipe.setdefault(var.id[0:2], []).append(var)
         byId = {}
         for var in byVar:
             byId[var.id] = var
 
         for key0, prior in box.priorities.items():
-            key = (id(box), key0)
-            if key in byId:
-                priorities[byId[key]] = prior
+            if isinstance(key0, Ingredient):
+                pass
+            elif isinstance(key0, Recipe):
+                key = (id(box), key0)
+                for var in byRecipe.get(key, []):
+                    priorities[var] = prior
+            elif isinstance(key0, Machine):
+                key, _ = varInfo(m)
+                if key in byId:
+                    priorities[byId[key]] = prior
+            else:
+                raise ValueError(key0)
 
         # fixme: still needed?
         toDel = [var for var, priority in priorities.items() if priority <= IGNORE]

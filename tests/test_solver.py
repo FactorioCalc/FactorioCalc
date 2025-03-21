@@ -470,3 +470,47 @@ class ProduceTests(unittest.TestCase):
         lambda: produce([itm.space_science_pack@1],recursive=False),
         {itm.space_science_pack:1, itm.rocket_control_unit: frac(-5,7), itm.satellite: frac(-1,1000)})
 
+origGameConfig = setGameConfig('v2.0-sa')
+saGameConfig = config.gameInfo.get()
+
+class QualityTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.origGameInfo = config.gameInfo.set(saGameConfig)
+
+    @classmethod
+    def tearDownClass(cls):
+        config.gameInfo.reset(cls.origGameInfo)
+
+    testLegendaryElectronicCircuitWithProd = SolverTest(lambda: withSettings(
+        {config.machinePrefs: presets.MP_LEGENDARY},
+        lambda: Box([*~rcp.electronic_circuit.allQualities(),
+                     *~rcp.electronic_circuit_recycling.allQualities[0:4]()],
+                    inputs = rcp.electronic_circuit.inputs,
+                    outputs = [itm.legendary_electronic_circuit@1])
+    ), {itm.legendary_electronic_circuit: 1,
+        itm.iron_plate: frac(-1032035698176,73013623859),
+        itm.copper_cable: frac(-3096107094528,73013623859)})
+
+    testLegendaryElectronicCircuitWithQuality = SolverTest(lambda: withSettings(
+        {config.machinePrefs: presets.MP_LEGENDARY},
+        lambda: Box([*~rcp.electronic_circuit.allQualities(modules=itm.legendary_quality_module_3)[0:4],
+                     ~rcp.legendary_electronic_circuit(),
+                     *~rcp.electronic_circuit_recycling.allQualities[0:4]()],
+                    inputs = rcp.electronic_circuit.inputs, outputs = [itm.legendary_electronic_circuit@1]),
+    ), {itm.legendary_electronic_circuit: 1,
+        itm.iron_plate: frac(-1346603122378414326272,57354060737264781873),
+        itm.copper_cable: frac(-1346603122378414326272,19118020245754927291)})
+
+    testLegendaryElectronicCircuitWithBoth = SolverTest(lambda: withSettings(
+        {config.machinePrefs: presets.MP_LEGENDARY},
+        lambda: Box([*~rcp.electronic_circuit.allQualities(),
+                     *~rcp.electronic_circuit.allQualities(modules=itm.legendary_quality_module_3)[0:4],
+                     *~rcp.electronic_circuit_recycling.allQualities[0:4]()],
+                    inputs = rcp.electronic_circuit.inputs,
+                    outputs = [itm.legendary_electronic_circuit@1])
+    ), {itm.legendary_electronic_circuit: 1,
+        itm.iron_plate: frac(-1032035698176,73013623859),
+        itm.copper_cable: frac(-3096107094528,73013623859)})
+
+config.gameInfo.reset(origGameConfig)

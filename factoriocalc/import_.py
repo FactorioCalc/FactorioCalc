@@ -33,15 +33,15 @@ def setGameConfig(mode, path=None, includeDisabled=True, importBonuses=None):
         One of: ``'v2.0'`` for Factorio 2.0; ``'v2.0-sa'`` for Factorio Space
         Age; ``'v1.1'`` for Factorio 1.1; ``'v.1.1-expansive'`` for expansive
         mode in Factorio 1.1; ``'custom'`` for vanilla gameplay but using a
+        custom configuration; ``'custom-sa'`` for Space Age but using a
         custom configuration; ``'mod'`` for overhaul mods; or a string
         specifying a custom mod with builtin support.  See the `mods` module
         for currently supported mods.
 
     *path*
         Path to a JSON file created by the `Recipe Exporter
-        <https://mods.factorio.com/mod/RecipeExporter>`_ mod.  Ignored if
-        mode is ``'normal'`` or ``'expensive'``, otherwise it must be
-        provided.
+        <https://mods.factorio.com/mod/RecipeExporter>`_ mod.  Ignored when
+        loading a built-in configuration, required otherwise.
 
     *includeDisabled*
         If false, skip recipes marked as disabled.  Disabled recipes include
@@ -49,7 +49,7 @@ def setGameConfig(mode, path=None, includeDisabled=True, importBonuses=None):
 
     *importBonuses*
         Import recipe productivity bonuses if true.  If `None` than only
-        import bonuses if a path is also specifed.
+        import bonuses if a path is also provided.
 
     Note that changing the game configuration creates a new set of symbols in
     the `itm`, `rcp`, `mch`, and `presets` modules.  Any non-symbolic
@@ -77,10 +77,12 @@ def setGameConfig(mode, path=None, includeDisabled=True, importBonuses=None):
         importFun = vanillaImport
         path = _dir / 'game-info-v_2_0.json'
     elif mode == 'v2.0-sa':
-        importFun = vanillaImport
+        importFun = saImport
         path = _dir / 'game-info-v_2_0-sa.json'
     elif mode == 'custom':
         importFun = vanillaImport
+    elif mode == 'custom-sa':
+        importFun = saImport
     elif mode == 'mod':
         importFun = basicImport
     elif isinstance(mode, str):
@@ -103,6 +105,12 @@ def vanillaImport(gameInfo, **kwargs):
                           extraPasses = [vanillaResearchHacks],
                           craftingHints = vanillaCraftingHints,
                           rocketRecipeHints = {'rocket-silo::space-science-pack': 'default'},
+                          **kwargs)
+
+def saImport(gameInfo, **kwargs):
+    return importGameInfo(gameInfo,
+                          presets = saPresets,
+                          craftingHints = vanillaCraftingHints,
                           **kwargs)
 
 def basicImport(gameInfo, **kwargs):
@@ -590,6 +598,40 @@ def vanillaPresets():
                          itm.space_science_pack,
                          itm.military_science_pack}
     }
+
+def saPresets():
+    from . import mch, itm, rcp
+    return {
+        'MP_EARLY_GAME': MachinePrefs(mch.AssemblingMachine1(), mch.StoneFurnace(), mch.ChemicalPlant),
+        'MP_EARLY_MID_GAME': MachinePrefs(mch.AssemblingMachine3(), mch.ElectricFurnace(), mch.ChemicalPlant),
+        'MP_LATE_GAME': MachinePrefs(
+            mch.Foundry(),
+            mch.ElectromagneticPlant(),
+            mch.AssemblingMachine3(rcp.rocket_fuel),
+            mch.ChemicalPlant(rcp.light_oil_cracking),
+            mch.ChemicalPlant(rcp.heavy_oil_cracking),
+            mch.Biochamber(),
+            mch.CryogenicPlant(),
+            mch.AssemblingMachine3(),
+            mch.ElectricFurnace()),
+        'MP_LEGENDARY': MachinePrefs(
+            mch.LegendaryFoundry(modules=itm.legendary_productivity_module_3),
+            mch.LegendaryElectromagneticPlant(modules=itm.legendary_productivity_module_3),
+            mch.LegendaryAssemblingMachine3(rcp.rocket_fuel, modules=itm.legendary_productivity_module_3),
+            mch.LegendaryChemicalPlant(rcp.light_oil_cracking, modules=itm.legendary_productivity_module_3),
+            mch.LegendaryChemicalPlant(rcp.heavy_oil_cracking, modules=itm.legendary_productivity_module_3),
+            mch.LegendaryBiochamber(modules=itm.legendary_productivity_module_3),
+            mch.LegendaryCryogenicPlant(modules=itm.legendary_productivity_module_3),
+            mch.LegendaryAssemblingMachine3(modules=itm.legendary_productivity_module_3),
+            mch.LegendaryElectricFurnace(modules=itm.legendary_productivity_module_3),
+            mch.LegendaryChemicalPlant(modules=itm.legendary_productivity_module_3),
+            mch.LegendaryOilRefinery(modules=itm.legendary_productivity_module_3),
+            mch.LegendaryRocketSilo(modules=itm.legendary_productivity_module_3),
+            mch.LegendaryCentrifuge(modules=itm.legendary_productivity_module_3),
+            mch.LegendaryRecycler(modules=itm.legendary_quality_module_3),
+        ),
+    }
+
 
 def vanillaResearchHacks(gi):
     def addItem(cls, name, order):
