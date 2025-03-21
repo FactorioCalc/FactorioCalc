@@ -4,14 +4,14 @@ from collections import defaultdict
 from factoriocalc import *
 setGameConfig('v1.1')
 
-_dir = Path(__file__).parent.resolve()
+testDir = Path(__file__).parent.resolve()
 
 _bpBook = None
 def bpBook():
     global _bpBook
     if _bpBook:
         return _bpBook
-    p = _dir / 'blueprint-book.txt'
+    p = testDir / 'blueprint-book.txt'
     with open(p) as f:
         bp_str = f.read()
         _bpBook = importBlueprint(bp_str)
@@ -22,7 +22,7 @@ def circuitsBpBook():
     global _circuitsBpBook
     if _circuitsBpBook:
         return _circuitsBpBook
-    p = _dir / 'circuits.txt'
+    p = testDir / 'circuits.txt'
     with open(p) as f:
         bp_str = f.read()
         _circuitsBpBook = importBlueprint(bp_str)
