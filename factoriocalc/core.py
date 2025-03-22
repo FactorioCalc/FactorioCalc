@@ -288,7 +288,10 @@ class MachineMeta(type):
     @property
     def descr(self):
         from .config import gameInfo
-        return gameInfo.get().translatedNames.get(f'mch {self.name}', self.name)
+        try:
+            return gameInfo.get().translatedNames.get(f'mch {self.name}', self.name)
+        except LookupError:
+            return None
     @property
     def alias(self):
         return self.__name__
