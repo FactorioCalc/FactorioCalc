@@ -136,6 +136,7 @@ def _importGameInfo(gameInfo, includeDisabled, importBonuses,
     groups = gameInfo['groups']
 
     def getOrderKey(d, qualityIdx):
+        assert(isinstance(qualityIdx, int))
         return (groups[d['group']]['order'],groups[d['subgroup']]['order'],d['order'],qualityIdx)
 
     def addItem(item, descr = ''):
@@ -227,7 +228,7 @@ def _importGameInfo(gameInfo, includeDisabled, importBonuses,
     # import machines
     for _,v in gameInfo['entities'].items():
         if 'hidden' in v.get('flags',[]): continue
-        for q in qualityNames:
+        for (qi, q) in enumerate(qualityNames):
             if q is None or q == 'normal':
                 name = v['name']
                 clsName = toClassName(v['name'])
@@ -265,7 +266,7 @@ def _importGameInfo(gameInfo, includeDisabled, importBonuses,
                 continue
             dict = {'name': name,
                     'type': v['type'],
-                    'order': getOrderKey(v,q),
+                    'order': getOrderKey(v,qi),
                     'group': v['group'],
                     'subgroup': v['group'],
                     'width': frac(v['width']),
@@ -352,7 +353,7 @@ def _importGameInfo(gameInfo, includeDisabled, importBonuses,
         if limitation is not None:
             limitation = set(limitation)
         _otherQualities = []
-        for q in qualityNames:
+        for (qi, q) in enumerate(qualityNames):
             if q is None or q == 'normal':
                 name = k
                 level = 0
@@ -366,7 +367,7 @@ def _importGameInfo(gameInfo, includeDisabled, importBonuses,
                                consumption = qualityAdj(e.consumption, 100) if e.consumption < 0 else e.consumption,
                                pollution = qualityAdj(e.pollution, 100) if e.pollution < 0 else e.pollution,
                                quality = qualityAdj(e.quality, 1000) if e.quality > 0 else e.quality)
-            item = Module(name, order = getOrderKey(v,q),
+            item = Module(name, order = getOrderKey(v,qi),
                           stackSize = v['stack_size'], weight = frac(v.get('weight',0), float_conv_method='round'),
                           quality = q, qualityIdx = len(_otherQualities), _otherQualities = _otherQualities,
                           effect = adjEffect, limitation = limitation)
@@ -453,7 +454,7 @@ def _importGameInfo(gameInfo, includeDisabled, importBonuses,
             time = frac(v.get('energy', 0.5), float_conv_method = 'round')
             allowedEffects = AllowedEffects(**v.get('allowed_effects', {}))
             maxProductivity = frac_from_float_round(v.get('maximum_productivity', 3), precision = 6)
-            order = getOrderKey(v,q)
+            order = getOrderKey(v,i)
             recipe = Recipe(recipeName,q,i,_otherQualities,
                             categories.get(v['category'], None),inputs,products,byproducts,time,
                             allowedEffects,maxProductivity,order)
