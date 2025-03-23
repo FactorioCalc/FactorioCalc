@@ -477,41 +477,63 @@ class QualityTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.origGameInfo = config.gameInfo.set(saGameConfig)
+        cls.origMachinePrefs = config.machinePrefs.set(presets.MP_LEGENDARY)
 
     @classmethod
     def tearDownClass(cls):
+        config.machinePrefs.reset(cls.origMachinePrefs)
         config.gameInfo.reset(cls.origGameInfo)
 
-    testLegendaryElectronicCircuitWithProd = SolverTest(lambda: withSettings(
-        {config.machinePrefs: presets.MP_LEGENDARY},
+    testLegendaryElectronicCircuitWithProd = SolverTest(
         lambda: Box([*~rcp.electronic_circuit.allQualities(),
                      *~rcp.electronic_circuit_recycling.allQualities[0:4]()],
                     inputs = rcp.electronic_circuit.inputs,
-                    outputs = [itm.legendary_electronic_circuit@1])
-    ), {itm.legendary_electronic_circuit: 1,
-        itm.iron_plate: frac(-1032035698176,73013623859),
-        itm.copper_cable: frac(-3096107094528,73013623859)})
+                    outputs = [itm.legendary_electronic_circuit@1]),
+        {itm.legendary_electronic_circuit: 1,
+         itm.iron_plate: frac(-1032035698176,73013623859),
+         itm.copper_cable: frac(-3096107094528,73013623859)}
+    )
 
-    testLegendaryElectronicCircuitWithQuality = SolverTest(lambda: withSettings(
-        {config.machinePrefs: presets.MP_LEGENDARY},
+    testLegendaryElectronicCircuitWithQuality = SolverTest(
         lambda: Box([*~rcp.electronic_circuit.allQualities(modules=itm.legendary_quality_module_3)[0:4],
                      ~rcp.legendary_electronic_circuit(),
                      *~rcp.electronic_circuit_recycling.allQualities[0:4]()],
                     inputs = rcp.electronic_circuit.inputs, outputs = [itm.legendary_electronic_circuit@1]),
-    ), {itm.legendary_electronic_circuit: 1,
-        itm.iron_plate: frac(-1346603122378414326272,57354060737264781873),
-        itm.copper_cable: frac(-1346603122378414326272,19118020245754927291)})
+        {itm.legendary_electronic_circuit: 1,
+         itm.iron_plate: frac(-1346603122378414326272,57354060737264781873),
+         itm.copper_cable: frac(-1346603122378414326272,19118020245754927291)}
+    )
 
-    testLegendaryElectronicCircuitWithBoth = SolverTest(lambda: withSettings(
-        {config.machinePrefs: presets.MP_LEGENDARY},
+    testLegendaryElectronicCircuitWithBoth = SolverTest(
         lambda: Box([*~rcp.electronic_circuit.allQualities(),
                      *~rcp.electronic_circuit.allQualities(modules=itm.legendary_quality_module_3)[0:4],
                      *~rcp.electronic_circuit_recycling.allQualities[0:4]()],
                     inputs = rcp.electronic_circuit.inputs,
-                    outputs = [itm.legendary_electronic_circuit@1])
-    ), {itm.legendary_electronic_circuit: 1,
-        itm.iron_plate: frac(-1032035698176,73013623859),
-        itm.copper_cable: frac(-3096107094528,73013623859)})
+                    outputs = [itm.legendary_electronic_circuit@1]),
+        {itm.legendary_electronic_circuit: 1,
+         itm.iron_plate: frac(-1032035698176,73013623859),
+         itm.copper_cable: frac(-3096107094528,73013623859)}
+    )
+
+    testPreferMachinesWithProdOverQualityModules = SolverTest(
+        lambda: Box([~rcp.molten_iron(),
+                     2*rcp.casting_iron(),
+                     rcp.casting_iron(modules=itm.legendary_quality_module_3)],
+                    outputTouchups = [itm.iron_plate@15],
+                    priorities = [(rcp.casting_iron(),1)]),
+        {itm.iron_plate: 15, itm.uncommon_iron_plate: frac(279,376), itm.legendary_iron_plate: frac(31,37600),
+         itm.iron_ore: frac(-407,141)}
+    )
+
+    testPreferMachinesWithQualityOverProdModules = SolverTest(
+        lambda: Box([~rcp.molten_iron(),
+                     2*rcp.casting_iron(),
+                     rcp.casting_iron(modules=itm.legendary_quality_module_3)],
+                    outputTouchups = [itm.iron_plate@15],
+                    priorities = [(rcp.casting_iron(modules=itm.legendary_quality_module_3),1)]),
+        {itm.iron_plate: 15, itm.uncommon_iron_plate: frac(837,500), itm.legendary_iron_plate: frac(93,50000),
+         itm.iron_ore: frac(-2186,625)}
+    )
 
 config.gameInfo.reset(origGameConfig)
 

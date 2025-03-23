@@ -430,10 +430,11 @@ class LinearEqSystem:
                 name = f'{name}_q{quality:03d}'
             else:
                 quality = None
-            if hasattr(m, 'fuel'):
-                return ((id(box), m.recipe, productivity, quality, m.fuel), f'{name}_u_{m.fuel}')
-            else:
+            fuel = getattr(m, 'fuel', None)
+            if fuel is None:
                 return ((id(box), m.recipe, productivity, quality), name)
+            else:
+                return ((id(box), m.recipe, productivity, quality, m.fuel), f'{name}_u_{fuel}')
 
         tally = _tally
         if tally is None:
@@ -542,8 +543,8 @@ class LinearEqSystem:
                 key = (id(box), key0)
                 for var in byRecipe.get(key, []):
                     priorities[var] = prior
-            elif isinstance(key0, Machine):
-                key, _ = varInfo(m)
+            elif isinstance(key0, Box._FakeMachine):
+                key, _ = varInfo(key0)
                 if key in byId:
                     priorities[byId[key]] = prior
             else:

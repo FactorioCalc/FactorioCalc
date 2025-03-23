@@ -4,6 +4,7 @@ from collections import defaultdict
 from collections.abc import Mapping,Sequence
 from copy import copy as _copy, deepcopy as _deepcopy
 from numbers import Number
+from typing import NamedTuple
 import sys
 import operator
 
@@ -250,16 +251,42 @@ class Box(BoxBase):
         __slots__ = ()
         def __str__(self):
             def tostr(k):
-                return f'itm.{k}' if isinstance(k, Ingredient) else f'rcp.{k}'
+                if isinstance(k, Ingredient):
+                    return f'itm.{k}'
+                elif isinstance(k, Recipe):
+                    return f'rcp.{k}'
+                else:
+                    return str(k)
             return ', '.join(f'ignore {tostr(k)}' if p <= IGNORE else f'{tostr(k)}: {p}' for k, p in self.items())
         def __setitem__(self, key, priority):
             priority = frac(priority)
             if priority < Box.MIN_PRIORITY or priority > Box.MAX_PRIORITY:
                 raise ValueError('priority must be between {Box.MIN_PRIORITY} and {Box.MAX_PRIORITY}, inclusive')
+            if isinstance(key, Machine):
+                b = key.bonus()
+                key = Box._FakeMachine(key.recipe,
+                                       getattr(key, 'fuel', None),
+                                       Bonus(productivity = b.productivity, quality = b.quality))
             return dict.__setitem__(self, key, priority)
         def _jsonObj(self):
             from .jsonconv import _jsonObj
             return {f"{'i' if isinstance(k, Ingredient) else 'r'} {k.name}": _jsonObj(v) for k,v in self.items()}
+
+    class _FakeMachine(NamedTuple):
+        recipe: Recipe
+        fuel: Ingredient
+        bonus_: Bonus
+        @property
+        def machine(self):
+            return self
+        def bonus(self):
+            return self.bonus_
+        def __str__(self):
+            parms = []
+            if self.fuel:   parms.append(f"fuel={self.fuel}")
+            if self.bonus_: parms.append(f"{self.bonus_}")
+            parms = '; '.join(parms)
+            return f"rcp.{self.recipe.alias}<{parms}>"
 
     def __init__(self, *args, name = None, inner = None,
                  outputs = None, extraOutputs = (), outputTouchups = (), outputsLoose = False,
@@ -327,7 +354,7 @@ class Box(BoxBase):
             Extra constraints for the solver.  It can either be a
             mapping of simple constraints, or a list of equations.
 
-            If a mapping then the flow for the item (the key) will need to be
+            If a mapping, then the flow for the item (the key) will need to be
             at least the given rate.  Positive values will constrain outputs
             and negative values will constrain inputs.  For example,
             {itm.plastic_bar: 2} will add a constraint to produce plastic bars
@@ -342,13 +369,28 @@ class Box(BoxBase):
             ``Equal(itm.uranium_fuel_cell, (-1, itm.used_up_uranium_fuel_cell))``
 
         *priorities*
-            A mapping of priorities for the solver.  The key is either an
-            item or a recipe.  The value in a number between -100 and 100
-            with larger values having a higher priority.  The default priority
-            for outputs is 0.  The constant `IGNORE` can be used for the
-            lowest priority (-100) and has special meaning to the solver.
-            Input priorites are currently ignored unless the constant `IGNORE`
-            is used.  Recipe priorities are supported, but should be positive.
+            A mapping of priorities for the solver.  Can be either a `dict` or
+            a list of key-value pairs.
+
+            The key is an item, recipe, or machine.  The value in a number
+            between -100 and 100 with larger values having a higher priority.
+
+            The default priority for outputs is 0.  The constant `IGNORE` can
+            be used for the lowest priority (-100) and has special meaning to
+            the solver.  Input priorities are currently ignored unless the
+            constant `IGNORE` is used.
+
+            If the key is a recipe or machine: the priority should be
+            positive.  If the key is a machine: the machine object must also
+            have a recipe associated with it.  In addition, since machine
+            objects are not hashable, machines must be passed in via a list of
+            key-value pairs rather than a `dict`.
+
+            When a recipe is specified, all machines with that recipe will be
+            assigned that priority.  When a machine is specified instead, all
+            machines with the same fuel, productivity bonus, and quality bonus
+            will get assigned that priority.  The specific machine type is not
+            taken into account.
 
         *allowExtraInputs*
             |nbsp|
