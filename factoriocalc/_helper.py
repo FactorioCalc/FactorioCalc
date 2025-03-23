@@ -16,10 +16,3 @@ def asItem(item):
     if not isinstance(item, Ingredient):
         raise TypeError(f'invalid type for item: {type(item)}')
     return item
-
-def getDefaultFuel():
-    from . import config, itm
-    fuel = config.defaultFuel.get(None)
-    if fuel is None:
-        fuel = itm.coal
-    return fuel

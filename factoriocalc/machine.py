@@ -9,7 +9,7 @@ from math import sqrt,trunc
 from .fracs import frac,div,diva,Inf
 from .core import *
 from .core import Immutable,_MutableFlows,_toRecipe,InvalidRecipe
-from . import itm, rcp
+from . import itm, rcp, config
 
 class Category(Immutable):
     def __init__(self, name, members):
@@ -21,7 +21,19 @@ class Category(Immutable):
 @dataclass(init=False,repr=False)
 class BurnerMixin:
     energyType = 'burner'
+    fuelCategories = {'chemical'}
     fuel: Item = None
+
+    @classmethod
+    def defaultFuel(cls):
+        if 'chemical' in cls.fuelCategories:
+            fuel = config.defaultFuel.get(None)
+            if fuel:
+                return fuel
+        for fuel in config.gameInfo.get().fuelPreferences:
+            if fuel.fuelCategory in cls.fuelCategories:
+                return fuel
+        raise ValueError('unable to find compatible fuel')
 
     def __init__(self, *args, fuel = None, **kws):
         from ._helper import asItem
@@ -30,9 +42,11 @@ class BurnerMixin:
         self.fuel = fuel
 
     def _reprParts(self, lst):
+        super()._reprParts(lst)
         lst.append(f'fuel={self.fuel!r}')
 
     def _keyParts(self, lst):
+        super()._keyParts(lst)
         lst.append('fuel', self.fuel)
 
     def _jsonObj(self, **kwargs):
@@ -43,10 +57,9 @@ class BurnerMixin:
         return obj
 
     def __setattr__(self, prop, val):
-        #FIXME NOW: Fix check for nutrients etc
-        #if prop == 'fuel':
-        #    if val is not None and val.fuelCategory != 'chemical':
-        #        raise ValueError(f'invalid item for fuel: {val}')
+        if prop == 'fuel':
+            if val is not None and val.fuelCategory not in self.fuelCategories:
+                raise ValueError(f'invalid item for fuel: {val}')
         super().__setattr__(prop, val)
 
     def _calc_flows(self, throttle):
@@ -194,16 +207,19 @@ class ModulesMixin(_ModulesHelperMixin):
         return (self.modules, self.beacons)
 
     def _reprParts(self, lst):
+        super()._reprParts(lst)
         self._fmtModulesRepr('modules=', lst)
         if len(self.beacons) > 0:
             lst.append('beacons=' + '+'.join(f'{num!r}*{b!r}' for num,b in self.beacons))
 
     def _strParts(self, lst):
+        super()._strParts(lst)
         self._fmtModulesStr(lst)
         if self.beacons:
             lst.append(' + '.join(str(b) if num == 1 else f'{num:.3g}x {b}' for num,b in self.beacons))
 
     def _keyParts(self, lst):
+        super()._keyParts(lst)
         lst.append(('modules', self.modules))
         beacons = defaultdict(lambda: 0)
         for num, b in self.beacons:
@@ -297,6 +313,7 @@ class Beacon(_ModulesHelperMixin,Machine):
         return (self.modules, self.id, id(self.blueprintInfo))
 
     def _reprParts(self, lst):
+        super()._reprParts(lst)
         if self.id is not None:
             lst.append(repr(self.id))
         self._fmtModulesRepr('', lst)
@@ -304,11 +321,13 @@ class Beacon(_ModulesHelperMixin,Machine):
             lst.append('frozen=False')
 
     def _strParts(self, lst):
+        super()._strParts(lst)
         if self.id is not None:
             lst.append(repr(self.id))
         self._fmtModulesStr(lst)
 
     def _keyParts(self, lst):
+        super()._keyParts(lst)
         lst.append(('modules', self.modules))
 
     def __hash__(self):

@@ -6,7 +6,6 @@ import math
 
 from .core import *
 from . import config, machine
-from ._helper import getDefaultFuel
 
 __all__ = ('Blueprint', 'BlueprintBook', 'importBlueprint')
 
@@ -45,9 +44,6 @@ class Blueprint:
         itmByName = gameInfo.itmByName
         mchByName = gameInfo.mchByName
         recipeMap = gameInfo.rcpByName
-
-        if burnerFuel is None:
-            burnerFuel = getDefaultFuel()
 
         if recipes is None:
             recipes = {}
@@ -98,7 +94,10 @@ class Blueprint:
                 if r:
                     m.recipe = r
             if hasattr(m, 'fuel'):
-                m.fuel = burnerFuel
+                if 'chemical' in m.fuelCategories and burnerFuel:
+                    m.fuel = burnerFuel
+                else:
+                    m.fuel = m.defaultFuel()
             if 'items' in v:
                 if version < VERSION2_BP:
                     m.modules = [*chain.from_iterable(repeat(itmByName[item], num) for item, num in v['items'].items())]

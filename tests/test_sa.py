@@ -5,6 +5,21 @@ from factoriocalc import *
 
 from .common import *
 
+class FuelTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.origGameInfo = config.gameInfo.set(saGameConfig)
+        cls.origMachinePrefs = config.machinePrefs.set(presets.MP_LATE_GAME)
+
+    @classmethod
+    def tearDownClass(cls):
+        config.machinePrefs.reset(cls.origMachinePrefs)
+        config.gameInfo.reset(cls.origGameInfo)
+
+    def testBioChamberFuel(self):
+        m = rcp.bioflux()
+        self.assertEqual(m.fuel, itm.nutrients)
+
 class BonusImportTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

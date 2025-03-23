@@ -42,6 +42,7 @@ class GameInfo:
     qualityLevels: list[str] =  _dc.field(default_factory = list)
     maxQualityIdx: int = 0
     recipeProductivityBonus: dict = _dc.field(default_factory = dict)
+    fuelPreferences: list[Item] = None
 
     @_dc.dataclass
     class Modules:

@@ -111,13 +111,15 @@ def saImport(gameInfo, **kwargs):
     return importGameInfo(gameInfo,
                           presets = saPresets,
                           craftingHints = vanillaCraftingHints,
+                          fuelPreferences = ('coal', 'nutrients', 'bioflux'),
                           **kwargs)
 
 def basicImport(gameInfo, **kwargs):
     return importGameInfo(gameInfo, **kwargs)
 
 def _importGameInfo(gameInfo, includeDisabled, importBonuses,
-                    commonByproducts_, rocketRecipeHints, logger):
+                    commonByproducts_, rocketRecipeHints,
+                    logger):
     from . import mch
 
     rcpByName, itmByName, mchByName = {}, {}, {}
@@ -282,6 +284,11 @@ def _importGameInfo(gameInfo, includeDisabled, importBonuses,
                     cls.pollution = frac(v['pollution'], float_conv_method = 'round')
                 except KeyError:
                     cls.pollution = 0
+            if energy_source == 'burner':
+                try:
+                    cls.fuelCategories = set(v['fuel_categories'])
+                except KeyError:
+                    pass
             if isCraftingMachine:
                 if q is None:
                     cls.craftingSpeed = frac(v['crafting_speed'], float_conv_method = 'round')
@@ -748,6 +755,7 @@ def importGameInfo(gameInfo, *,
                    importBonuses = False,
                    preAliasPasses = (),
                    nameTouchups = None,
+                   fuelPreferences = ('coal',),
                    presets = None,
                    extraPasses = (),
                    craftingHints = None,
@@ -839,6 +847,9 @@ def importGameInfo(gameInfo, *,
         If *logger* is set then a warning will be created for any combinations
         not included in this mapping.
 
+    *fuelPreferences*
+        FIXME: WriteMe
+
     *logger*
         Function called to log additional info, it is called once per line to
         be logged.  A suitable function to use, for example, would be `print`.
@@ -862,6 +873,8 @@ def importGameInfo(gameInfo, *,
         p(res)
 
     _aliasPass(res, nameTouchups)
+
+    res.fuelPreferences = tuple(res.itmByName[fuelName] for fuelName in fuelPreferences)
 
     token = config.gameInfo.set(res)
 

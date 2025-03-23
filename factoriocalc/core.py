@@ -1720,7 +1720,7 @@ class Recipe(Immutable):
             m.beacons = beacons
         if hasattr(m, 'fuel'):
             if fuel is Default and m.fuel is None:
-                m.fuel = config.defaultFuel.get()
+                m.fuel = m.defaultFuel()
             elif fuel is not Default:
                 m.fuel = fuel
         if rate is not None:
