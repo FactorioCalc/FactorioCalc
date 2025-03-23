@@ -3,6 +3,9 @@ from collections import defaultdict
 
 from factoriocalc import *
 setGameConfig('v1.1')
+origGameConfig = setGameConfig('v2.0-sa')
+saGameConfig = config.gameInfo.get()
+config.gameInfo.reset(origGameConfig)
 
 testDir = Path(__file__).parent.resolve()
 
