@@ -610,8 +610,8 @@ def vanillaPresets():
 def saPresets():
     from . import mch, itm, rcp
     return {
-        'MP_EARLY_GAME': MachinePrefs(mch.AssemblingMachine1(), mch.StoneFurnace(), mch.ChemicalPlant),
-        'MP_EARLY_MID_GAME': MachinePrefs(mch.AssemblingMachine3(), mch.ElectricFurnace(), mch.ChemicalPlant),
+        'MP_EARLY_GAME': MachinePrefs(mch.AssemblingMachine1(), mch.StoneFurnace(), mch.ChemicalPlant()),
+        'MP_EARLY_MID_GAME': MachinePrefs(mch.AssemblingMachine3(), mch.ElectricFurnace(), mch.ChemicalPlant()),
         'MP_LATE_GAME': MachinePrefs(
             mch.Foundry(),
             mch.ElectromagneticPlant(),
@@ -636,8 +636,21 @@ def saPresets():
             mch.LegendaryOilRefinery(modules=itm.legendary_productivity_module_3),
             mch.LegendaryRocketSilo(modules=itm.legendary_productivity_module_3),
             mch.LegendaryCentrifuge(modules=itm.legendary_productivity_module_3),
+            mch.LegendaryRecycler(rcp.scrap_recycling),
             mch.LegendaryRecycler(modules=itm.legendary_quality_module_3),
         ),
+        'sciencePacks': {itm.automation_science_pack,
+                         itm.logistic_science_pack,
+                         itm.chemical_science_pack,
+                         itm.production_science_pack,
+                         itm.utility_science_pack,
+                         itm.military_science_pack,
+                         itm.space_science_pack,
+                         itm.metallurgic_science_pack,
+                         itm.electromagnetic_science_pack,
+                         itm.agricultural_science_pack,
+                         itm.cryogenic_science_pack,
+                         itm.promethium_science_pack},
     }
 
 
