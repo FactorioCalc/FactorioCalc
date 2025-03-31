@@ -27,17 +27,17 @@ text = re.sub(r'(?<!\`)`~.+?\.([^`.]+)\`', r'`\g<1>`', text)
 
 baseUrl = f'https://factoriocalc.readthedocs.io/en/{readthedocs_version}'
 referenceUrl = f'{baseUrl}/reference.html'
-text = re.sub(r'\[(.+?)\]\(reference\.rst(.*?)\)', f'[\g<1>]({referenceUrl}\g<2>)', text)
+text = re.sub(r'\[(.+?)\]\(reference\.rst(.*?)\)', fr'[\g<1>]({referenceUrl}\g<2>)', text)
 
 # pad all headings with '+++' so that they are in there own markdown cell
-text = re.sub(r'\n\n(\(.+?\)=\n)?(\#.+)\n\n','\n\n+++\n\n\g<1>\g<2>\n\n+++\n\n', text)
+text = re.sub(r'\n\n(\(.+?\)=\n)?(\#.+)\n\n',r'\n\n+++\n\n\g<1>\g<2>\n\n+++\n\n', text)
 n = 1
 while n > 0:
-    text,n = re.subn(r'\+\+\+\n\n(\(.+?\)=\n)?(\#.+)\n\n(?!\+\+\+)','+++\n\n\g<1>\g<2>\n\n+++\n\n', text)
+    text,n = re.subn(r'\+\+\+\n\n(\(.+?\)=\n)?(\#.+)\n\n(?!\+\+\+)',r'+++\n\n\g<1>\g<2>\n\n+++\n\n', text)
 
 
 # (target)= => <a name="target"></a>
-text = re.sub(r'^\((.+)\)\=', '<a name="\g<1>"></a>', text, flags = re.MULTILINE)
+text = re.sub(r'^\((.+)\)\=', r'<a name="\g<1>"></a>', text, flags = re.MULTILINE)
 
 # convert myst markdown file to notebook
 

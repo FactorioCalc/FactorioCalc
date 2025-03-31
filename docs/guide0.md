@@ -36,6 +36,11 @@ sys.path.insert(0, os.path.abspath('../'))
 
 ## Basics
 
+To use FactorioCalc you need to import it and call `setGameConfig` to set the
+game configuration to match the version of Factorio you are using.  This
+section of the guide will assume you are using Factorio 2.0 without the Space
+Age addons.
+
 All symbols you need are exported into the main `factoriocalc` namespace so it
 is rare you will need to import from a sub-module.  FactorioCalc is meant to
 be used interactively via a REPL, with details of your overall factory
@@ -46,7 +51,7 @@ done so.
 
 ```{code-cell}
 from factoriocalc import *
-setGameConfig('v1.1');
+setGameConfig('v2.0');
 ```
 
 For lack of a better term, *factory*, will be used throughout this document to
@@ -272,7 +277,7 @@ given the high flow of items, doing so will likely be difficult.  Maybe
 we can decrease the number of beacons for the electronic circuits:
 
 ```{code-cell}
-ec3 = box(rcp.electronic_circuit(beacons=7*SPEED_BEACON) + rcp.copper_cable())
+ec3 = box(rcp.electronic_circuit(beacons=6*SPEED_BEACON) + rcp.copper_cable())
 ec3.summary()
 ```
 
@@ -622,7 +627,7 @@ nuclearStuff = withSettings(
               + 3*rcp.nuclear_fuel()
               + 4*rcp.uranium_rounds_magazine(modules=[],beacons=[]),
               priorities={rcp.nuclear_fuel_reprocessing:2,itm.nuclear_fuel:1},
-              constraints=[Equal(itm.uranium_fuel_cell, (-1, itm.used_up_uranium_fuel_cell))]))
+              constraints=[Equal(itm.uranium_fuel_cell, (-1, itm.depleted_uranium_fuel_cell))]))
 ```
 
 In this factory, `withSettings` is a helper functional to set a context
@@ -716,36 +721,171 @@ Calculator".
 See the [Blueprints](reference.rst#blueprints) section in the reference manual for more advanced
 usages.
 
+## Space Age
+
+Factorio has support for most aspects of the Spage Age addon, including full
+support to quality.  To use it simply set the game config `'v2.0-sa'` instead
+of `'v2.0'`:
+
+To plan your factorio for Space Agse you need to simply set the game config to
+`'v2.0-sa'` instead of `'v2.0'` for example:
+
+```{code-cell}
+setGameConfig('v2.0-sa');
+```
+
+Note that calling this function creates a completly new set of symbols.
+Mixing reference to symbols created before and after this call will likely
+create unexpected results.
+
+Examples for the rest of this guide will assume that the game config is set to
+`'v2.0-sa'`.
+
+### Recipe Productivity
+
+Recipe productivity bonuses are fully supported.  You can change the
+productivity bonus for a particular recipe by modifying
+`config.Gameinfo.recipeProductivityBonus` in the `config.gameInfo` object.
+Note that `config.gameInfo` is a `ContextVar` so you need to call
+`ContextVar.get()` to retrieve it first.  For example to set the productivity
+bonus for processing units:
+
+```python
+ config.gameInfo.get().recipeProductivityBonus[rcp.processing_unit] = frac('0.5')
+```
+
+Recipe productivity bonuses can also be imported from your current game, see
+[Custom Game Configurations](#custom-game-config).
+
+### Presets
+
+FactorioCalc provides a different set of presets for Space Age.
+
+`MP_EARLY_GAME` is similar to the same preset in the base game.
+`MP_EARLY_MID_GAME` is similar to the `MP_LATE_GAME` preset for the base game.
+`MP_LATE_GAME` will use the best machines available, except that
+`rcp.rocket_fuel`, `rcp.light_oil_cracking` and `rcp.heavy_oil_cracking` will
+still use a chemical plant instead of a biochamber.  `MP_LEGENDARY` will use
+legendary machines with legendary productivity 3 modules when applicable, and
+legendary quality 3 moduless for the recycler except for scrap recycling which
+doesn't use any modules by default.
+
+The `sciencePacks` presets is also provided and includes all the late game
+sciences, including the Promethium Science Pack.
+
+## Quality
+
+FactorioCalc has full support for quality.  For simplicity higher quality
+versions of items and recipes are distinct objects with the name of the
+quality as the prefix.  For example the higher quality versions of
+`itm.electronic_circuit` are: `itm.uncommon_electronic_circuit`,
+`itm.rare_electronic_circuit`, `itm.epic_electronic_circuit` and
+`itm.legendary_electronic_circuit`.
+
+Quality modules are fully supported and will change the recipe to output
+higher quality items in the correct ratios.  The maximum quality outputted can
+be controlled via `config.GameInfo.maxQualityIdx`, which is a number between 0
+and 4, for example: 0 for no quality, 2 for uncommon and rare, and 4 for all quality
+levels.  It defaults to 4.
+
+To aid in creating quality builds the shortcut property `.allQualities<>` can
+be used to return that item or recipe in all qualties (up to
+`config.GameInfo.maxQualityIdx`) as a sequence.  When used on a recipe the
+sequence also supports being called to create a machine for each recipe; for example,
+``rcp.legendary_electronic_circuit.allQualities()``.
+
+The propery `.normalQuality<>` can be used as a shortcut for
+`.allQualities[0]<>`.  In addition `.quality<>` will return the name of the
+quality for the current item or recipe and `.qualityIdx<>` will return the
+index.
+
+### Examples
+
+As an example of using quality let's try two methods of late game quality
+grinding for legendary electronic circuits.
+
+The first method will use legendary quality 3 modules for the electronic
+circuits:
+
+```{code-cell}
+config.machinePrefs.set(presets.MP_LEGENDARY)
+withQuality = box([*~rcp.electronic_circuit.allQualities[0:4](modules=itm.legendary_quality_module_3),
+                   ~rcp.legendary_electronic_circuit(),
+                   *~rcp.electronic_circuit_recycling.allQualities[0:4]()],
+                  inputs = rcp.electronic_circuit.inputs,
+                  outputs = [itm.legendary_electronic_circuit@1])
+withQuality.summary()
+```
+
+(Note that the MP_LEGENDARY preset will use legendary quality 3 modules for all
+recycling recipes, and legendary productivity 3 modules when possible.)
+
+And the second method will instead use legendary productivity 3 modules for
+the electronic circuits:
+
+
+```{code-cell}
+withProd =  box([*~rcp.electronic_circuit.allQualities(beacons = 1*mch.LegendaryBeacon(itm.legendary_speed_module_3)),
+                 *~rcp.electronic_circuit_recycling.allQualities[0:4]()],
+                inputs = rcp.electronic_circuit.inputs,
+                outputs = [itm.legendary_electronic_circuit@1])
+withProd.summary()
+```
+
+Surprisingly, even at just 175% productivity it is better to use productivity
+instead of quality modules for the electronic circuits.  This also requires
+fewer machines as we can use speed beacons.
+
+It is also possible to try both methods at once at let the solver figure out
+the optimal combination:
+
+```{code-cell}
+withProd =  box([*~rcp.electronic_circuit.allQualities[0:4](modules=itm.legendary_quality_module_3),
+                 *~rcp.electronic_circuit.allQualities(beacons = 1*mch.LegendaryBeacon(itm.legendary_speed_module_3)),
+                 *~rcp.electronic_circuit_recycling.allQualities[0:4]()],
+                inputs = rcp.electronic_circuit.inputs,
+                outputs = [itm.legendary_electronic_circuit@1])
+withProd.summary()
+```
+
 (custom-game-config)=
 ## Custom Game Configurations
 
-The `setGameConfig` function can be used to change the game configuration from
-*normal* to *expensive*, or load a custom configuration from a JSON file.
+As previous shown, `setGameConfig` can be used to set or change the game
+configuration.  It can also be used to to load a custom game configuration
+from a JSON file.  Any call to `setGameConfig` replaces all the symbols in the
+`itm`, `rcp`, `mch`, and `presets` packages so any non symbolic references to
+the old symbols are unlikely to work correctly with the new configuration.
 
-(expensive-mode)=
-### Expensive Mode
+(builtin-game-modes)=
+### Builtin Game Modes
 
-To change the game configuration to use *expensive* recipes use
-``setGameConfig('expensive')`` to switch it back to *normal* mode use,
-``setGameConfig('normal')``.  Note that any call to `setGameConfig` replaces
-all the symbols in the `itm`, `rcp`, `mch`, and `presets` packages so any non
-symbolic references to the old symbols are unlikely to work correctly with the
-new configuration.
+FactorioCalc supprts the following game modes: ``v1.1``, ``v1.1-expensive``,
+``v2.0``, ``v2.0-sa``.
+
+To change the game mode simply call setGameConfig with one of those modes as
+the first argument, for example for version 1.1 of Factorio:
+
+```python
+setGameConfig('v1.1')
+```
 
 (alternative-configs)=
 ### Alternative Configurations and Locale Support
 
-FactorioCalc currently uses the English translation for the `.descr<>` property
-and `._find()<>` function.  To use an alternative language you need to load a
-custom configuration with the translated names in the language you want.
+FactorioCalc also supports loading a custom game configuration from a JSON
+file.  This is useful as it can include state information from the current
+game such as if a recipe is enabled and recipe productivity bonus.  It is also
+the only way to get non-English translations for the `.descr<>` property and
+`._find()<>` function.
 
 To load a custom configuration, you first need to export the data from Factorio
-in the configuration you want (in this case an alternative language).  To
-export the data use the [Recipe Exporter](https://mods.factorio.com/mod/RecipeExporter)
+in the configuration you want.  To export the data use the
+[Recipe Exporter](https://mods.factorio.com/mod/RecipeExporter)
 mod.  Install it, and load a map with the configuration you want.  Then,
 from the console run the ``dump_recipes`` command.  This command will export
 the recipes and other needed data to the ``script-output/recipes.json``
-file.  Then, to load the file use:
+file.  Then, to load the file for the base game use:
 
 ```python
 setGameConfig('custom', userRecipesFile())
@@ -755,16 +895,21 @@ setGameConfig('custom', userRecipesFile())
 location (``%APPDATA%\Factorio`` for Windows or ``$HOME/.factorio`` for
 Linux).  If this is not the case you will need to provide the correct path.
 
-Loading a custom configuration also gives you the option to disable recipes
-that have not been researched yet by passing ``includeDisabled = False`` into
-the call to `setGameConfig`.
+To load a configuration for Space Age instead, change ``'custom'`` to ``'custom-sa'``.
+
+To skip recipes that have not been researched yet, pass ``includeDisabled =
+False`` into the call to `setGameConfig`.
+
+When loading a custom configuration recipe productivity bonus are included by
+default, to not import them pass ``importBonuses = False`` into the call to
+`setGameConfig`.
 
 (mod-support)=
 ### Mod Support
 
 For a simple mod that only adds recipes or makes very simple changes, you can
 load the configuration like you would in the previous section by calling
-`setGameConfig` with ``'custom'`` as the first parameter.
+`setGameConfig` with ``'custom'`` or ``'custom-sa'`` as the first parameter.
 
 Overhaul mods will take a little more work.  For basic support you can just
 call `setGameConfig` with the ``'mod'`` as the first parameter.  Unlike ``'custom'``

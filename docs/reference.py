@@ -159,24 +159,65 @@ Core
 .. automodule:: factoriocalc.presets
    :no-members:
 
-   When the gameInfo context variable is configured for the base game this module
-   provides:
+Base Game
+.........
+
+   When the gameInfo context variable is configured for the base game this
+   module provides:
 
    .. py:data:: MP_EARLY_GAME
       :value: {fc.presets.MP_EARLY_GAME!r}
+      :no-index:
 
    .. py:data:: MP_LATE_GAME
       :value: {fc.presets.MP_LATE_GAME!r}
+      :no-index:
 
    .. py:function:: MP_MAX_PROD(level=3, beacon=None, beacons=None)
+      :no-index:
 
    .. py:data:: SPEED_BEACON
       :value: {fc.presets.SPEED_BEACON!r}
+      :no-index:
 
    .. py:data:: sciencePacks
       :type: set
       :value: {fc.presets.sciencePacks!r}
+      :no-index:
+''')
+prevConfig=fc.setGameConfig('v2.0-sa')
+print (
+f'''
 
+Space Age
+.........
+
+   When the gameInfo context variable is configured for Space Age this module provides:
+
+   .. py:data:: MP_EARLY_GAME
+      :value: {fc.presets.MP_EARLY_GAME!r}
+      :no-index:
+
+   .. py:data:: MP_EARLY_MID_GAME
+      :value: {fc.presets.MP_EARLY_MID_GAME!r}
+      :no-index:
+
+   .. py:data:: MP_LATE_GAME
+      :value: {fc.presets.MP_LATE_GAME!r}
+      :no-index:
+
+   .. py:data:: MP_LEGENDARY
+      :value: {fc.presets.MP_LEGENDARY!r}
+      :no-index:
+
+   .. py:data:: sciencePacks
+      :type: set
+      :value: {fc.presets.sciencePacks!r}
+      :no-index:
+''')
+fc.config.gameInfo.reset(prevConfig)
+print(
+f'''
 Units
 -----
 

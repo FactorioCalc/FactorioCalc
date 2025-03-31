@@ -206,7 +206,12 @@ autodoc_default_options = {
     'show-inheritance': True,
 }
 
+show_warning_types = True
 
-# see https://github.com/executablebooks/MyST-Parser/issues/564
-suppress_warnings = ["myst.xref_missing"]
+##
+
+suppress_warnings = [
+    # see https://github.com/executablebooks/MyST-Parser/issues/564
+    'myst.xref_missing',
+]
 

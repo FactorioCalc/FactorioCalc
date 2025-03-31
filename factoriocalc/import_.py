@@ -27,11 +27,11 @@ def userRecipesFile():
         return None
 
 def setGameConfig(mode, path=None, includeDisabled=True, importBonuses=None):
-    """Changes the game configuration.
+    """Sets or changes the current game configuration.
 
     *mode*
         One of: ``'v2.0'`` for Factorio 2.0; ``'v2.0-sa'`` for Factorio Space
-        Age; ``'v1.1'`` for Factorio 1.1; ``'v.1.1-expansive'`` for expansive
+        Age; ``'v1.1'`` for Factorio 1.1; ``'v1.1-expansive'`` for expansive
         mode in Factorio 1.1; ``'custom'`` for vanilla gameplay but using a
         custom configuration; ``'custom-sa'`` for Space Age but using a
         custom configuration; ``'mod'`` for overhaul mods; or a string
@@ -861,7 +861,7 @@ def importGameInfo(gameInfo, *,
         not included in this mapping.
 
     *fuelPreferences*
-        FIXME: WriteMe
+        Sequence of items to use as fuel that will be tried in order.
 
     *logger*
         Function called to log additional info, it is called once per line to
