@@ -5,7 +5,7 @@
 ChangeLog
 =========
 
-Changes from 0.2.1 to 0.3.0 (???)
+Changes from 0.2.1 to 0.3 (Apr 4, 2025)
 ------------------------------------------
 
 * Support Factorio 2.0 and Space Age
@@ -13,7 +13,7 @@ Changes from 0.2.1 to 0.3.0 (???)
 * Require `setGameConfig` to be called to set the game configuration as there
   is no longer a single best configuration to use as the default.
 
-* Various bug fixes and enhancements
+* Various bug fixes and enhancements.
 
 
 Changes from 0.2 to 0.2.1 (Oct 19, 2024)
