@@ -39,7 +39,7 @@ sys.path.insert(0, os.path.abspath('../'))
 To use FactorioCalc you need to import it and call `setGameConfig` to set the
 game configuration to match the version of Factorio you are using.  This
 section of the guide will assume you are using Factorio 2.0 without the Space
-Age addons.
+Age addon.
 
 All symbols you need are exported into the main `factoriocalc` namespace so it
 is rare you will need to import from a sub-module.  FactorioCalc is meant to
@@ -59,7 +59,7 @@ refer to any group of machines that work together to produce one or more
 products.  The term *overall factory* will be used to refer to all the
 factories on the map.
 
-Factoricalc uses exact fractions internally.  For speed a custom fraction
+FactorioCalc uses exact fractions internally.  For speed a custom fraction
 class is used.  This class does not allow conversion from floats, as 0.12
 as a float is not 12/100 but really 1080863910568919/9007199254740992, which
 is almost certainly not what was intended.  There are various heuristics
@@ -723,18 +723,15 @@ usages.
 
 ## Space Age
 
-Factorio has support for most aspects of the Spage Age addon, including full
-support to quality.  To use it simply set the game config `'v2.0-sa'` instead
+Factorio has support for most aspects of the Space Age addon, including full
+support for quality.  To use it simply set the game config to `'v2.0-sa'` instead
 of `'v2.0'`:
-
-To plan your factorio for Space Agse you need to simply set the game config to
-`'v2.0-sa'` instead of `'v2.0'` for example:
 
 ```{code-cell}
 setGameConfig('v2.0-sa');
 ```
 
-Note that calling this function creates a completly new set of symbols.
+Note that calling this function creates a completely new set of symbols.
 Mixing reference to symbols created before and after this call will likely
 create unexpected results.
 
@@ -767,7 +764,7 @@ FactorioCalc provides a different set of presets for Space Age.
 `rcp.rocket_fuel`, `rcp.light_oil_cracking` and `rcp.heavy_oil_cracking` will
 still use a chemical plant instead of a biochamber.  `MP_LEGENDARY` will use
 legendary machines with legendary productivity 3 modules when applicable, and
-legendary quality 3 moduless for the recycler except for scrap recycling which
+legendary quality 3 modules for the recycler except for scrap recycling which
 doesn't use any modules by default.
 
 The `sciencePacks` presets is also provided and includes all the late game
@@ -789,19 +786,19 @@ and 4, for example: 0 for no quality, 2 for uncommon and rare, and 4 for all qua
 levels.  It defaults to 4.
 
 To aid in creating quality builds the shortcut property `.allQualities<>` can
-be used to return that item or recipe in all qualties (up to
+be used to return that item or recipe in all qualities (up to
 `config.GameInfo.maxQualityIdx`) as a sequence.  When used on a recipe the
 sequence also supports being called to create a machine for each recipe; for example,
 ``rcp.legendary_electronic_circuit.allQualities()``.
 
-The propery `.normalQuality<>` can be used as a shortcut for
+The properly `.normalQuality<>` can be used as a shortcut for
 `.allQualities[0]<>`.  In addition `.quality<>` will return the name of the
 quality for the current item or recipe and `.qualityIdx<>` will return the
 index.
 
 ### Examples
 
-As an example of using quality let's try two methods of late game quality
+As an example of using quality, let's try two methods of late game quality
 grinding for legendary electronic circuits.
 
 The first method will use legendary quality 3 modules for the electronic
@@ -860,7 +857,7 @@ the old symbols are unlikely to work correctly with the new configuration.
 (builtin-game-modes)=
 ### Builtin Game Modes
 
-FactorioCalc supprts the following game modes: ``v1.1``, ``v1.1-expensive``,
+FactorioCalc supports the following game modes: ``v1.1``, ``v1.1-expensive``,
 ``v2.0``, ``v2.0-sa``.
 
 To change the game mode simply call setGameConfig with one of those modes as
@@ -875,7 +872,7 @@ setGameConfig('v1.1')
 
 FactorioCalc also supports loading a custom game configuration from a JSON
 file.  This is useful as it can include state information from the current
-game such as if a recipe is enabled and recipe productivity bonus.  It is also
+game, such as if a recipe is enabled and recipe productivity bonus.  It is also
 the only way to get non-English translations for the `.descr<>` property and
 `._find()<>` function.
 
