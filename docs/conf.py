@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.abspath('../'))
 # -- Project information -----------------------------------------------------
 
 project = 'FactorioCalc'
-copyright = '2024, Kevin Atkinson'
+copyright = '2024-2025, Kevin Atkinson'
 author = 'Kevin Atkinson'
 
 import factoriocalc
